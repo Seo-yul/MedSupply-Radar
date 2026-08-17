@@ -39,8 +39,10 @@ div[data-testid="stHorizontalBlock"] { gap:1rem; }
 .panel { background:#fff; border:1px solid var(--line); border-radius:15px; padding:20px; box-shadow:0 2px 10px rgba(20,33,61,.035); margin-bottom:14px; }
 .panel-title { font-weight:800; font-size:16px; margin-bottom:4px; }
 .panel-sub { color:var(--muted); font-size:12px; margin-bottom:14px; }
-.risk-row { display:grid; grid-template-columns:1.8fr .7fr .8fr .8fr; gap:10px; align-items:center; padding:13px 4px; border-bottom:1px solid #edf0f5; font-size:13px; }
+.risk-row { display:grid; grid-template-columns:1.65fr .65fr .55fr .55fr; gap:10px; align-items:start; padding:15px 4px 7px; font-size:13px; }
 .risk-row:last-child { border-bottom:0; }
+.risk-meta { display:flex; flex-wrap:wrap; gap:5px 15px; margin:0 4px 11px; padding:0 0 13px; border-bottom:1px solid #edf0f5; color:#748094; font-size:10px; }
+.risk-meta b { color:#46566b; font-weight:700; }
 .drug { font-weight:700; } .drug small { display:block; color:var(--muted); font-weight:500; margin-top:3px; }
 .badge { display:inline-block; width:max-content; padding:5px 9px; border-radius:999px; font-size:11px; font-weight:800; }
 .critical { color:#a62f2a; background:#fde8e7; } .high { color:#a95508; background:#fff0d5; }
@@ -65,6 +67,18 @@ div[data-testid="stHorizontalBlock"] { gap:1rem; }
 .alt-card b { font-size:13px; } .alt-card small { display:block; color:#68758a; margin:4px 0 7px; }
 .stock-ok { color:#087568; font-weight:800; } .stock-low { color:#a95508; font-weight:800; }
 .clinical-warning { border:1px solid #eed7a9; background:#fffaf0; color:#754b0b; border-radius:10px; padding:12px 14px; font-size:12px; margin:10px 0; }
+.med-tree { border:1px solid #dbe4e9; border-radius:14px; background:#fff; padding:18px 20px; margin-top:10px; }
+.tree-root { display:flex; align-items:center; gap:9px; font-size:17px; font-weight:800; color:#10243e; }
+.tree-root .molecule { width:31px; height:31px; display:grid; place-items:center; border-radius:9px; background:#e3f4f2; }
+.tree-group { position:relative; margin:12px 0 6px 15px; padding-left:26px; border-left:2px solid #cbd8df; }
+.tree-group:before { content:''; position:absolute; left:0; top:14px; width:20px; border-top:2px solid #cbd8df; }
+.tree-condition { display:inline-block; color:#176b73; background:#e7f5f3; border-radius:7px; padding:6px 9px; font-size:11px; font-weight:800; margin:2px 0 9px; }
+.tree-node { position:relative; margin:0 0 8px 16px; padding:10px 12px; border:1px solid #e0e7ec; border-radius:9px; background:#fafcfc; font-size:12px; }
+.tree-node:before { content:''; position:absolute; left:-18px; top:17px; width:17px; border-top:1px solid #b9c8d1; }
+.tree-node.current { border-color:#a9d9d4; background:#f0faf8; }
+.tree-node.mismatch { border-color:#e7dac4; background:#fffaf2; }
+.tree-node strong { color:#10243e; } .tree-node span { float:right; font-weight:800; }
+.tree-section-label { color:#7656a3; font-size:12px; font-weight:800; margin:18px 0 4px; }
 .clinical-hero { position:relative; overflow:hidden; display:flex; justify-content:space-between; align-items:center; gap:24px; color:#fff; background:linear-gradient(120deg,#102a43 0%,#154b59 62%,#087f8c 100%); border-radius:18px; padding:22px 26px; margin:3px 0 19px; box-shadow:0 8px 25px rgba(16,42,67,.14); }
 .clinical-hero:after { content:'Rx'; position:absolute; right:145px; top:-28px; font-family:Georgia,serif; font-size:125px; font-weight:700; color:rgba(255,255,255,.055); transform:rotate(-8deg); }
 .hero-kicker { font-size:11px; font-weight:800; letter-spacing:.15em; color:#9be4dc; margin-bottom:6px; }
@@ -89,14 +103,14 @@ st.markdown(CSS, unsafe_allow_html=True)
 
 DRUGS = pd.DataFrame(
     [
-        ["아세트아미노펜정 500mg", "Acetaminophen", "해열·진통", "한빛제약", "정제", "경구", "공급중단", "매우 높음", 92, 6, -35, "공급중단 + 수요급증"],
-        ["세프트리악손주 1g", "Ceftriaxone", "항생제", "메디팜", "바이알", "정맥주사", "입고지연", "높음", 81, 9, -18, "입고 5일 지연"],
-        ["아목시실린캡슐 500mg", "Amoxicillin", "항생제", "그린바이오", "캡슐", "경구", "수요급증", "높음", 76, 11, -12, "사용량 41% 증가"],
-        ["덱시부프로펜시럽", "Dexibuprofen", "해열·진통", "한빛제약", "시럽", "경구", "관찰", "관찰", 58, 19, 8, "계절 수요 증가"],
-        ["메트포르민정 500mg", "Metformin", "당뇨", "유니메드", "정제", "경구", "정상공급", "안정", 24, 43, 22, "정상 범위"],
-        ["아토르바스타틴정 10mg", "Atorvastatin", "고지혈증", "메디팜", "정제", "경구", "정상공급", "안정", 16, 55, 31, "정상 범위"],
+        ["아세트아미노펜정 500mg", "Acetaminophen", "해열·진통", "한빛제약", "정제", "경구", "현재 품절", "매우 높음", 92, 6, -35, "공급중단 + 수요급증", "2026-06-18", "2026-08-01", "2026-09-15", "Y", "대체품 검토 중"],
+        ["세프트리악손주 1g", "Ceftriaxone", "항생제", "메디팜", "바이알", "정맥주사", "예상 품절", "높음", 81, 9, -18, "입고 5일 지연", "2026-07-21", "2026-08-01", "2026-08-19", "Y", "공급사 확인 중"],
+        ["아목시실린캡슐 500mg", "Amoxicillin", "항생제", "그린바이오", "캡슐", "경구", "예상 품절", "높음", 76, 11, -12, "사용량 41% 증가", "2026-07-26", "2026-07-31", "2026-08-25", "Y", "발주량 조정"],
+        ["덱시부프로펜시럽", "Dexibuprofen", "해열·진통", "한빛제약", "시럽", "경구", "공급중단", "관찰", 58, 19, 8, "계절 수요 증가", "2026-05-09", "2026-07-29", "2026-08-30", "N", "대체재고 확보"],
+        ["메트포르민정 500mg", "Metformin", "당뇨", "유니메드", "정제", "경구", "정상화", "안정", 24, 43, 22, "정상 범위", "2026-01-14", "2026-07-28", "2026-07-20", "Y", "조치 완료"],
+        ["아토르바스타틴정 10mg", "Atorvastatin", "고지혈증", "메디팜", "정제", "경구", "정상화", "안정", 16, 55, 31, "정상 범위", "2026-03-04", "2026-07-24", "2026-07-11", "N", "조치 완료"],
     ],
-    columns=["품목", "성분명", "분류", "공급사", "제형", "투여경로", "공급상태", "위험등급", "위험점수", "예상소진일", "재고변동", "주요원인"],
+    columns=["품목", "성분명", "분류", "공급사", "제형", "투여경로", "공급상태", "위험등급", "위험점수", "예상소진일", "재고변동", "주요원인", "최초발생일", "최근갱신일", "예상정상화일", "필수의약품", "대응상태"],
 )
 
 
@@ -162,12 +176,19 @@ if page == "관제 대시보드":
     st.write("")
     left, right = st.columns([1.65, 1])
     with left:
-        st.markdown('<div class="panel"><div class="panel-title">현재 공급 부족 품목</div><div class="panel-sub">ASHP 방식의 사건 유형과 예상 소진일을 함께 표시합니다.</div>', unsafe_allow_html=True)
-        for row in DRUGS.head(5).itertuples():
+        st.markdown('<div class="panel"><div class="panel-title">의약품 공급 상태</div><div class="panel-sub">2026.01.01~08.01 · 상태별 사건과 대응 진행상황을 확인합니다.</div>', unsafe_allow_html=True)
+        status_filter = st.radio("공급 상태", ["전체", "현재 품절", "예상 품절", "공급중단", "정상화"], horizontal=True, label_visibility="collapsed")
+        filtered = DRUGS if status_filter == "전체" else DRUGS[DRUGS["공급상태"] == status_filter]
+        for row in filtered.itertuples():
             css = {"매우 높음":"critical", "높음":"high", "관찰":"watch", "안정":"safe"}[row.위험등급]
-            event_css = "event-purple" if row.공급상태 == "공급중단" else "event-amber" if row.공급상태 in ["입고지연", "수요급증"] else "safe"
+            event_css = "event-red" if row.공급상태 == "현재 품절" else "event-purple" if row.공급상태 == "공급중단" else "event-amber" if row.공급상태 == "예상 품절" else "safe"
             form_icon = "💉" if row.제형 == "바이알" else "🥄" if row.제형 == "시럽" else "💊"
             st.markdown(f'<div class="risk-row"><div class="drug">{row.품목}<small>{row.성분명} · <span class="unit"><span class="unit-icon">{form_icon}</span>{row.제형} · {row.투여경로}</span></small></div><span class="event-pill {event_css}">{row.공급상태}</span><b>{row.위험점수}점</b><span>D-{row.예상소진일}</span></div>', unsafe_allow_html=True)
+            essential = "필수의약품" if row.필수의약품 == "Y" else "일반 관리품목"
+            normal_date = row.예상정상화일 if row.공급상태 != "정상화" else f"{row.예상정상화일} 정상화"
+            st.markdown(f'<div class="risk-meta"><span>최초 발생 <b>{row.최초발생일}</b></span><span>최근 갱신 <b>{row.최근갱신일}</b></span><span>예상 정상화 <b>{normal_date}</b></span><span><b>{essential}</b></span><span>대응 <b>{row.대응상태}</b></span></div>', unsafe_allow_html=True)
+        if filtered.empty:
+            st.info("해당 상태의 품목이 없습니다.")
         st.markdown('</div>', unsafe_allow_html=True)
         if st.button("위험 1위 품목 상세 보기 →", type="primary", use_container_width=True):
             st.session_state["selected_drug"] = DRUGS.iloc[0]["품목"]
@@ -204,7 +225,7 @@ elif page == "품목 상세":
     with info_tab:
         st.markdown('<div class="panel"><div class="panel-title">왜 위험한가?</div><div class="panel-sub">NHS SPS 방식으로 핵심 판단과 권장 조치를 분리했습니다.</div><div class="notice">최근 4주간 일평균 사용량이 18정에서 25.4정으로 <b>41% 증가</b>한 반면, 현재 재고는 152정으로 감소했습니다. 제조사의 공급중단 공고와 입고 지연이 동시에 확인되어, 현재 추세가 유지되면 <b>6일 이내 소진</b>될 가능성이 높습니다.</div><br><div class="action"><b>01 · 대체 가능 품목 재고 확인</b><p>동일 성분·함량·제형 후보 2개를 확인하고 약사가 대체 가능 여부를 검토합니다.</p></div><div class="action"><b>02 · 유통사 입고 일정 재확인</b><p>미확정 발주 건의 공급 가능 수량과 최단 입고일을 확인합니다.</p></div><div class="action"><b>03 · 사용 부서에 위험 공유</b><p>예상 소진일과 대체 검토 필요성을 처방 부서에 사전 공유합니다.</p></div></div>', unsafe_allow_html=True)
     with alt_tab:
-        st.markdown('<div class="clinical-warning"><b>약사 확인 필수</b> · 아래 항목은 동일 성분·함량·제형 기반 후보이며 자동 대체 처방을 의미하지 않습니다.</div><div class="alt-card"><b>대한아세트아미노펜정 500mg</b><small>Acetaminophen · 500mg · 정제 · 경구 · 대한제약</small><span class="stock-ok">재고 420정 · 16일분</span></div><div class="alt-card"><b>유니타세트정 500mg</b><small>Acetaminophen · 500mg · 정제 · 경구 · 유니메드</small><span class="stock-low">재고 84정 · 3일분</span></div><div class="alt-card"><b>아세트아미노펜서방정 650mg</b><small>함량·방출 제형 상이 · 처방 변경 및 임상 검토 필요</small><span class="badge inactive">조건 불일치</span></div>', unsafe_allow_html=True)
+        st.markdown('''<div class="clinical-warning"><b>약사 확인 필수</b> · 동일 조건 후보와 조건이 다른 후보를 구분하며, 자동 대체 처방을 의미하지 않습니다.</div><div class="med-tree"><div class="tree-root"><span class="molecule">⌬</span><div>아세트아미노펜<small style="display:block;color:#748094;font-size:10px;font-weight:600">ACETAMINOPHEN · 동일 성분 관계</small></div></div><div class="tree-group"><div class="tree-condition">500mg · 정제 · 경구</div><div class="tree-node current"><strong>현재 품목 · 한빛제약</strong><span class="stock-low">재고 152정</span></div><div class="tree-node"><strong>동일 조건 · 대한제약</strong><span class="stock-ok">재고 420정</span></div><div class="tree-node"><strong>동일 조건 · 유니메드</strong><span class="stock-low">재고 84정</span></div></div><div class="tree-section-label">조건이 다른 후보</div><div class="tree-group"><div class="tree-condition" style="color:#7656a3;background:#f1ecf7">650mg · 서방정 · 경구</div><div class="tree-node mismatch"><strong>아세트아미노펜서방정 650mg</strong><span class="badge inactive">조건 불일치</span><small style="display:block;clear:both;color:#8a651f;padding-top:6px">함량·방출 제형 상이 · 처방 변경 및 임상 검토 필요</small></div></div></div>''', unsafe_allow_html=True)
     with source_tab:
         st.markdown('<div class="panel"><div class="panel-title">판단 근거와 출처</div><div class="score"><span>기관 재고 스냅샷</span><strong>08.17 09:30</strong></div><div class="score"><span>최근 4주 사용량</span><strong>+41%</strong></div><div class="score"><span>제조사 공급중단 공고</span><strong>원문 확인</strong></div><div class="score"><span>입고예정 데이터</span><strong>5일 지연</strong></div><br><div class="tiny">AI는 위험등급 판정에 관여하지 않으며 입력 근거를 자연어로 요약합니다.</div></div>', unsafe_allow_html=True)
     with st.expander("약사 검토 및 대응 조치 기록", expanded=True):
