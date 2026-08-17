@@ -132,6 +132,54 @@ def header(title: str, subtitle: str) -> None:
     st.markdown(f'<div class="eyebrow">MEDSUPPLY RADAR</div><div class="page-title">{title}</div><div class="page-sub">{subtitle}</div>', unsafe_allow_html=True)
 
 
+def copilot_answer(question: str) -> str:
+    """Return grounded demo answers for the five MVP pharmacist question types."""
+    normalized = question.replace(" ", "")
+    if "소진" in normalized or "계산" in normalized:
+        return """**예상 소진일은 약 6일 후입니다.**
+
+`현재 재고 152정 ÷ 일평균 사용량 25.4정 = 5.98일`
+
+**근거**
+- 재고 스냅샷: 2026.08.01 09:30 · 152정
+- 최근 4주 일평균 사용량: 25.4정
+- 입고예정 데이터: 예정일 대비 5일 지연
+
+입고 전 사용량이 변하면 예상 소진일도 다시 계산해야 합니다."""
+    if "대체" in normalized or "후보" in normalized:
+        return """**동일 성분·함량·제형·투여경로 후보는 2개입니다.**
+
+- 대한아세트아미노펜정 500mg · 재고 420정
+- 유니타세트정 500mg · 재고 84정
+
+650mg 서방정은 함량과 방출 제형이 달라 동일 조건 후보가 아닙니다.
+
+**근거:** 기관 성분·대체군 매핑 2026.08.01 · 최종 선택은 약사 검토가 필요합니다."""
+    if "공고" in normalized or "공급중단" in normalized:
+        return """**제조사는 원료 수급 차질을 이유로 공급중단을 안내했습니다.**
+
+- 대상: 아세트아미노펜정 500mg
+- 공급중단 시작: 2026.07.28
+- 정상화 예상: 2026.09.15
+- 기관 매핑 품목: 3개
+
+**근거:** 제조사 공급중단 공고 원문 · AI 구조화 결과는 담당자 확인 전 상태입니다."""
+    if "발주" in normalized or "수량" in normalized:
+        return """**14일 기준 부족 예상량은 204정이며, 검토용 요청 수량은 300정입니다.**
+
+`14일 예상 수요 356정 − 현재 재고 152정 = 부족 예상 204정`
+
+300정은 포장단위와 안전재고를 고려한 참고값입니다. 실제 발주는 공급 가능 수량과 기관 규정을 확인한 뒤 **발주·조치안**에서 확정해야 합니다."""
+    return """**현재 위험점수는 92점으로 ‘매우 높음’입니다.**
+
+- 재고 커버리지: +38점 · 소진 예상 D-6
+- 수요 급증: +24점 · 최근 4주 +41%
+- 공급중단: +20점 · 제조사 공고 매핑
+- 입고 지연: +10점 · 예정일 대비 5일
+
+**근거:** 기관 재고·사용량·입고 데이터 및 공급중단 공고. AI는 위험등급 판정에 관여하지 않고 결과를 설명합니다."""
+
+
 def gauge(score: int) -> go.Figure:
     fig = go.Figure(go.Indicator(
         mode="gauge+number", value=score,
@@ -219,6 +267,39 @@ elif page == "검토 대기함":
     row = DRUGS[DRUGS["품목"] == selected].iloc[0]
     st.markdown(f'''<div class="drug-label"><div class="label-top"><div><div class="label-name">{row['품목']}</div><div class="label-inn">{row['성분명'].upper()} · {row['분류']}</div><div class="label-meta"><span class="meta-chip">500 mg</span><span class="meta-chip">{row['제형']}</span><span class="meta-chip">{row['투여경로']}</span><span class="meta-chip">전문의약품</span><span class="meta-chip">필수의약품</span></div></div><div><span class="rx">Rx</span></div></div><div class="source-strip"><span>품목기준코드 20260817001</span><span>제조사 {row['공급사']}</span><span>포장단위 100정/병</span><span>최종 갱신 2026.08.01 09:30</span></div></div>''', unsafe_allow_html=True)
     st.markdown('<div class="workflow"><div class="workflow-step done"><b>1 · 위험 확인 ✓</b>현재 품절 · 92</div><div class="workflow-step done"><b>2 · 근거 검토 ✓</b>근거 4건 일치</div><div class="workflow-step current"><b>3 · 대체약 검토</b>동일 조건 2개</div><div class="workflow-step"><b>4 · 조치 확정</b>약사 확인</div><div class="workflow-step"><b>5 · 결과 추적</b>이력 관리</div></div>', unsafe_allow_html=True)
+    summary_col, copilot_col = st.columns([1.8, 1])
+    with summary_col:
+        st.markdown('<div class="panel"><div class="panel-title">검토 요약</div><div class="panel-sub">현재 선택 품목의 핵심 위험 신호</div><div class="score"><span>품절 위험</span><strong style="color:#b23b35">92 · 매우 높음</strong></div><div class="score"><span>예상 소진</span><strong>6일 후</strong></div><div class="score"><span>동일 조건 대체 후보</span><strong>2개</strong></div><div class="score"><span>담당자 확인</span><strong style="color:#a95508">검토 중</strong></div></div>', unsafe_allow_html=True)
+    with copilot_col:
+        with st.container(border=True):
+            st.markdown("#### AI 문의")
+            st.caption(f"현재 품목: {row['품목']} · 근거 확인용 코파일럿")
+            if "copilot_messages" not in st.session_state:
+                st.session_state.copilot_messages = []
+            q1, q2 = st.columns(2)
+            suggested = None
+            if q1.button("왜 위험한가요?", use_container_width=True):
+                suggested = "왜 위험한가요?"
+            if q2.button("소진일 계산 근거", use_container_width=True):
+                suggested = "예상 소진일 계산 근거를 알려줘"
+            q3, q4 = st.columns(2)
+            if q3.button("대체 후보 비교", use_container_width=True):
+                suggested = "동일 조건 대체 후보를 비교해줘"
+            if q4.button("발주량 계산 근거", use_container_width=True):
+                suggested = "발주 요청량 계산 근거를 알려줘"
+            if suggested:
+                st.session_state.copilot_messages.append((suggested, copilot_answer(suggested)))
+            for user_text, answer_text in st.session_state.copilot_messages[-2:]:
+                with st.chat_message("user"):
+                    st.markdown(user_text)
+                with st.chat_message("assistant"):
+                    st.markdown(answer_text)
+            free_question = st.text_input("직접 질문", placeholder="공고 내용을 요약해줘", label_visibility="collapsed")
+            if st.button("질문 보내기", type="primary", use_container_width=True):
+                if free_question.strip():
+                    st.session_state.copilot_messages.append((free_question, copilot_answer(free_question)))
+                    st.rerun()
+            st.caption("답변은 의사결정 참고용이며 발주·대체를 자동 실행하지 않습니다.")
     a, b, c, d = st.columns(4)
     a.metric("현재 재고", "152정", "−35% / 7일", delta_color="inverse")
     b.metric("일평균 사용량", "25.4정", "+41% / 4주")
