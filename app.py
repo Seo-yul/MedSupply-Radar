@@ -91,6 +91,20 @@ div[data-testid="stHorizontalBlock"] { gap:1rem; }
 .incident.red { border-top:3px solid #c2413b; } .incident.amber { border-top:3px solid #d97706; } .incident.purple { border-top:3px solid #7656a3; } .incident.teal { border-top:3px solid #087f8c; }
 .unit { display:inline-flex; align-items:center; gap:5px; color:#516173; font-size:11px; font-weight:700; }
 .unit-icon { width:22px; height:22px; display:inline-grid; place-items:center; border:1px solid #d8e1e8; border-radius:6px; background:#f7fafb; }
+.workflow { display:grid; grid-template-columns:repeat(5,1fr); gap:8px; margin:0 0 18px; }
+.workflow-step { position:relative; padding:11px 10px; border:1px solid #dfe6ea; border-radius:10px; background:#fff; color:#68758a; font-size:11px; }
+.workflow-step b { display:block; color:#10243e; font-size:12px; margin-bottom:3px; }
+.workflow-step.done { border-color:#9fd3cd; background:#eff9f7; }
+.workflow-step.current { border-color:#e6c482; background:#fff9ed; }
+.task { border-left:3px solid #d5dfe5; padding:10px 12px; margin:8px 0; background:#fafcfc; border-radius:0 8px 8px 0; }
+.task b { display:block; color:#24384d; font-size:12px; } .task span { color:#718094; font-size:10px; }
+.order-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:9px; margin:10px 0 15px; }
+.order-stat { padding:13px; background:#f7f9fa; border-radius:10px; color:#68758a; font-size:11px; }
+.order-stat b { display:block; margin-top:3px; color:#10243e; font-size:19px; }
+.order-stat.short b { color:#b23b35; }
+.message-preview { padding:13px; background:#f8f5fb; border-left:4px solid #7656a3; border-radius:0 9px 9px 0; color:#43546a; font-size:12px; line-height:1.6; }
+.sidebar-user { padding:12px; border:1px solid rgba(255,255,255,.14); border-radius:10px; background:rgba(255,255,255,.05); font-size:11px; margin-bottom:16px; }
+.sidebar-user b { display:block; font-size:12px; margin-bottom:3px; }
 .score { display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid #edf0f5; font-size:13px; }
 .score strong { color:#244fb7; }
 .tiny { font-size:11px; color:var(--muted); }
@@ -155,19 +169,20 @@ def trend_chart() -> go.Figure:
 
 with st.sidebar:
     st.markdown('<div class="brand"><span class="brand-mark">⚕</span> MedSupply Radar</div>', unsafe_allow_html=True)
-    page = st.radio("메뉴", ["관제 대시보드", "품목 상세", "공급 공고", "알림센터", "대응 이력", "AI 평가"], label_visibility="collapsed")
+    st.markdown('<div class="sidebar-user"><b>김약사 · 재고·발주 담당</b>새한병원 약제부</div>', unsafe_allow_html=True)
+    page = st.radio("메뉴", ["수급 상황실", "검토 대기함", "발주·조치안", "대응 이력", "공급 공고", "알림센터", "AI 평가"], label_visibility="collapsed")
     st.markdown("---")
     st.caption("데이터 기준")
-    st.markdown("**2026. 08. 17 09:30**")
+    st.markdown("**2026. 08. 01 09:30**")
     st.caption("100개 품목 · 4개 위험 시나리오")
     st.markdown("---")
     st.caption("병원 약제부 수급관제 · 데모 환경")
 
 
-if page == "관제 대시보드":
+if page == "수급 상황실":
     st.markdown('<div class="clinical-hero"><div><div class="hero-kicker">HOSPITAL PHARMACY · SUPPLY COMMAND CENTER</div><div class="hero-title">병원 약제부 의약품 수급관제</div><div class="hero-copy">재고·사용량·입고·공급중단 신호를 통합해 품절 위험과 약사 조치 우선순위를 제공합니다.</div></div><div class="hero-mark">⚕</div></div>', unsafe_allow_html=True)
     st.markdown('<div class="incident-strip"><div class="incident red">품절 임박<b>3 품목 · 7일 이내</b></div><div class="incident amber">입고 지연<b>4건 · 평균 4.2일</b></div><div class="incident purple">외부 공급 공고<b>신규 3건 매핑</b></div><div class="incident teal">정상 공급<b>72 품목 · 안정</b></div></div>', unsafe_allow_html=True)
-    header("오늘의 수급위험", "위험 변화를 먼저 확인하고, 근거와 대응까지 한 흐름으로 관리하세요.")
+    header("오늘의 의약품 수급 상황", "확인이 필요한 품목부터 약사 업무 우선순위로 정렬했습니다.")
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("관제 품목", "100", "+4 신규")
     c2.metric("최고 위험", "3", "+1 오늘")
@@ -190,23 +205,20 @@ if page == "관제 대시보드":
         if filtered.empty:
             st.info("해당 상태의 품목이 없습니다.")
         st.markdown('</div>', unsafe_allow_html=True)
-        if st.button("위험 1위 품목 상세 보기 →", type="primary", use_container_width=True):
+        if st.button("검토 대기 4건 확인 →", type="primary", use_container_width=True):
             st.session_state["selected_drug"] = DRUGS.iloc[0]["품목"]
-            st.info("왼쪽 메뉴에서 ‘품목 상세’를 선택하면 연결된 화면을 볼 수 있습니다.")
+            st.info("왼쪽 메뉴에서 ‘검토 대기함’을 선택하면 약사 검토 화면을 볼 수 있습니다.")
     with right:
-        st.markdown('<div class="panel"><div class="panel-title">위험등급 분포</div><div class="panel-sub">전체 100개 품목 기준</div>', unsafe_allow_html=True)
-        dist = pd.DataFrame({"등급":["매우 높음","높음","관찰","안정"], "품목 수":[3,7,18,72]})
-        fig = px.bar(dist, x="품목 수", y="등급", orientation="h", color="등급", color_discrete_map={"매우 높음":"#e45757","높음":"#ee9b39","관찰":"#5b8def","안정":"#42aa7a"})
-        fig.update_layout(height=260, showlegend=False, margin=dict(l=5,r=15,t=5,b=5), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", xaxis=dict(showgrid=False), yaxis_title=None)
-        st.plotly_chart(fig, use_container_width=True, config={"displayModeBar":False})
-        st.markdown('</div>', unsafe_allow_html=True)
-        st.markdown('<div class="notice"><b>오늘의 핵심 신호</b><br>공급중단 공고 1건이 기관 보유 품목 3개와 새로 매핑되었습니다.</div>', unsafe_allow_html=True)
+        st.markdown('<div class="panel"><div class="panel-title">나의 오늘 할 일</div><div class="panel-sub">위험도와 예상 소진일 기준</div><div class="task"><b>09:00 · 긴급</b><span>아세트아미노펜 동일 조건 대체품 확인</span></div><div class="task"><b>11:00 · 발주 확인</b><span>세프트리악손 공급사 입고일 재확인</span></div><div class="task"><b>15:00 · 부서 공유</b><span>내과·소아청소년과 수급위험 전달</span></div></div>', unsafe_allow_html=True)
+        st.markdown('<div class="notice"><b>오늘의 핵심 신호</b><br>필수의약품 2종이 10일 이내 소진될 수 있습니다. 신규 공급 공고 1건이 기관 품목 3개와 매핑되었습니다.</div>', unsafe_allow_html=True)
+    st.markdown('<div class="workflow"><div class="workflow-step done"><b>1 · 위험 확인</b>상황실</div><div class="workflow-step current"><b>2 · 근거 검토</b>대기 4건</div><div class="workflow-step"><b>3 · 대체약 확인</b>동일 조건</div><div class="workflow-step"><b>4 · 발주·공유</b>요청안 작성</div><div class="workflow-step"><b>5 · 결과 기록</b>효과 추적</div></div>', unsafe_allow_html=True)
 
-elif page == "품목 상세":
-    header("품목 상세", "위험점수의 변화와 판단 근거를 확인하고 대응을 기록합니다.")
+elif page == "검토 대기함":
+    header("약사 검토 워크벤치", "위험 근거와 동일 조건 대체 후보를 확인한 뒤 조치안을 작성합니다.")
     selected = st.selectbox("품목 선택", DRUGS["품목"], index=0)
     row = DRUGS[DRUGS["품목"] == selected].iloc[0]
-    st.markdown(f'''<div class="drug-label"><div class="label-top"><div><div class="label-name">{row['품목']}</div><div class="label-inn">{row['성분명'].upper()} · {row['분류']}</div><div class="label-meta"><span class="meta-chip">500 mg</span><span class="meta-chip">{row['제형']}</span><span class="meta-chip">{row['투여경로']}</span><span class="meta-chip">전문의약품</span><span class="meta-chip">필수의약품</span></div></div><div><span class="rx">Rx</span></div></div><div class="source-strip"><span>품목기준코드 20260817001</span><span>제조사 {row['공급사']}</span><span>포장단위 100정/병</span><span>최종 갱신 2026.08.17 09:30</span></div></div>''', unsafe_allow_html=True)
+    st.markdown(f'''<div class="drug-label"><div class="label-top"><div><div class="label-name">{row['품목']}</div><div class="label-inn">{row['성분명'].upper()} · {row['분류']}</div><div class="label-meta"><span class="meta-chip">500 mg</span><span class="meta-chip">{row['제형']}</span><span class="meta-chip">{row['투여경로']}</span><span class="meta-chip">전문의약품</span><span class="meta-chip">필수의약품</span></div></div><div><span class="rx">Rx</span></div></div><div class="source-strip"><span>품목기준코드 20260817001</span><span>제조사 {row['공급사']}</span><span>포장단위 100정/병</span><span>최종 갱신 2026.08.01 09:30</span></div></div>''', unsafe_allow_html=True)
+    st.markdown('<div class="workflow"><div class="workflow-step done"><b>1 · 위험 확인 ✓</b>현재 품절 · 92</div><div class="workflow-step done"><b>2 · 근거 검토 ✓</b>근거 4건 일치</div><div class="workflow-step current"><b>3 · 대체약 검토</b>동일 조건 2개</div><div class="workflow-step"><b>4 · 조치 확정</b>약사 확인</div><div class="workflow-step"><b>5 · 결과 추적</b>이력 관리</div></div>', unsafe_allow_html=True)
     a, b, c, d = st.columns(4)
     a.metric("현재 재고", "152정", "−35% / 7일", delta_color="inverse")
     b.metric("일평균 사용량", "25.4정", "+41% / 4주")
@@ -227,7 +239,7 @@ elif page == "품목 상세":
     with alt_tab:
         st.markdown('''<div class="clinical-warning"><b>약사 확인 필수</b> · 동일 조건 후보와 조건이 다른 후보를 구분하며, 자동 대체 처방을 의미하지 않습니다.</div><div class="med-tree"><div class="tree-root"><span class="molecule">⌬</span><div>아세트아미노펜<small style="display:block;color:#748094;font-size:10px;font-weight:600">ACETAMINOPHEN · 동일 성분 관계</small></div></div><div class="tree-group"><div class="tree-condition">500mg · 정제 · 경구</div><div class="tree-node current"><strong>현재 품목 · 한빛제약</strong><span class="stock-low">재고 152정</span></div><div class="tree-node"><strong>동일 조건 · 대한제약</strong><span class="stock-ok">재고 420정</span></div><div class="tree-node"><strong>동일 조건 · 유니메드</strong><span class="stock-low">재고 84정</span></div></div><div class="tree-section-label">조건이 다른 후보</div><div class="tree-group"><div class="tree-condition" style="color:#7656a3;background:#f1ecf7">650mg · 서방정 · 경구</div><div class="tree-node mismatch"><strong>아세트아미노펜서방정 650mg</strong><span class="badge inactive">조건 불일치</span><small style="display:block;clear:both;color:#8a651f;padding-top:6px">함량·방출 제형 상이 · 처방 변경 및 임상 검토 필요</small></div></div></div>''', unsafe_allow_html=True)
     with source_tab:
-        st.markdown('<div class="panel"><div class="panel-title">판단 근거와 출처</div><div class="score"><span>기관 재고 스냅샷</span><strong>08.17 09:30</strong></div><div class="score"><span>최근 4주 사용량</span><strong>+41%</strong></div><div class="score"><span>제조사 공급중단 공고</span><strong>원문 확인</strong></div><div class="score"><span>입고예정 데이터</span><strong>5일 지연</strong></div><br><div class="tiny">AI는 위험등급 판정에 관여하지 않으며 입력 근거를 자연어로 요약합니다.</div></div>', unsafe_allow_html=True)
+        st.markdown('<div class="panel"><div class="panel-title">판단 근거와 출처</div><div class="score"><span>기관 재고 스냅샷</span><strong>08.01 09:30</strong></div><div class="score"><span>최근 4주 사용량</span><strong>+41%</strong></div><div class="score"><span>제조사 공급중단 공고</span><strong>원문 확인</strong></div><div class="score"><span>입고예정 데이터</span><strong>5일 지연</strong></div><br><div class="tiny">AI는 위험등급 판정에 관여하지 않으며 입력 근거를 자연어로 요약합니다.</div></div>', unsafe_allow_html=True)
     with st.expander("약사 검토 및 대응 조치 기록", expanded=True):
         col1, col2 = st.columns(2)
         action_type = col1.selectbox("조치 유형", ["입고 일정 확인", "대체 품목 검토", "발주량 조정", "처방 부서 공유"])
@@ -239,6 +251,30 @@ elif page == "품목 상세":
                 st.success(f"{datetime.now():%Y-%m-%d %H:%M} · {owner} · {action_type} 이력이 저장되었습니다.")
             else:
                 st.warning("약사 검토 확인 후 저장할 수 있습니다.")
+
+elif page == "발주·조치안":
+    header("발주·대응 조치안", "자동 발주가 아닌 약사 검토용 요청안을 작성하고 후속 업무를 예약합니다.")
+    st.markdown('<div class="workflow"><div class="workflow-step done"><b>1 · 위험 확인 ✓</b>완료</div><div class="workflow-step done"><b>2 · 근거 검토 ✓</b>완료</div><div class="workflow-step done"><b>3 · 대체약 확인 ✓</b>2개 후보</div><div class="workflow-step current"><b>4 · 발주·공유</b>요청안 작성</div><div class="workflow-step"><b>5 · 결과 기록</b>대기</div></div>', unsafe_allow_html=True)
+    left, right = st.columns([1.55, 1])
+    with left:
+        st.markdown('<div class="panel"><div class="panel-title">아세트아미노펜정 500mg · 발주 요청안</div><div class="panel-sub">현재 재고와 14일 예상 수요를 기준으로 계산한 참고안입니다.</div><div class="order-grid"><div class="order-stat">현재 재고<b>152정</b></div><div class="order-stat">14일 예상 수요<b>356정</b></div><div class="order-stat short">부족 예상량<b>204정</b></div></div></div>', unsafe_allow_html=True)
+        c1, c2 = st.columns(2)
+        supplier = c1.selectbox("대상 공급사", ["대한제약", "유니메드", "한빛제약"])
+        quantity = c2.number_input("요청 수량(정)", min_value=0, value=300, step=50)
+        c3, c4 = st.columns(2)
+        desired_date = c3.date_input("희망 입고일", value=pd.Timestamp("2026-08-04"))
+        owner = c4.text_input("담당 약사", "김약사")
+        reason = st.text_area("요청 사유", "필수의약품 현재 품절 · 예상 소진 D-6 · 동일 조건 대체품 확보")
+        st.warning("요청 수량은 참고값입니다. 실제 발주는 기관 규정과 공급사 확인 후 별도 시스템에서 수행합니다.")
+        confirmed = st.checkbox("위험 근거와 요청 수량을 확인했습니다.")
+        if st.button("조치안 검토 완료 및 이력 저장", type="primary", use_container_width=True):
+            if confirmed:
+                st.success(f"{owner} · {supplier} · {quantity}정 · {desired_date:%Y-%m-%d} 요청안이 저장되었습니다.")
+            else:
+                st.warning("약사 확인 후 저장할 수 있습니다.")
+    with right:
+        st.markdown('<div class="panel"><div class="panel-title">후속 조치</div><div class="task"><b>공급사 입고일 확인</b><span>대한제약 · 2026.08.01 11:00</span></div><div class="task"><b>처방 부서 사전 공유</b><span>내과·소아청소년과 · 오늘 15:00</span></div><div class="task"><b>위험도 재확인</b><span>입고 회신 후 자동 재계산</span></div></div>', unsafe_allow_html=True)
+        st.markdown('<div class="panel"><div class="panel-title">공유 메시지 미리보기</div><div class="message-preview">아세트아미노펜정 500mg의 수급 위험이 매우 높습니다. 동일 조건 대체품 확보 중이며 예상 소진일은 8월 7일입니다.</div></div>', unsafe_allow_html=True)
 
 elif page == "공급 공고":
     header("공급 공고 매핑", "외부 공고를 구조화하고 기관 보유 품목과 자동으로 연결합니다.")
@@ -267,13 +303,20 @@ elif page == "알림센터":
         st.markdown(f'<div class="panel"><span class="badge {css}">{badge}</span><div class="panel-title" style="margin-top:10px">{title}</div><div class="panel-sub" style="margin:0">{desc}</div></div>', unsafe_allow_html=True)
 
 elif page == "대응 이력":
-    header("대응 이력", "위험 품목에 대한 조치와 결과를 조직 지식으로 축적합니다.")
+    header("대응 이력과 결과 추적", "조치가 실제 위험을 낮췄는지 확인하고 다음 대응의 기준으로 축적합니다.")
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("완료 조치", "18", "+4 이번 주")
+    c2.metric("진행 중", "2", "−1 전일 대비")
+    c3.metric("평균 처리시간", "3.4시간", "−0.8시간")
+    c4.metric("위험도 하락", "14건", "완료 조치의 78%")
+    st.write("")
     history = pd.DataFrame([
-        ["2026-08-17 09:12", "아세트아미노펜정 500mg", "입고 일정 확인", "김약사", "진행 중"],
-        ["2026-08-16 15:40", "세프트리악손주 1g", "대체 품목 검토", "이약사", "완료"],
-        ["2026-08-15 11:20", "덱시부프로펜시럽", "발주량 조정", "김약사", "완료"],
-    ], columns=["일시", "품목", "조치", "담당자", "상태"])
+        ["2026-08-01 09:12", "아세트아미노펜정 500mg", "대체품 300정 요청안", "공급사 회신 대기", "김약사", "진행 중"],
+        ["2026-07-31 15:40", "세프트리악손주 1g", "입고 일정 재확인", "8월 5일 100 vial 확정", "김약사", "완료"],
+        ["2026-07-29 11:20", "덱시부프로펜시럽", "대체 재고 확보", "위험 76 → 42 하락", "김약사", "완료"],
+    ], columns=["일시", "품목", "조치", "결과", "담당자", "상태"])
     st.dataframe(history, use_container_width=True, hide_index=True)
+    st.success("완료된 조치 18건 중 14건에서 품목 위험도가 실제로 하락했습니다.")
 
 else:
     header("AI 평가", "Langfuse LLM-as-a-Judge 지표로 생성 품질과 회귀를 관리합니다.")
