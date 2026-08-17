@@ -1,0 +1,23 @@
+[theme]
+base = "light"
+primaryColor = "#A8352A"
+backgroundColor = "#FAF7F0"
+secondaryBackgroundColor = "#F3EDE0"
+textColor = "#212B33"
+linkColor = "#A8352A"
+codeBackgroundColor = "#F1EAD9"
+borderColor = "#DCD4C2"
+showWidgetBorder = true
+baseRadius = "4px"
+buttonRadius = "3px"
+font = "IBM Plex Sans KR, sans-serif"
+headingFont = "Hahmlet, serif"
+codeFont = "IBM Plex Mono, monospace"
+chartCategoricalColors = ["#212B33", "#A8352A", "#2F6E5C", "#966A15", "#59506E"]
+
+[theme.sidebar]
+backgroundColor = "#F3EDE0"
+secondaryBackgroundColor = "#EAE2CF"
+textColor = "#212B33"
+borderColor = "#DCD4C2"
+showSidebarBorder = true
