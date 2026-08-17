@@ -65,6 +65,18 @@ div[data-testid="stHorizontalBlock"] { gap:1rem; }
 .alt-card b { font-size:13px; } .alt-card small { display:block; color:#68758a; margin:4px 0 7px; }
 .stock-ok { color:#087568; font-weight:800; } .stock-low { color:#a95508; font-weight:800; }
 .clinical-warning { border:1px solid #eed7a9; background:#fffaf0; color:#754b0b; border-radius:10px; padding:12px 14px; font-size:12px; margin:10px 0; }
+.clinical-hero { position:relative; overflow:hidden; display:flex; justify-content:space-between; align-items:center; gap:24px; color:#fff; background:linear-gradient(120deg,#102a43 0%,#154b59 62%,#087f8c 100%); border-radius:18px; padding:22px 26px; margin:3px 0 19px; box-shadow:0 8px 25px rgba(16,42,67,.14); }
+.clinical-hero:after { content:'Rx'; position:absolute; right:145px; top:-28px; font-family:Georgia,serif; font-size:125px; font-weight:700; color:rgba(255,255,255,.055); transform:rotate(-8deg); }
+.hero-kicker { font-size:11px; font-weight:800; letter-spacing:.15em; color:#9be4dc; margin-bottom:6px; }
+.hero-title { font-size:25px; font-weight:800; letter-spacing:-.025em; }
+.hero-copy { font-size:12px; color:#d6e5ea; margin-top:5px; }
+.hero-mark { position:relative; z-index:1; min-width:75px; height:75px; border:1px solid rgba(255,255,255,.28); background:rgba(255,255,255,.1); border-radius:18px; display:grid; place-items:center; font-size:36px; backdrop-filter:blur(5px); }
+.incident-strip { display:grid; grid-template-columns:repeat(4,1fr); gap:9px; margin:0 0 18px; }
+.incident { background:#fff; border:1px solid #e0e7ec; border-radius:11px; padding:11px 13px; font-size:11px; color:#667588; }
+.incident b { display:block; font-size:13px; margin-top:4px; color:#10243e; }
+.incident.red { border-top:3px solid #c2413b; } .incident.amber { border-top:3px solid #d97706; } .incident.purple { border-top:3px solid #7656a3; } .incident.teal { border-top:3px solid #087f8c; }
+.unit { display:inline-flex; align-items:center; gap:5px; color:#516173; font-size:11px; font-weight:700; }
+.unit-icon { width:22px; height:22px; display:inline-grid; place-items:center; border:1px solid #d8e1e8; border-radius:6px; background:#f7fafb; }
 .score { display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid #edf0f5; font-size:13px; }
 .score strong { color:#244fb7; }
 .tiny { font-size:11px; color:var(--muted); }
@@ -139,6 +151,8 @@ with st.sidebar:
 
 
 if page == "관제 대시보드":
+    st.markdown('<div class="clinical-hero"><div><div class="hero-kicker">HOSPITAL PHARMACY · SUPPLY COMMAND CENTER</div><div class="hero-title">병원 약제부 의약품 수급관제</div><div class="hero-copy">재고·사용량·입고·공급중단 신호를 통합해 품절 위험과 약사 조치 우선순위를 제공합니다.</div></div><div class="hero-mark">⚕</div></div>', unsafe_allow_html=True)
+    st.markdown('<div class="incident-strip"><div class="incident red">품절 임박<b>3 품목 · 7일 이내</b></div><div class="incident amber">입고 지연<b>4건 · 평균 4.2일</b></div><div class="incident purple">외부 공급 공고<b>신규 3건 매핑</b></div><div class="incident teal">정상 공급<b>72 품목 · 안정</b></div></div>', unsafe_allow_html=True)
     header("오늘의 수급위험", "위험 변화를 먼저 확인하고, 근거와 대응까지 한 흐름으로 관리하세요.")
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("관제 품목", "100", "+4 신규")
@@ -152,7 +166,8 @@ if page == "관제 대시보드":
         for row in DRUGS.head(5).itertuples():
             css = {"매우 높음":"critical", "높음":"high", "관찰":"watch", "안정":"safe"}[row.위험등급]
             event_css = "event-purple" if row.공급상태 == "공급중단" else "event-amber" if row.공급상태 in ["입고지연", "수요급증"] else "safe"
-            st.markdown(f'<div class="risk-row"><div class="drug">{row.품목}<small>{row.성분명} · {row.제형} · {row.투여경로}</small></div><span class="event-pill {event_css}">{row.공급상태}</span><b>{row.위험점수}점</b><span>D-{row.예상소진일}</span></div>', unsafe_allow_html=True)
+            form_icon = "💉" if row.제형 == "바이알" else "🥄" if row.제형 == "시럽" else "💊"
+            st.markdown(f'<div class="risk-row"><div class="drug">{row.품목}<small>{row.성분명} · <span class="unit"><span class="unit-icon">{form_icon}</span>{row.제형} · {row.투여경로}</span></small></div><span class="event-pill {event_css}">{row.공급상태}</span><b>{row.위험점수}점</b><span>D-{row.예상소진일}</span></div>', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
         if st.button("위험 1위 품목 상세 보기 →", type="primary", use_container_width=True):
             st.session_state["selected_drug"] = DRUGS.iloc[0]["품목"]
