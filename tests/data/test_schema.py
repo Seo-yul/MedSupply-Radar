@@ -230,6 +230,29 @@ def test_risk_type_check_rejects_unknown_type(conn: sqlite3.Connection) -> None:
         )
 
 
+def test_risk_type_rejects_explicit_null(conn: sqlite3.Connection) -> None:
+    """미분류를 NULL로 표현할 수 없다(NOT NULL) — 'general'과의 이중 표현 차단."""
+    item_id = _seed_item(conn)
+    with pytest.raises(sqlite3.IntegrityError):
+        conn.execute(
+            "INSERT INTO risk_results(run_id, item_id, as_of, grade, base_grade, risk_type,"
+            " factors_json) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            ("2026-08-01#a1b2c3d4", item_id, "2026-08-01", "정상", "정상", None, "{}"),
+        )
+
+
+def test_risk_type_defaults_to_general(conn: sqlite3.Connection) -> None:
+    """risk_type 미지정 시 기본값은 'general'이다."""
+    item_id = _seed_item(conn)
+    conn.execute(
+        "INSERT INTO risk_results(run_id, item_id, as_of, grade, base_grade, factors_json)"
+        " VALUES (?, ?, ?, ?, ?, ?)",
+        ("2026-08-01#a1b2c3d4", item_id, "2026-08-01", "정상", "정상", "{}"),
+    )
+    conn.commit()
+    assert conn.execute("SELECT risk_type FROM risk_results").fetchone()[0] == "general"
+
+
 def _insert_extraction(conn: sqlite3.Connection, notice_id: str, status: str) -> None:
     conn.execute(
         "INSERT INTO notice_extractions(notice_id, payload_json, confidence, status,"
@@ -365,6 +388,20 @@ def test_rowid_pks_autoincrement(conn: sqlite3.Connection) -> None:
         "INSERT INTO action_history(item_id, action_type, owner, note, order_id)"
         " VALUES (?, ?, ?, ?, ?)",
         (item_id, "발주 요청", "약제부", "긴급 발주", order_id),
+    )
+    assert isinstance(cur.lastrowid, int) and cur.lastrowid > 0
+
+    cur = conn.execute(
+        "INSERT INTO alerts(alert_type, item_id, title, body, severity, dedupe_key)"
+        " VALUES (?, ?, ?, ?, ?, ?)",
+        (
+            "risk_escalation",
+            item_id,
+            "위험 등급 상향",
+            "공고로 등급이 상향되었다.",
+            "위험",
+            f"risk_escalation:{item_id}:2026-08-01",
+        ),
     )
     assert isinstance(cur.lastrowid, int) and cur.lastrowid > 0
     conn.commit()

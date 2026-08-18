@@ -157,7 +157,9 @@ CREATE TABLE risk_results (
     base_grade          TEXT NOT NULL
         CHECK (base_grade IN ('위험', '경고', '주의', '정상')),   -- 공고 상향 전 등급
     escalated_by_notice INTEGER NOT NULL DEFAULT 0 CHECK (escalated_by_notice IN (0, 1)),
-    risk_type           TEXT
+    -- 이상신호·활성 공고에서 결정적으로 유도되는 값이라 NULL이 존재할 이유가 없다.
+    -- 미분류는 NULL이 아니라 'general' 하나로만 표현한다(이중 표현 금지).
+    risk_type           TEXT NOT NULL DEFAULT 'general'
         CHECK (risk_type IN ('demand_surge', 'supply_halt', 'delivery_delay', 'composite', 'general')),
     score               INTEGER,                   -- 0~100 정렬용 점수
     days_to_stockout    INTEGER,                   -- 소진까지 남은 일수(추정 불가/소진 없음이면 NULL)

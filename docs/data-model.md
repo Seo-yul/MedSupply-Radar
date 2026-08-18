@@ -181,7 +181,7 @@ LLM 설명 생성은 이 테이블의 최신 run을 조회해 근거를 채운�
 | `grade` | TEXT | 최종 등급(공고 상향 반영) | NOT NULL, CHECK(§2.1) |
 | `base_grade` | TEXT | 공고 상향 전 등급 | NOT NULL, CHECK(§2.1) |
 | `escalated_by_notice` | INTEGER | 활성 공고로 상향되었는지 | NOT NULL, DEFAULT 0, CHECK(0/1) |
-| `risk_type` | TEXT | 위험 유형 | CHECK(`demand_surge`, `supply_halt`, `delivery_delay`, `composite`, `general`) |
+| `risk_type` | TEXT | 위험 유형 | NOT NULL, DEFAULT `'general'`, CHECK(`demand_surge`, `supply_halt`, `delivery_delay`, `composite`, `general`) |
 | `score` | INTEGER | 정렬용 점수(0~100) | |
 | `days_to_stockout` | INTEGER | 소진까지 남은 일수 | 추정 불가·소진 없음이면 NULL |
 | `depletion_date` | TEXT | 예상 소진일 | 없으면 NULL |
@@ -339,6 +339,9 @@ dataset_meta와 앱 meta를 단일 테이블로 통합해 드리프트를 막는
 `demand_surge`(수요 급증) · `supply_halt`(공급 중단) · `delivery_delay`(입고 지연) ·
 `composite`(복합) · `general`(일반). 이상신호와 활성 공고 유무에서 결정적으로 유도한다.
 
+**미분류는 NULL이 아니라 `general` 하나로만 표현한다.** 컬럼이 `NOT NULL DEFAULT 'general'`이므로
+"유형 없음"이 NULL과 `'general'`로 이중화될 여지가 없다. 조회 쪽에서 `IS NULL` 분기를 둘 필요도 없다.
+
 ### 2.6 조치 상태 (`action_history.status`)
 
 `진행 중` · `완료`.
@@ -397,9 +400,12 @@ run_id = f"{as_of.isoformat()}#{params_hash[:8]}"     예: "2026-08-01#a1b2c3d4"
 - **파일에 없는 품목은 정상**으로 규정한다. 오탐률 분모 = 전체 품목 수 − 라벨 품목 수.
 - **격리 원칙(중요):** 이 파일은 앱·분석 코드가 **절대 참조하지 않는다.** `medsupply/` 전체와
   `app.py`는 `data/scenarios/`·`ground_truth` 경로·모듈을 어떤 형태로도 import하거나 읽지 않는다.
-  참조가 허용되는 곳은 측정 스크립트(`scripts/measure_detection.py`)와 `eval/`뿐이며, 이 격리는
-  별도 테스트(`tests/test_isolation.py`)가 저장소 전역 정적 검사로 강제한다. 라벨을 보고 판정하면
-  탐지 성능 측정이 무의미해지기 때문이다.
+  참조가 허용되는 곳은 측정 스크립트(`scripts/measure_detection.py`)와 `eval/`뿐이다. 라벨을 보고
+  판정하면 탐지 성능 측정이 무의미해지기 때문이다.
+- **미구현 — 후속 태스크 요구사항:** 이 격리는 후속 태스크가 `tests/test_isolation.py` 하나로 통합해
+  저장소 전역 정적 검사로 강제해야 한다(역방향 `scripts/datagen` → `medsupply.analytics` 참조도 함께
+  검사, 허용 목록은 `scripts/measure_detection.py`와 `eval/`뿐). schema v1 시점에는 아직 그 테스트가
+  없으므로 지금은 규약으로만 존재한다.
 
 ---
 
