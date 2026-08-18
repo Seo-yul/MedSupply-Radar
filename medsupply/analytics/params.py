@@ -96,8 +96,8 @@ def load_params(path: str | Path = Path("config/analytics_params.toml")) -> Anal
         if key not in allowed_sections:
             raise ValueError(f"Unknown top-level key: {key}")
 
-    # Validate each section has allowed keys
-    allowed_keys = {
+    # Define required and allowed keys for each section
+    required_and_allowed_keys = {
         "grade": {"danger_days", "warning_days", "watch_days", "escalate_on_notice", "escalate_needs_review"},
         "forecast": {"method", "sma_window", "ses_alpha", "horizon_days"},
         "anomaly": {"surge_ratio", "drop_ratio", "recent_window", "baseline_window", "receipt_delay_days"},
@@ -105,11 +105,19 @@ def load_params(path: str | Path = Path("config/analytics_params.toml")) -> Anal
         "score": {"base_danger", "base_warning", "base_watch", "base_normal", "per_anomaly", "notice_bonus"},
     }
 
-    for section, keys in allowed_keys.items():
+    # Validate required keys and unknown keys
+    for section, allowed_keys in required_and_allowed_keys.items():
         if section in data:
+            # Check for unknown keys
             for key in data[section].keys():
-                if key not in keys:
+                if key not in allowed_keys:
                     raise ValueError(f"Unknown key in [{section}]: {key}")
+
+            # Check for missing required keys
+            section_data = data[section]
+            for required_key in allowed_keys:
+                if required_key not in section_data:
+                    raise ValueError(f"Missing required key: {section}.{required_key}")
 
     # Extract section data
     grade_data = data.get("grade", {})

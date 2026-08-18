@@ -1,7 +1,7 @@
 """Tests for analytics parameter configuration and loader."""
 import json
 from pathlib import Path
-from dataclasses import fields
+from dataclasses import FrozenInstanceError
 
 import pytest
 
@@ -194,37 +194,37 @@ class TestImmutability:
     def test_grade_params_frozen(self):
         """Test that GradeParams is immutable."""
         params = load_params()
-        with pytest.raises((AttributeError, Exception)):
+        with pytest.raises(FrozenInstanceError):
             params.grade.danger_days = 10  # type: ignore
 
     def test_forecast_params_frozen(self):
         """Test that ForecastParams is immutable."""
         params = load_params()
-        with pytest.raises((AttributeError, Exception)):
+        with pytest.raises(FrozenInstanceError):
             params.forecast.ses_alpha = 0.5  # type: ignore
 
     def test_anomaly_params_frozen(self):
         """Test that AnomalyParams is immutable."""
         params = load_params()
-        with pytest.raises((AttributeError, Exception)):
+        with pytest.raises(FrozenInstanceError):
             params.anomaly.surge_ratio = 0.5  # type: ignore
 
     def test_depletion_params_frozen(self):
         """Test that DepletionParams is immutable."""
         params = load_params()
-        with pytest.raises((AttributeError, Exception)):
+        with pytest.raises(FrozenInstanceError):
             params.depletion.reflect_receipts = True  # type: ignore
 
     def test_score_params_frozen(self):
         """Test that ScoreParams is immutable."""
         params = load_params()
-        with pytest.raises((AttributeError, Exception)):
+        with pytest.raises(FrozenInstanceError):
             params.score.base_danger = 80  # type: ignore
 
     def test_analytics_params_frozen(self):
         """Test that AnalyticsParams is immutable."""
         params = load_params()
-        with pytest.raises((AttributeError, Exception)):
+        with pytest.raises(FrozenInstanceError):
             params.params_hash = "different"  # type: ignore
 
 
@@ -283,3 +283,65 @@ class TestPositiveValues:
             load_params(tmp_config)
 
         assert "drop_ratio" in str(exc_info.value).lower()
+
+
+class TestMissingRequiredKeys:
+    """Test that missing required keys raise ValueError."""
+
+    def test_missing_grade_danger_days(self, tmp_path):
+        """Test that missing grade.danger_days raises ValueError."""
+        config_path = Path("config/analytics_params.toml")
+        with open(config_path, "r") as f:
+            content = f.read()
+
+        # Remove danger_days line
+        bad_content = content.replace("danger_days = 7          # 소진 예상 ≤7일 → 위험\n", "")
+
+        tmp_config = tmp_path / "analytics_params.toml"
+        tmp_config.write_text(bad_content)
+
+        with pytest.raises(ValueError) as exc_info:
+            load_params(tmp_config)
+
+        error_msg = str(exc_info.value).lower()
+        assert "missing required key" in error_msg or "danger_days" in error_msg
+
+    def test_missing_score_per_anomaly(self, tmp_path):
+        """Test that missing score.per_anomaly raises ValueError."""
+        config_path = Path("config/analytics_params.toml")
+        with open(config_path, "r") as f:
+            content = f.read()
+
+        # Remove per_anomaly line
+        bad_content = content.replace("per_anomaly = 8          # 이상신호 1건당 가점\n", "")
+
+        tmp_config = tmp_path / "analytics_params.toml"
+        tmp_config.write_text(bad_content)
+
+        with pytest.raises(ValueError) as exc_info:
+            load_params(tmp_config)
+
+        error_msg = str(exc_info.value).lower()
+        assert "missing required key" in error_msg or "per_anomaly" in error_msg
+
+
+class TestUnknownTopLevelKey:
+    """Test that unknown top-level keys raise ValueError."""
+
+    def test_unknown_top_level_key(self, tmp_path):
+        """Test that unknown top-level keys raise ValueError."""
+        config_path = Path("config/analytics_params.toml")
+        with open(config_path, "r") as f:
+            content = f.read()
+
+        # Add unknown key at the beginning
+        bad_content = "unknown_top = 1\n" + content
+
+        tmp_config = tmp_path / "analytics_params.toml"
+        tmp_config.write_text(bad_content)
+
+        with pytest.raises(ValueError) as exc_info:
+            load_params(tmp_config)
+
+        error_msg = str(exc_info.value).lower()
+        assert "unknown" in error_msg
