@@ -19,7 +19,7 @@ def render() -> None:
     st.markdown('<div class="workflow"><div class="workflow-step done"><b>1 · 위험 확인 ✓</b>현재 품절 · 92</div><div class="workflow-step done"><b>2 · 근거 검토 ✓</b>근거 4건 일치</div><div class="workflow-step current"><b>3 · 대체약 검토</b>동일 조건 2개</div><div class="workflow-step"><b>4 · 조치 확정</b>약사 확인</div><div class="workflow-step"><b>5 · 결과 추적</b>이력 관리</div></div>', unsafe_allow_html=True)
     summary_col, copilot_col = st.columns([1.8, 1])
     with summary_col:
-        st.markdown('<div class="panel"><div class="panel-title">검토 요약</div><div class="panel-sub">현재 선택 품목의 핵심 위험 신호</div><div class="score"><span>품절 위험</span><strong style="color:#a8352a">92 · 매우 높음</strong></div><div class="score"><span>예상 소진</span><strong>6일 후</strong></div><div class="score"><span>동일 조건 대체 후보</span><strong>2개</strong></div><div class="score"><span>담당자 확인</span><strong style="color:#966a15">검토 중</strong></div></div>', unsafe_allow_html=True)
+        st.markdown('<div class="panel"><div class="panel-title">검토 요약</div><div class="panel-sub">현재 선택 품목의 핵심 위험 신호</div><div class="score"><span>품절 위험</span><strong style="color:#a8352a">92 · 위험</strong></div><div class="score"><span>예상 소진</span><strong>6일 후</strong></div><div class="score"><span>동일 조건 대체 후보</span><strong>2개</strong></div><div class="score"><span>담당자 확인</span><strong style="color:#966a15">검토 중</strong></div></div>', unsafe_allow_html=True)
     with copilot_col:
         with st.container(border=True):
             st.markdown("#### AI 문의")

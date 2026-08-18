@@ -5,6 +5,7 @@ from __future__ import annotations
 import streamlit as st
 
 from medsupply.ui.components import header
+from medsupply.ui.grades import grade_css
 from medsupply.views import PAGE_REGISTRY
 from medsupply.views._demo import DRUGS
 
@@ -25,7 +26,7 @@ def render() -> None:
         status_filter = st.radio("공급 상태", ["전체", "현재 품절", "품절 예상", "공급중단", "정상화"], horizontal=True, label_visibility="collapsed")
         filtered = DRUGS if status_filter == "전체" else DRUGS[DRUGS["공급상태"] == status_filter]
         for row in filtered.itertuples():
-            css = {"매우 높음":"critical", "높음":"high", "관찰":"watch", "안정":"safe"}[row.위험등급]
+            css = grade_css(row.위험등급)
             event_css = "event-red" if row.공급상태 == "현재 품절" else "event-purple" if row.공급상태 == "공급중단" else "event-amber" if row.공급상태 == "품절 예상" else "safe"
             form_code = {"바이알": "INJ", "시럽": "SYR", "캡슐": "CAP"}.get(row.제형, "TAB")
             st.markdown(f'<div class="risk-row"><div class="drug">{row.품목}<small>{row.성분명} · <span class="unit"><span class="unit-icon">{form_code}</span>{row.제형} · {row.투여경로}</span></small></div><span class="event-pill {event_css}">{row.공급상태}</span><b>{row.위험점수}점</b><span>D-{row.예상소진일}</span></div>', unsafe_allow_html=True)
