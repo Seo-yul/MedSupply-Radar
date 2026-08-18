@@ -1,0 +1,49 @@
+ingredient_code,ingredient_name_kr,ingredient_name_en,atc_code
+ING-001,아세트아미노펜,Acetaminophen,N02BE01
+ING-002,이부프로펜,Ibuprofen,M01AE01
+ING-003,덱시부프로펜,Dexibuprofen,M01AE14
+ING-004,셀레콕시브,Celecoxib,M01AH01
+ING-005,트라마돌,Tramadol,N02AX02
+ING-006,아목시실린,Amoxicillin,J01CA04
+ING-007,아목시실린·클라불란산칼륨,Amoxicillin and clavulanic acid,J01CR02
+ING-008,세프트리악손,Ceftriaxone,J01DD04
+ING-009,세파졸린,Cefazolin,J01DB04
+ING-010,세페핌,Cefepime,J01DE01
+ING-011,메로페넴,Meropenem,J01DH02
+ING-012,반코마이신,Vancomycin,J01XA01
+ING-013,레보플록사신,Levofloxacin,J01MA12
+ING-014,아지트로마이신,Azithromycin,J01FA10
+ING-015,아토르바스타틴,Atorvastatin,C10AA05
+ING-016,로수바스타틴,Rosuvastatin,C10AA07
+ING-017,암로디핀,Amlodipine,C08CA01
+ING-018,로사르탄,Losartan,C09CA01
+ING-019,비소프롤롤,Bisoprolol,C07AB07
+ING-020,푸로세미드,Furosemide,C03CA01
+ING-021,니트로글리세린,Glyceryl trinitrate,C01DA02
+ING-022,오메프라졸,Omeprazole,A02BC01
+ING-023,에스오메프라졸,Esomeprazole,A02BC05
+ING-024,판토프라졸,Pantoprazole,A02BC02
+ING-025,파모티딘,Famotidine,A02BA03
+ING-026,온단세트론,Ondansetron,A04AA01
+ING-027,메트포르민,Metformin,A10BA02
+ING-028,글리메피리드,Glimepiride,A10BB12
+ING-029,시타글립틴,Sitagliptin,A10BH01
+ING-030,살부타몰,Salbutamol,R03AC02
+ING-031,부데소니드,Budesonide,R03BA02
+ING-032,몬테루카스트,Montelukast,R03DC03
+ING-033,아세틸시스테인,Acetylcysteine,R05CB01
+ING-034,로라제팜,Lorazepam,N05BA06
+ING-035,졸피뎀,Zolpidem,N05CF02
+ING-036,에스시탈로프람,Escitalopram,N06AB10
+ING-037,염화나트륨,Sodium chloride,B05XA03
+ING-038,염화칼륨,Potassium chloride,B05XA01
+ING-039,헤파린,Heparin,B01AB01
+ING-040,에녹사파린,Enoxaparin,B01AB05
+ING-041,클로피도그렐,Clopidogrel,B01AC04
+ING-042,덱사메타손,Dexamethasone,H02AB02
+ING-043,메틸프레드니솔론,Methylprednisolone,H02AB04
+ING-044,프레드니솔론,Prednisolone,H02AB06
+ING-045,레보티록신,Levothyroxine sodium,H03AA01
+ING-046,탐수로신,Tamsulosin,G04CA02
+ING-047,트라넥삼산,Tranexamic acid,B02AA02
+ING-048,리도카인,Lidocaine,N01BB02
