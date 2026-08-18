@@ -1,0 +1,266 @@
+# 품절 위험 시나리오 정의 — medsupply/·app.py 참조 금지(격리).
+#
+# 이 파일은 scripts/datagen/(데이터 생성)과 측정 스크립트만 읽는다. 위험도 판정 로직
+# (medsupply/analytics/*)이 이 파일을 참조하면 "정답을 보고 채점하는" 상황이 되어 탐지율
+# 측정이 무의미해진다. 참조 사례는 data/reference/sources.md의
+# "## 품절 시나리오 참조 사례" 절을 참고(reference 키로 1:1 연결).
+#
+# 이 시점에는 재고 수준(S-04 베이스라인)이 아직 없으므로 params는 "패턴"만 정의하고
+# 절대 재고량·소진일은 넣지 않는다. 실제 주입(베이스라인 위에 패턴을 얹어 구체적 재고
+# 궤적을 만드는 작업)은 2주차 S-12 소관이다.
+#
+# 배분(v1, 총 20건 — S-03 보고서에 유형×품목×강도 설계 근거 상세 기록):
+#   demand_surge 5 / supply_halt 5 / delivery_delay 5 / composite 5
+#   시나리오 품목 20 / 전체 품목 124 = 16.1% (상한 30% 이내, 정상 품목 83.9%)
+#   강도: 대부분 "감지 가능하나 자명하지 않은" 범위, 경계 애매 케이스 3건
+#   (SC-004·SC-010·SC-012, 아래 각 항목의 # 강도 주석 참조) 혼합.
+version: 1
+base_date: "2026-08-01"          # 데이터셋 as_of와 동일(medsupply/settings.py AS_OF와 일치)
+timeline_start: "2025-08-02"     # 12개월 시계열 시작일(base_date - 364일)
+
+scenarios:
+  # ── demand_surge (5) ──────────────────────────────────────────────
+  - scenario_id: "SC-001"
+    item_id: "ITM-0019"          # 아목시실린캡슐 500mg — 데모 필수(기존 서사: "사용량 41% 증가")
+    type: demand_surge
+    reference: "2022-2023 호흡기감염병 동시유행기 항생제·해열제 수요급증"
+    params:
+      surge_start_date: "2026-07-04"
+      ramp_days: 14
+      peak_multiplier: 1.41      # 기존 데모 카피 "사용량 41% 증가"와 일치
+      sustain: true
+      # 강도: 감지 가능·완만 — 기존 데모의 "경고" 등급과 정합되는 수준으로 설계.
+
+  - scenario_id: "SC-002"
+    item_id: "ITM-0009"          # 미래이부프로펜정 200mg
+    type: demand_surge
+    reference: "2022-2023 호흡기감염병 동시유행기 항생제·해열제 수요급증"
+    params:
+      surge_start_date: "2026-06-25"
+      ramp_days: 10
+      peak_multiplier: 1.8
+      sustain: true
+      # 강도: 감지 가능·중간.
+
+  - scenario_id: "SC-003"
+    item_id: "ITM-0044"          # 그린아지트로마이신정 250mg
+    type: demand_surge
+    reference: "2022-2023 호흡기감염병 동시유행기 항생제·해열제 수요급증"
+    params:
+      surge_start_date: "2026-07-10"
+      ramp_days: 7
+      peak_multiplier: 2.2
+      sustain: true
+      # 강도: 뚜렷함(빠른 램프 + 높은 배수) — 명확한 탐지 케이스.
+
+  - scenario_id: "SC-004"
+    item_id: "ITM-0087"          # 유니몬테루카스트정 10mg
+    type: demand_surge
+    reference: "환절기 알레르기·천식질환 치료제 계절 수요증가"
+    params:
+      surge_start_date: "2026-06-10"
+      ramp_days: 21
+      peak_multiplier: 1.35
+      sustain: true
+      # 강도: 경계 애매 케이스 #1 — 느린 램프·낮은 배수로 주의~경고 경계를 겨냥.
+
+  - scenario_id: "SC-005"
+    item_id: "ITM-0084"          # 그린살부타몰정 2mg
+    type: demand_surge
+    reference: "환절기 알레르기·천식질환 치료제 계절 수요증가"
+    params:
+      surge_start_date: "2026-07-01"
+      ramp_days: 10
+      peak_multiplier: 2.6
+      sustain: true
+      # 강도: 뚜렷함 — 동일 계절 패턴군 내 대조를 위해 강하게 설계.
+
+  # ── supply_halt (5) ───────────────────────────────────────────────
+  - scenario_id: "SC-006"
+    item_id: "ITM-0011"          # 덱시부프로펜시럽 — 데모 필수(기존 서사: 공급중단 상태)
+    type: supply_halt
+    reference: "제조소 품질·설비 점검에 따른 공급중단 공고 관행"
+    params:
+      halt_start_date: "2026-07-29"
+      expected_restart_date: "2026-08-30"   # 기존 데모의 예상정상화일과 일치
+      demand_shift_multiplier: 1.1          # 대체군 내 경미한 대체 수요 유입(선택 키)
+      # 강도: 경과일이 짧아(3일) 완만(주의~경고 경계에 가까운 편) — 기존 데모(주의, 19일) 정합.
+
+  - scenario_id: "SC-007"
+    item_id: "ITM-0036"          # 메디메로페넴주 500mg
+    type: supply_halt
+    reference: "제조소 품질·설비 점검에 따른 공급중단 공고 관행"
+    params:
+      halt_start_date: "2026-07-15"
+      expected_restart_date: null            # null = 미정
+      # 강도: 감지 가능·중간(경과 약 2주).
+
+  - scenario_id: "SC-008"
+    item_id: "ITM-0103"          # 메디헤파린주 25000IU/5mL
+    type: supply_halt
+    reference: "원료의약품 수급 차질형 공급중단"
+    params:
+      halt_start_date: "2026-07-03"
+      expected_restart_date: null
+      # 강도: 뚜렷함 — 경과일이 길어(약 4주) 명확한 탐지 케이스.
+
+  - scenario_id: "SC-009"
+    item_id: "ITM-0098"          # 한결생리식염주사액 0.9%/500mL
+    type: supply_halt
+    reference: "원료의약품 수급 차질형 공급중단"
+    params:
+      halt_start_date: "2026-07-19"
+      expected_restart_date: "2026-08-20"
+      demand_shift_multiplier: 1.2
+      # 강도: 감지 가능·중간.
+
+  - scenario_id: "SC-010"
+    item_id: "ITM-0065"          # 한결니트로글리세린패치 5mg
+    type: supply_halt
+    reference: "제조소 품질·설비 점검에 따른 공급중단 공고 관행"
+    params:
+      halt_start_date: "2026-07-27"
+      expected_restart_date: "2026-08-25"
+      # 강도: 경계 애매 케이스 #2 — 경과일이 짧아(5일) 주의~경고 경계를 겨냥.
+
+  # ── delivery_delay (5) ────────────────────────────────────────────
+  # params 키 확정: expected_date(원래 입고예정일), delay_days(지연일, 임계 3 이상),
+  # qty_ratio(실제/평시 재주문량 비율 — 1.0=전량, <1.0=지연+물량축소 겹침).
+  - scenario_id: "SC-011"
+    item_id: "ITM-0026"          # 세프트리악손주 1g — 데모 필수(기존 서사: "입고 5일 지연")
+    type: delivery_delay
+    reference: "원료의약품 수입통관·물류 지연에 따른 입고 지연 관행"
+    params:
+      expected_date: "2026-07-27"
+      delay_days: 5              # 기존 데모 카피 "입고 5일 지연"과 일치
+      qty_ratio: 1.0
+      # 강도: 감지 가능·중간 — 기존 데모의 "경고" 등급과 정합.
+
+  - scenario_id: "SC-012"
+    item_id: "ITM-0068"          # 메디에스오메프라졸주 40mg
+    type: delivery_delay
+    reference: "원료의약품 수입통관·물류 지연에 따른 입고 지연 관행"
+    params:
+      expected_date: "2026-07-24"
+      delay_days: 4
+      qty_ratio: 1.0
+      # 강도: 경계 애매 케이스 #3 — receipt_delay_days 임계(3일) 바로 위.
+
+  - scenario_id: "SC-013"
+    item_id: "ITM-0035"          # 미래세페핌주 1g
+    type: delivery_delay
+    reference: "원료의약품 수입통관·물류 지연에 따른 입고 지연 관행"
+    params:
+      expected_date: "2026-07-08"
+      delay_days: 10
+      qty_ratio: 0.8
+      # 강도: 뚜렷함 — 지연+물량축소 중첩.
+
+  - scenario_id: "SC-014"
+    item_id: "ITM-0121"          # 누리트라넥삼산주 250mg/5mL
+    type: delivery_delay
+    reference: "원료의약품 수입통관·물류 지연에 따른 입고 지연 관행"
+    params:
+      expected_date: "2026-07-18"
+      delay_days: 6
+      qty_ratio: 1.0
+      # 강도: 감지 가능·중간.
+
+  - scenario_id: "SC-015"
+    item_id: "ITM-0017"          # 대한트라마돌캡슐 50mg
+    type: delivery_delay
+    reference: "원료의약품 수입통관·물류 지연에 따른 입고 지연 관행"
+    params:
+      expected_date: "2026-06-30"
+      delay_days: 15
+      qty_ratio: 0.7
+      # 강도: 뚜렷함 — 5종 중 가장 긴 지연 + 물량축소.
+
+  # ── composite (5, 명시적 중첩 키 sub_scenarios 사용) ──────────────
+  - scenario_id: "SC-016"
+    item_id: "ITM-0001"          # 아세트아미노펜정 500mg — 데모 필수(기존 서사: "공급중단 + 수요급증")
+    type: composite
+    reference: "감염병 유행기 수요급증-제조차질 복합 품절"
+    params:
+      sub_scenarios:
+        - type: demand_surge
+          params:
+            surge_start_date: "2026-06-18"   # 기존 데모 최초발생일과 일치
+            ramp_days: 14
+            peak_multiplier: 2.4
+            sustain: true
+        - type: supply_halt
+          params:
+            halt_start_date: "2026-07-10"
+            expected_restart_date: "2026-09-15"   # 기존 데모 예상정상화일과 일치
+      # 강도: 뚜렷함(수요급증 + 공급중단 중첩) — 기존 데모의 "위험" 등급과 정합.
+
+  - scenario_id: "SC-017"
+    item_id: "ITM-0039"          # 대한반코마이신주 500mg
+    type: composite
+    reference: "감염병 유행기 수요급증-제조차질 복합 품절"
+    params:
+      sub_scenarios:
+        - type: demand_surge
+          params:
+            surge_start_date: "2026-06-25"
+            ramp_days: 10
+            peak_multiplier: 1.9
+            sustain: true
+        - type: supply_halt
+          params:
+            halt_start_date: "2026-07-12"
+            expected_restart_date: null
+      # 강도: 중간~뚜렷함.
+
+  - scenario_id: "SC-018"
+    item_id: "ITM-0058"          # 서울로사르탄정 50mg
+    type: composite
+    reference: "공급중단 후 대체입고 지연 이중 차질"
+    params:
+      sub_scenarios:
+        - type: supply_halt
+          params:
+            halt_start_date: "2026-07-08"
+            expected_restart_date: null
+        - type: delivery_delay
+          params:
+            expected_date: "2026-07-20"
+            delay_days: 8
+            qty_ratio: 0.7
+      # 강도: 중간 — 만성질환약(수요급증 없이 공급측 이중 차질만으로 구성한 대조군).
+
+  - scenario_id: "SC-019"
+    item_id: "ITM-0093"          # 메디로라제팜주 4mg/2mL
+    type: composite
+    reference: "감염병 유행기 수요급증-제조차질 복합 품절"
+    params:
+      sub_scenarios:
+        - type: demand_surge
+          params:
+            surge_start_date: "2026-06-20"
+            ramp_days: 14
+            peak_multiplier: 1.6
+            sustain: true
+        - type: supply_halt
+          params:
+            halt_start_date: "2026-07-18"
+            expected_restart_date: "2026-08-28"
+      # 강도: composite 중 상대적으로 완만 — 유형 내 강도 대조군.
+
+  - scenario_id: "SC-020"
+    item_id: "ITM-0107"          # 유니클로피도그렐정 75mg
+    type: composite
+    reference: "공급중단 후 대체입고 지연 이중 차질"
+    params:
+      sub_scenarios:
+        - type: supply_halt
+          params:
+            halt_start_date: "2026-07-02"
+            expected_restart_date: null
+        - type: delivery_delay
+          params:
+            expected_date: "2026-07-15"
+            delay_days: 12
+            qty_ratio: 0.75
+      # 강도: 뚜렷함 — 경과일이 길고 대체입고까지 지연.
