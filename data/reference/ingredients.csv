@@ -28,14 +28,14 @@ ING-026,온단세트론,Ondansetron,A04AA01
 ING-027,메트포르민,Metformin,A10BA02
 ING-028,글리메피리드,Glimepiride,A10BB12
 ING-029,시타글립틴,Sitagliptin,A10BH01
-ING-030,살부타몰,Salbutamol,R03AC02
-ING-031,부데소니드,Budesonide,R03BA02
+ING-030,살부타몰,Salbutamol,R03CC02
+ING-031,테오필린,Theophylline,R03DA04
 ING-032,몬테루카스트,Montelukast,R03DC03
 ING-033,아세틸시스테인,Acetylcysteine,R05CB01
 ING-034,로라제팜,Lorazepam,N05BA06
 ING-035,졸피뎀,Zolpidem,N05CF02
 ING-036,에스시탈로프람,Escitalopram,N06AB10
-ING-037,염화나트륨,Sodium chloride,B05XA03
+ING-037,염화나트륨,Sodium chloride,B05BB01
 ING-038,염화칼륨,Potassium chloride,B05XA01
 ING-039,헤파린,Heparin,B01AB01
 ING-040,에녹사파린,Enoxaparin,B01AB05

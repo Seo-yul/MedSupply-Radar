@@ -37,8 +37,10 @@ INGREDIENT_CODE_PATTERN = re.compile(r"^ING-\d{3}$")
 ITEM_ID_PATTERN = re.compile(r"^ITM-\d{4}$")
 GROUP_ID_PATTERN = re.compile(r"^SG-\d{3}$")
 
+# form/route에는 schema.sql의 CHECK 제약이 없다. 아래 집합은 본 프로젝트의 데이터 규약이며
+# (data/reference/sources.md 참조) 그 강제는 이 테스트가 담당한다.
 ALLOWED_FORMS = {"정제", "캡슐", "시럽", "주사", "바이알", "서방정", "산제", "패치"}
-ALLOWED_ROUTES = {"경구", "정맥주사", "근육주사", "외용"}
+ALLOWED_ROUTES = {"경구", "정맥주사", "근육주사", "피하", "외용"}
 
 BASE_SUPPLIERS = {"한빛제약", "대한제약", "유니메드", "메디팜", "그린바이오"}
 
@@ -376,7 +378,8 @@ def test_essential_ratio_is_around_thirty_percent(items) -> None:
 def test_suppliers_cover_existing_five_plus_synthetic_additions(items) -> None:
     suppliers = {row["supplier"] for row in items}
     assert BASE_SUPPLIERS <= suppliers, f"기존 공급사 누락: {BASE_SUPPLIERS - suppliers}"
-    assert len(suppliers - BASE_SUPPLIERS) >= 3, "합성 공급사 3사 이상 필요"
+    added = suppliers - BASE_SUPPLIERS
+    assert 3 <= len(added) <= 5, f"합성 공급사는 3~5사여야 한다(현재 {len(added)}사: {sorted(added)})"
 
 
 def test_ingredient_names_are_present_and_unique(ingredients) -> None:
