@@ -193,6 +193,26 @@ class TestDetectUsageAnomalies:
 
         assert len(anomalies) == 0
 
+    def test_metric_no_cap_for_normal_case(self, default_params):
+        """Metric should not be capped at 1.0 for baseline != 0 case (regression test)."""
+        # baseline 20, recent 50 => change = (50-20)/20 = 1.5 (150% increase)
+        baseline_data = [20.0] * 28
+        recent_data = [50.0] * 7
+        values = baseline_data + recent_data
+
+        dates = [date(2026, 7, 1) + timedelta(days=i) for i in range(35)]
+        usage = pd.Series(values, index=dates)
+
+        as_of = date(2026, 8, 4)
+        anomalies = detect_usage_anomalies(usage, as_of, default_params)
+
+        assert len(anomalies) == 1
+        anomaly = anomalies[0]
+        assert anomaly.kind == "usage_surge"
+        # Metric should be 1.5, not capped to 1.0
+        assert anomaly.metric == 1.5
+        assert "150%" in anomaly.detail
+
 
 class TestDetectReceiptDelay:
     """Tests for detect_receipt_delay function."""
@@ -303,7 +323,7 @@ class TestDetectReceiptDelay:
         receipts = pd.DataFrame({
             "shipment_id": ["S002", "S001"],
             "expected_date": ["2026-07-25", "2026-07-25"],
-            "expected_qty": [300.0, 300.0],
+            "expected_qty": [200.0, 100.0],
             "actual_date": [None, None],
             "status": ["예정", "예정"],
         })
@@ -314,8 +334,11 @@ class TestDetectReceiptDelay:
         assert len(anomalies) == 2
         assert anomalies[0].metric == 7.0
         assert anomalies[1].metric == 7.0
-        # Check that they're sorted by shipment_id: S001 < S002
-        # We need to check via the detail string since shipment_id isn't directly in AnomalyFlag
+        # Verify sorting by shipment_id ascending via expected_qty in detail string
+        # anomalies[0] should be S001 with expected_qty=100
+        # anomalies[1] should be S002 with expected_qty=200
+        assert "100" in anomalies[0].detail
+        assert "200" in anomalies[1].detail
 
     def test_iso_string_date_parsing(self, default_params):
         """Handle dates as ISO strings in DataFrame."""

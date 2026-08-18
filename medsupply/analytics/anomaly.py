@@ -70,9 +70,8 @@ def detect_usage_anomalies(usage: pd.Series, as_of: date, params: AnomalyParams)
     else:
         return []
 
-    # Round metric to 4 decimal places (cap at 1.0 for baseline==0 case)
+    # Round metric to 4 decimal places
     metric = round(change, 4)
-    metric = min(metric, 1.0)
 
     # Build detail string
     change_percent = round(abs(change) * 100)
