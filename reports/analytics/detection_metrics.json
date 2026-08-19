@@ -1,0 +1,78 @@
+{
+  "meta": {
+    "dataset_content_hash": "d0d2c9cdc60977dbd257ef5a721ad1b5b93e2405d0232eb81349bb98a8fe8008",
+    "config_hash": "2259bbf9",
+    "labels_version": "standard_v1.json",
+    "params_ref": "config/analytics_params.toml",
+    "generated_at": "2026-08-20T03:08:24",
+    "measured_by": "scripts/measure_detection.py"
+  },
+  "results": {
+    "detection_rate": 1.0,
+    "lead_days": {
+      "min": 16,
+      "median": 47.5,
+      "mean": 44.9,
+      "max": 78
+    },
+    "false_positive_rate": 1.0,
+    "danger_precision": 1.0,
+    "by_type": {
+      "composite": {
+        "labeled": 5,
+        "detected": 5,
+        "detection_rate": 1.0,
+        "lead_days": {
+          "min": 21,
+          "median": 23,
+          "mean": 25.8,
+          "max": 33
+        }
+      },
+      "delivery_delay": {
+        "labeled": 5,
+        "detected": 5,
+        "detection_rate": 1.0,
+        "lead_days": {
+          "min": 52,
+          "median": 71,
+          "mean": 66,
+          "max": 78
+        }
+      },
+      "demand_surge": {
+        "labeled": 5,
+        "detected": 5,
+        "detection_rate": 1.0,
+        "lead_days": {
+          "min": 52,
+          "median": 58,
+          "mean": 58,
+          "max": 65
+        }
+      },
+      "supply_halt": {
+        "labeled": 5,
+        "detected": 5,
+        "detection_rate": 1.0,
+        "lead_days": {
+          "min": 16,
+          "median": 29,
+          "mean": 29.8,
+          "max": 43
+        }
+      }
+    },
+    "counts": {
+      "labeled": 20,
+      "normal": 104,
+      "detected": 20,
+      "false_positives": 104
+    },
+    "sweep": {
+      "start": "2026-07-01",
+      "end": "2026-08-01",
+      "days": 32
+    }
+  }
+}
