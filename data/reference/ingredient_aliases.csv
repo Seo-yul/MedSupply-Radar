@@ -6,7 +6,7 @@ APAP,ING-001,abbr
 트라마돌염산염,ING-005,salt
 아목시실린나트륨,ING-006,salt
 아목시실린삼수화물,ING-006,salt
-Co-amoxiclav,ING-007,abbr
+Co-amoxiclav,ING-007,en
 세프트리악손나트륨,ING-008,salt
 CTRX,ING-008,abbr
 세파졸린나트륨,ING-009,salt
@@ -32,7 +32,7 @@ Nitroglycerin,ING-021,en
 NaCl,ING-037,abbr
 헤파린나트륨,ING-039,salt
 에녹사파린나트륨,ING-040,salt
-덱사메타손(미분화),ING-042,kr
+dexamethasone,ING-042,en
 덱사메타손인산염나트륨,ING-042,salt
 메틸프레드니솔론숙시네이트나트륨,ING-043,salt
 프레드니솔론아세테이트,ING-044,salt
