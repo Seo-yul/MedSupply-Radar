@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import csv
 import sqlite3
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 
 import pytest
@@ -21,12 +21,13 @@ import pytest
 from scripts.datagen import config as config_mod
 from scripts.datagen import inject
 from scripts.datagen import labels as labels_mod
-from scripts.datagen.baseline import generate_baseline
+from scripts.datagen.baseline import _simulate_item, compute_content_hash, generate_baseline
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SCENARIO_CONFIG_PATH = REPO_ROOT / "data" / "scenarios" / "scenario_config.yaml"
 SCHEMA_PATH = REPO_ROOT / "medsupply" / "data" / "schema.sql"
 ACTION_HISTORY_SEED_CSV = REPO_ROOT / "data" / "reference" / "action_history_seed.csv"
+ITEMS_CSV = REPO_ROOT / "data" / "reference" / "items_master.csv"
 
 SEED_A = 20260801
 BASE_DATE = "2026-08-01"
@@ -394,3 +395,217 @@ class TestLoadActionHistorySeed:
                 csv_row["created_at"],
                 csv_row["risk_type"],
             )
+
+
+# --- 10. 픽스 라운드 1(1주차 리뷰 F1~F4·F7·F8) 회귀 --------------------------
+
+
+class TestContentHashConsistency:
+    """F2: config_hash를 content_hash보다 먼저 확정해야 완성 DB에서 재계산한 값과 일치한다."""
+
+    def test_stored_content_hash_matches_recomputed(self, injected_a: InjectResult) -> None:
+        path, summary, _ = injected_a
+        conn = _connect(path)
+        try:
+            recomputed = compute_content_hash(conn)
+            stored = conn.execute("SELECT value FROM meta WHERE key = 'content_hash'").fetchone()[0]
+        finally:
+            conn.close()
+        assert recomputed == stored
+        assert recomputed == summary.content_hash
+
+
+class TestDeliveryDelayForcedOrder:
+    """F4: 지정 expected_date ±7일 내 자연 발주가 없으면 그 날짜에 신규 발주를 강제
+    생성해 미이행 대상으로 삼는다."""
+
+    def test_forced_order_matches_specified_date_exactly(self, injected_a: InjectResult) -> None:
+        """SC-012 ITM-0068: 자연 발주 리듬상 가장 가까운 후보가 16일 떨어져 있었다
+        (2주차 픽스 이전) — 이제는 지정일(2026-07-24)에 정확히 강제 생성된다."""
+        path, _, labels = injected_a
+        label = next(lbl for lbl in labels if lbl["params_ref"] == "SC-012")
+        assert label["item_id"] == "ITM-0068"
+        assert label["onset_date"] == "2026-07-24"
+
+        conn = _connect(path)
+        try:
+            rows = conn.execute(
+                "SELECT expected_qty, actual_date FROM incoming_shipments"
+                " WHERE item_id = 'ITM-0068' AND expected_date = '2026-07-24'"
+            ).fetchall()
+        finally:
+            conn.close()
+        assert rows, "강제 생성된 발주가 DB에 없다"
+        assert all(qty is not None and qty > 0 and actual is None for qty, actual in rows)
+
+    def test_all_delivery_delay_targets_within_tolerance_or_forced_exact(
+        self, injected_a: InjectResult
+    ) -> None:
+        """delivery_delay를 포함하는 7건(SC-011~015·018·020) 각각에서, 실제 대상이 된
+        발주(자연 매칭 또는 강제 생성)의 expected_date가 지정값과 7일 이내이거나(자연
+        매칭) 강제 생성으로 정확히 일치해야 한다.
+
+        composite(SC-018·SC-020)의 라벨 onset_date는 하위 요소 전체의 최솟값이라(halt가
+        delivery_delay보다 이를 수 있음) delivery_delay 자체의 이탈 여부를 가리지 못한다
+        — 그래서 라벨이 아니라 _resolve_effects를 다시 호출해 delivery_delay 하위 요소의
+        해석 결과를 직접 확인한다.
+        """
+        path, _, _ = injected_a
+        cfg = config_mod.load_scenario_config(SCENARIO_CONFIG_PATH)
+        base_date_obj = date.fromisoformat(BASE_DATE)
+        timeline_start = base_date_obj - timedelta(days=364)
+        days = [timeline_start + timedelta(days=i) for i in range(365)]
+
+        conn = _connect(path)
+        try:
+            checked = 0
+            for sc in cfg.scenarios:
+                subs = sc.params["sub_scenarios"] if sc.type == "composite" else [
+                    {"type": sc.type, "params": sc.params}
+                ]
+                delay_subs = [s for s in subs if s["type"] == "delivery_delay"]
+                if not delay_subs:
+                    continue
+                checked += 1
+
+                pack_size, supplier, atc_code, form = conn.execute(
+                    "SELECT pack_size, supplier, atc_code, form FROM items WHERE item_id = ?",
+                    (sc.item_id,),
+                ).fetchone()
+                item_row = {
+                    "item_id": sc.item_id, "pack_size": str(pack_size),
+                    "supplier": supplier, "atc_code": atc_code, "form": form,
+                }
+                _de, _he, delay_effects, forced_rows, _onset = inject._resolve_effects(
+                    sc, item_row, SEED_A, days
+                )
+                target = date.fromisoformat(delay_subs[0]["params"]["expected_date"])
+
+                if delay_effects:
+                    offset = abs((delay_effects[-1].expected_date - target).days)
+                    assert offset <= inject.DELIVERY_DELAY_MAX_OFFSET_DAYS, sc.scenario_id
+                else:
+                    assert forced_rows, sc.scenario_id
+                    forced_expected = date.fromisoformat(str(forced_rows[-1]["expected_date"]))
+                    assert forced_expected == target, sc.scenario_id
+
+            assert checked == 7
+        finally:
+            conn.close()
+
+
+class TestEffectEffectivenessAssertion:
+    """F1: 각 효과(halt/delay/demand_surge)가 최소 1건의 행 변화를 만들지 못하면
+    _assert_effects_effective가 명확한 에러로 실패해야 한다."""
+
+    _ITEM = {
+        "item_id": "ITEM-X", "pack_size": "10", "supplier": "테스트공급사",
+        "atc_code": "A00AA00", "form": "정제",
+    }
+
+    def test_raises_when_halt_never_blocks_anything(self) -> None:
+        trace = inject.ScenarioTrace(
+            halt_blocked_order_dates=frozenset(), delay_blocked_order_dates=frozenset()
+        )
+        halt_effects = (inject.HaltEffect(start=date(2026, 7, 1)),)
+        with pytest.raises(ValueError, match="무효과"):
+            inject._assert_effects_effective(
+                "SC-TEST", self._ITEM, SEED_A, [date(2026, 7, 1)],
+                (), halt_effects, (), [], [], trace,
+            )
+
+    def test_passes_when_halt_has_at_least_one_blocked_order(self) -> None:
+        trace = inject.ScenarioTrace(
+            halt_blocked_order_dates=frozenset({"2026-07-05"}), delay_blocked_order_dates=frozenset()
+        )
+        halt_effects = (inject.HaltEffect(start=date(2026, 7, 1)),)
+        inject._assert_effects_effective(
+            "SC-TEST", self._ITEM, SEED_A, [date(2026, 7, 1)],
+            (), halt_effects, (), [], [], trace,
+        )  # 예외 없이 통과해야 한다
+
+    def test_all_twenty_scenarios_pass_effectiveness_check(self, injected_a: InjectResult) -> None:
+        """injected_a 픽스처가 예외 없이 생성됐다는 사실 자체가 20건 전부 통과했다는
+        증거이지만, 의도를 명시적으로 남겨 회귀를 방지한다."""
+        _, summary, labels = injected_a
+        assert len(labels) == 20
+        assert summary.truncation_count >= 0  # 생성 자체가 성공했다는 것이 핵심 단언
+
+
+class TestExtrapolationCreditsNonBlockedIncoming:
+    """F3: 외삽은 시나리오가 실제로 막지 않은 미이행 발주를 remaining_stock에 가산해야
+    한다(그래야 demand_surge 단독 시나리오의 외삽이 부당하게 비관적으로 나오지 않는다)."""
+
+    def _seed_conn(self) -> sqlite3.Connection:
+        conn = sqlite3.connect(":memory:")
+        conn.execute(
+            "CREATE TABLE stock_usage_daily (item_id TEXT, date TEXT, usage_qty INTEGER,"
+            " incoming_qty INTEGER, closing_stock INTEGER)"
+        )
+        conn.execute(
+            "CREATE TABLE incoming_shipments (item_id TEXT, order_date TEXT, expected_date TEXT,"
+            " expected_qty INTEGER, actual_date TEXT, actual_qty INTEGER, status TEXT)"
+        )
+        stock = 300
+        base = date(2026, 7, 1)
+        rows = []
+        for i in range(28):
+            d = base + timedelta(days=i)
+            stock -= 10
+            rows.append(("ITEM-X", d.isoformat(), 10, 0, stock))
+        conn.executemany("INSERT INTO stock_usage_daily VALUES (?, ?, ?, ?, ?)", rows)
+        # 미이행 발주 1건(아직 도착 전, actual NULL) — 시나리오가 막은 것이 아니라
+        # 그냥 만기가 안 된 정상 발주라고 가정한다.
+        conn.execute(
+            "INSERT INTO incoming_shipments VALUES"
+            " ('ITEM-X', '2026-07-25', '2026-08-05', 200, NULL, NULL, '입고 예정')"
+        )
+        conn.commit()
+        return conn
+
+    def test_non_blocked_pending_shipment_extends_runway(self) -> None:
+        conn = self._seed_conn()
+        base_date = date(2026, 7, 28)
+
+        without_credit, basis1 = labels_mod._stockout_date(
+            conn, "ITEM-X", base_date, frozenset({"2026-07-25"})
+        )
+        with_credit, basis2 = labels_mod._stockout_date(conn, "ITEM-X", base_date, frozenset())
+
+        assert basis1 == "extrapolated"
+        assert basis2 == "extrapolated"
+        assert with_credit > without_credit
+
+    def test_default_blocked_set_is_empty_credits_everything(self) -> None:
+        conn = self._seed_conn()
+        base_date = date(2026, 7, 28)
+
+        default_call, _ = labels_mod._stockout_date(conn, "ITEM-X", base_date)
+        explicit_empty, _ = labels_mod._stockout_date(conn, "ITEM-X", base_date, frozenset())
+
+        assert default_call == explicit_empty
+
+
+class TestNoEffectEquivalence:
+    """F8: 효과가 전혀 없으면 simulate_item_with_scenario의 앞 3개 반환값(stock_rows·
+    shipment_rows·truncation_count)은 baseline._simulate_item과 바이트 동일해야 한다."""
+
+    def test_matches_baseline_simulate_item_for_sample_items(self) -> None:
+        base_date_obj = date.fromisoformat(BASE_DATE)
+        timeline_start = base_date_obj - timedelta(days=364)
+        days = [timeline_start + timedelta(days=i) for i in range(365)]
+
+        with ITEMS_CSV.open("r", encoding="utf-8", newline="") as f:
+            items_by_id = {row["item_id"]: row for row in csv.DictReader(f)}
+
+        for item_id in NON_SCENARIO_ITEMS:
+            item = items_by_id[item_id]
+            base_stock, base_ship, base_trunc = _simulate_item(item, SEED_A, days)
+            scen_stock, scen_ship, scen_trunc, trace = inject.simulate_item_with_scenario(
+                item, SEED_A, days
+            )
+            assert scen_stock == base_stock, item_id
+            assert scen_ship == base_ship, item_id
+            assert scen_trunc == base_trunc, item_id
+            assert trace.halt_blocked_order_dates == frozenset()
+            assert trace.delay_blocked_order_dates == frozenset()

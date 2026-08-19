@@ -129,6 +129,21 @@ def _validate_halt_restart(scenario_id: str, halt_start: date, expected_restart:
 # ---------------------------------------------------------------------------
 
 
+@dataclass(frozen=True)
+class ScenarioTrace:
+    """simulate_item_with_scenario의 4번째 반환값 — 무엇이 왜 막혔는지의 부기 정보.
+
+    stock_rows·shipment_rows(1~3번째 반환값)에는 절대 섞지 않는다 — baseline._simulate_item과
+    반환 형식을 바이트 단위로 동일하게 유지해야 무효과 동등성(1주차 리뷰 F8)이 성립한다.
+    halt_blocked_order_dates·delay_blocked_order_dates는 각각 halt·delay 때문에
+    미이행으로 남은 발주의 order_date(ISO 문자열) 집합이다(교집합 가능 — 동시에 해당될 수
+    있음). 효과별 실효성 검증(F1)과 라벨 외삽에서 "실제로 막힌 발주" 판별(F3)에 쓰인다.
+    """
+
+    halt_blocked_order_dates: frozenset[str]
+    delay_blocked_order_dates: frozenset[str]
+
+
 def simulate_item_with_scenario(
     item: dict[str, str],
     seed: int,
@@ -137,13 +152,15 @@ def simulate_item_with_scenario(
     demand_effects: tuple[DemandEffect, ...] = (),
     halt_effects: tuple[HaltEffect, ...] = (),
     delay_effects: tuple[DelayEffect, ...] = (),
-) -> tuple[list[dict[str, object]], list[dict[str, object]], int]:
+) -> tuple[list[dict[str, object]], list[dict[str, object]], int, ScenarioTrace]:
     """단일 품목의 시나리오 반영 일별 재고·사용량·발주 시뮬레이션(날짜순 진행).
 
     baseline._simulate_item과 동일한 서브시드 공식·노이즈 시퀀스·재고 항등식·1-pack
     하한 로직을 쓰되, 사용량 배수(demand_effects)와 미이행 발주 규칙(halt_effects·
-    delay_effects)을 얹는다. 세 효과가 모두 비어 있으면 baseline._simulate_item과
-    바이트 동일한 결과를 낸다. 반환 형식은 baseline._simulate_item과 동일하다.
+    delay_effects)을 얹는다. 세 효과가 모두 비어 있으면 앞 3개 반환값(stock_rows·
+    shipment_rows·truncation_count)은 baseline._simulate_item과 바이트 동일하다(1주차
+    리뷰 F8 — 무효과 동등성 회귀 테스트로 고정). 4번째 반환값(ScenarioTrace)은
+    baseline._simulate_item에는 없는 이 함수만의 부기 정보다.
     """
     item_id = item["item_id"]
     pack_size = int(item["pack_size"])
@@ -171,6 +188,8 @@ def simulate_item_with_scenario(
     pending_release_day: date | None = None
 
     truncation_count = 0
+    halt_blocked_order_dates: set[str] = set()
+    delay_blocked_order_dates: set[str] = set()
 
     for d in days:
         noise = max(0.5, rng.gauss(1.0, 0.12))
@@ -225,25 +244,29 @@ def simulate_item_with_scenario(
         if stock < rop and pending_row is None:
             expected_date = d + timedelta(days=lead_time)
             expected_qty = reorder_qty
-            blocked = False
             release_day: date | None = None
+            order_date_str = d.isoformat()
 
-            if any(expected_date >= h.start for h in halt_effects):
-                blocked = True
+            blocked_by_halt = any(expected_date >= h.start for h in halt_effects)
+            if blocked_by_halt:
                 release_day = expected_date
+                halt_blocked_order_dates.add(order_date_str)
 
             delay_eff = next((e for e in delay_effects if e.order_date == d), None)
             if delay_eff is not None:
-                blocked = True
+                delay_blocked_order_dates.add(order_date_str)
                 if delay_eff.qty_ratio is not None:
-                    expected_qty = baseline._ceil_to_pack(
+                    # F7(1주차 리뷰): _ceil_to_pack은 감축분을 다음 pack 배수로 올림
+                    # 처리해 감축이 흡수될 수 있다(예: 300개 1팩 품목에서 0.7배가 다시
+                    # 300으로 올림). _round_to_pack(하한 1팩)을 써야 실제로 줄어든다.
+                    expected_qty = baseline._round_to_pack(
                         reorder_qty * delay_eff.qty_ratio, pack_size
                     )
                 release_day = expected_date + timedelta(days=delay_eff.delay_days)
 
             new_row: dict[str, object] = {
                 "item_id": item_id,
-                "order_date": d.isoformat(),
+                "order_date": order_date_str,
                 "expected_date": expected_date.isoformat(),
                 "expected_qty": int(expected_qty),
                 "actual_date": None,
@@ -253,10 +276,14 @@ def simulate_item_with_scenario(
             shipment_rows.append(new_row)
             pending_row = new_row
             pending_expected = expected_date
-            pending_blocked = blocked
+            pending_blocked = blocked_by_halt or (delay_eff is not None)
             pending_release_day = release_day
 
-    return stock_rows, shipment_rows, truncation_count
+    trace = ScenarioTrace(
+        halt_blocked_order_dates=frozenset(halt_blocked_order_dates),
+        delay_blocked_order_dates=frozenset(delay_blocked_order_dates),
+    )
+    return stock_rows, shipment_rows, truncation_count, trace
 
 
 # ---------------------------------------------------------------------------
@@ -272,10 +299,13 @@ def _sub_specs(sc: Scenario) -> list[dict]:
 
 def _closest_order(
     shipment_rows: list[dict[str, object]], target_expected: date
-) -> dict[str, object]:
-    """expected_date가 target_expected에 가장 가까운 발주 행을 반환한다(동률은 이른 order_date)."""
+) -> dict[str, object] | None:
+    """expected_date가 target_expected에 가장 가까운 발주 행을 반환한다(동률은 이른 order_date).
+
+    발주가 하나도 없으면 None을 반환한다(호출부가 강제 생성 경로로 분기하도록).
+    """
     if not shipment_rows:
-        raise ValueError("주입 대상 발주를 찾을 수 없다(품목 시뮬레이션에 발주가 전혀 없음)")
+        return None
 
     def _key(row: dict[str, object]) -> tuple[int, str]:
         expected = date.fromisoformat(str(row["expected_date"]))
@@ -284,24 +314,58 @@ def _closest_order(
     return min(shipment_rows, key=_key)
 
 
+#: delivery_delay "가장 가까운 주문"의 최대 허용 이탈(일). 이보다 멀면 자연 발주 리듬에
+#: 대상이 없다고 보고 두 번째 arm(강제 생성)으로 분기한다(1주차 리뷰 F4).
+DELIVERY_DELAY_MAX_OFFSET_DAYS = 7
+
+
+def _item_reorder_profile(item: dict[str, str], seed: int) -> tuple[int, int]:
+    """(reorder_qty, lead_time) — baseline._simulate_item·simulate_item_with_scenario와
+    동일한 결정적 공식(순수 조회, 시뮬레이션 없이 재사용). delivery_delay 강제 생성
+    (F4)이 발주 시퀀스를 처음부터 돌리지 않고도 reorder_qty·lead_time만 알아야 할 때 쓴다.
+    """
+    pack_size = int(item["pack_size"])
+    rng = random.Random(baseline.item_subseed(seed, item["item_id"]))
+    lo, hi = baseline._BASE_USAGE_RANGES[baseline._form_bucket(item["form"])]
+    base_usage = round(rng.uniform(lo, hi), 1)
+    lead_time = baseline.supplier_lead_time(item["supplier"])
+    reorder_qty = baseline._ceil_to_pack(base_usage * 30, pack_size)
+    return reorder_qty, lead_time
+
+
 def _resolve_effects(
     sc: Scenario, item_row: dict[str, str], seed: int, days: list[date]
-) -> tuple[tuple[DemandEffect, ...], tuple[HaltEffect, ...], tuple[DelayEffect, ...], date]:
-    """시나리오 1건(composite는 하위 요소 전체)을 효과 리스트 + 실제 onset_date로 변환한다.
+) -> tuple[
+    tuple[DemandEffect, ...],
+    tuple[HaltEffect, ...],
+    tuple[DelayEffect, ...],
+    list[dict[str, object]],
+    date,
+]:
+    """시나리오 1건(composite는 하위 요소 전체)을 효과 리스트 + 강제 발주 + 실제
+    onset_date로 변환한다. 반환: (demand_effects, halt_effects, delay_effects,
+    forced_shipment_rows, onset_date).
 
     delivery_delay 요소는 "지정 expected_date에 가장 가까운 주문"을 찾아야 하므로, 그
     시점까지 이미 확정된 효과(이전 sub_scenario들의 demand/halt)를 반영한 드라이런
-    시뮬레이션을 1회 수행해 대상 발주를 특정한다. 반환하는 onset_date는 유형별 앵커
-    날짜(demand_surge=surge_start_date, supply_halt=halt_start_date)이되, delivery_delay만
-    "지정 expected_date"가 아니라 실제로 대상이 된 발주의 expected_date를 쓴다 — S-03
-    시점에는 베이스라인이 없어 지정값이 실제 발주 리듬과 어긋날 수 있고(브리프의 "가장
-    가까운 주문" 표현 자체가 이를 전제), 라벨의 onset<stockout 불변식은 실제로 주입된
-    사건 기준으로만 성립하기 때문이다. composite는 하위 요소들의 (보정된) 앵커 날짜 중
-    최솟값을 쓴다.
+    시뮬레이션을 1회 수행해 대상 발주를 특정한다. 가장 가까운 주문도
+    DELIVERY_DELAY_MAX_OFFSET_DAYS(7일)보다 멀면(또는 발주가 아예 없으면) 브리프의
+    두 번째 arm("또는 그 시점의 신규 주문")을 적용한다 — 지정 expected_date에 신규
+    발주를 강제로 만들어 그것을 대상으로 삼는다(1주차 리뷰 F4). 강제 발주는 day-loop의
+    "동시 대기 발주 1건" 상태기계를 건드리지 않는다 — 어차피 영원히 미이행이라 재고
+    궤적(stock_usage_daily)에 아무 영향이 없고, 자연 발주 흐름과 독립적으로 존재한다.
+
+    반환하는 onset_date는 유형별 앵커 날짜(demand_surge=surge_start_date,
+    supply_halt=halt_start_date)이되, delivery_delay만 "지정 expected_date"가 아니라
+    실제로 대상이 된 발주(자연 매칭이든 강제 생성이든)의 expected_date를 쓴다 — S-03
+    시점에는 베이스라인이 없어 지정값이 실제 발주 리듬과 어긋날 수 있고, 라벨의
+    onset<stockout 불변식은 실제로 주입된 사건 기준으로만 성립하기 때문이다. composite는
+    하위 요소들의 (보정된) 앵커 날짜 중 최솟값을 쓴다.
     """
     demand_effects: list[DemandEffect] = []
     halt_effects: list[HaltEffect] = []
     delay_effects: list[DelayEffect] = []
+    forced_rows: list[dict[str, object]] = []
     resolved_onsets: list[date] = []
 
     for sub in _sub_specs(sc):
@@ -336,7 +400,7 @@ def _resolve_effects(
 
         elif sub_type == "delivery_delay":
             target_expected = date.fromisoformat(str(params["expected_date"]))
-            _dry_stock, dry_shipments, _dry_trunc = simulate_item_with_scenario(
+            _dry_stock, dry_shipments, _dry_trunc, _dry_trace = simulate_item_with_scenario(
                 item_row,
                 seed,
                 days,
@@ -344,24 +408,109 @@ def _resolve_effects(
                 halt_effects=tuple(halt_effects),
                 delay_effects=tuple(delay_effects),
             )
-            matched = _closest_order(dry_shipments, target_expected)
-            matched_order_date = date.fromisoformat(str(matched["order_date"]))
-            matched_expected_date = date.fromisoformat(str(matched["expected_date"]))
             qty_ratio = params.get("qty_ratio")
-            delay_effects.append(
-                DelayEffect(
-                    order_date=matched_order_date,
-                    expected_date=matched_expected_date,
-                    delay_days=int(params["delay_days"]),
-                    qty_ratio=float(qty_ratio) if qty_ratio is not None else None,
-                )
+            qty_ratio_f = float(qty_ratio) if qty_ratio is not None else None
+            delay_days = int(params["delay_days"])
+
+            matched = _closest_order(dry_shipments, target_expected)
+            offset = (
+                abs((date.fromisoformat(str(matched["expected_date"])) - target_expected).days)
+                if matched is not None
+                else None
             )
-            resolved_onsets.append(matched_expected_date)
+
+            if matched is not None and offset is not None and offset <= DELIVERY_DELAY_MAX_OFFSET_DAYS:
+                matched_order_date = date.fromisoformat(str(matched["order_date"]))
+                matched_expected_date = date.fromisoformat(str(matched["expected_date"]))
+                delay_effects.append(
+                    DelayEffect(
+                        order_date=matched_order_date,
+                        expected_date=matched_expected_date,
+                        delay_days=delay_days,
+                        qty_ratio=qty_ratio_f,
+                    )
+                )
+                resolved_onsets.append(matched_expected_date)
+            else:
+                # 두 번째 arm(1주차 리뷰 F4): ±7일 내 자연 발주가 없다 — 지정
+                # expected_date에 신규 발주를 강제 생성해 그것을 미이행 대상으로 삼는다.
+                reorder_qty, item_lead_time = _item_reorder_profile(item_row, seed)
+                forced_qty = reorder_qty
+                if qty_ratio_f is not None:
+                    forced_qty = baseline._round_to_pack(
+                        reorder_qty * qty_ratio_f, int(item_row["pack_size"])
+                    )
+                forced_order_date = target_expected - timedelta(days=item_lead_time)
+                forced_rows.append(
+                    {
+                        "item_id": item_row["item_id"],
+                        "order_date": forced_order_date.isoformat(),
+                        "expected_date": target_expected.isoformat(),
+                        "expected_qty": int(forced_qty),
+                        "actual_date": None,
+                        "actual_qty": None,
+                        "status": "입고 예정",
+                    }
+                )
+                resolved_onsets.append(target_expected)
 
         else:
             raise ValueError(f"{sc.scenario_id}: 알 수 없는 시나리오 유형 {sub_type!r}")
 
-    return tuple(demand_effects), tuple(halt_effects), tuple(delay_effects), min(resolved_onsets)
+    return tuple(demand_effects), tuple(halt_effects), tuple(delay_effects), forced_rows, min(resolved_onsets)
+
+
+def _assert_effects_effective(
+    scenario_id: str,
+    item_row: dict[str, str],
+    seed: int,
+    days: list[date],
+    demand_effects: tuple[DemandEffect, ...],
+    halt_effects: tuple[HaltEffect, ...],
+    delay_effects: tuple[DelayEffect, ...],
+    forced_rows: list[dict[str, object]],
+    stock_rows: list[dict[str, object]],
+    trace: ScenarioTrace,
+) -> None:
+    """이 시나리오의 각 효과(halt·delay·demand_surge)가 실제로 최소 1건의 행 변화를
+    만들었는지 검증한다(1주차 리뷰 F1). scenario_config.yaml의 강도가 베이스라인 리듬과
+    맞지 않으면 주입이 물리적으로 무효과가 될 수 있다(예: halt 기간이 너무 짧아 재고가
+    ROP 밑으로 내려갈 시간이 없어 미이행 발주가 하나도 생기지 않음 — SC-006·SC-010·
+    SC-018에서 실제로 발생했던 사례). 이런 경우를 조용히 지나치지 않고 명확한 에러로
+    실패시켜, config 조정 없이는 "정답 라벨은 있는데 데이터에는 신호가 없는" 상태로
+    감지율 측정에 들어가는 일이 없게 한다.
+    """
+    if halt_effects and not trace.halt_blocked_order_dates:
+        raise ValueError(
+            f"{scenario_id}: supply_halt가 미이행 발주를 1건도 만들지 못했다(무효과) —"
+            " halt_start_date를 앞당기거나 demand_shift_multiplier를 조정해야 한다"
+        )
+
+    for d_eff in delay_effects:
+        if d_eff.order_date.isoformat() not in trace.delay_blocked_order_dates:
+            raise ValueError(
+                f"{scenario_id}: delivery_delay 대상 발주(order_date="
+                f"{d_eff.order_date.isoformat()})가 미이행 상태로 기록되지 않았다(구현 오류)"
+            )
+
+    for row in forced_rows:
+        if row["actual_date"] is not None:
+            raise ValueError(f"{scenario_id}: 강제 생성 발주가 이행 상태로 기록됐다(구현 오류)")
+
+    if demand_effects:
+        # demand_effects만 뺀 반사실(counterfactual)과 비교해 사용량이 실제로 달라졌는지
+        # 확인한다(halt·delay는 그대로 둬 demand 기여만 격리). 감시 구간은 가장 이른
+        # demand 효과의 시작일부터다 — 그 이전은 애초에 비교 대상이 아니다.
+        window_start = min(e.start for e in demand_effects).isoformat()
+        _no_stock, _no_ship, _no_trunc, _no_trace = simulate_item_with_scenario(
+            item_row, seed, days, halt_effects=halt_effects, delay_effects=delay_effects
+        )
+        real_usage = {r["date"]: r["usage_qty"] for r in stock_rows if r["date"] >= window_start}
+        counterfactual_usage = {r["date"]: r["usage_qty"] for r in _no_stock if r["date"] >= window_start}
+        if all(real_usage[d] == counterfactual_usage[d] for d in real_usage):
+            raise ValueError(
+                f"{scenario_id}: demand_surge가 사용량에 어떤 변화도 만들지 못했다(무효과)"
+            )
 
 
 # ---------------------------------------------------------------------------
@@ -475,13 +624,14 @@ def inject_scenarios(
     try:
         total_truncations = 0
         onset_overrides: dict[str, date] = {}
+        blocked_orders: dict[str, set[str]] = {}
         for sc in cfg.scenarios:
             item_row = _load_item_row(conn, sc.item_id)
-            demand_effects, halt_effects, delay_effects, onset_date = _resolve_effects(
+            demand_effects, halt_effects, delay_effects, forced_rows, onset_date = _resolve_effects(
                 sc, item_row, seed, days
             )
             onset_overrides[sc.scenario_id] = onset_date
-            stock_rows, shipment_rows, truncations = simulate_item_with_scenario(
+            stock_rows, shipment_rows, truncations, trace = simulate_item_with_scenario(
                 item_row,
                 seed,
                 days,
@@ -489,7 +639,30 @@ def inject_scenarios(
                 halt_effects=halt_effects,
                 delay_effects=delay_effects,
             )
+            shipment_rows = shipment_rows + forced_rows
             total_truncations += truncations
+
+            _assert_effects_effective(
+                sc.scenario_id,
+                item_row,
+                seed,
+                days,
+                demand_effects,
+                halt_effects,
+                delay_effects,
+                forced_rows,
+                stock_rows,
+                trace,
+            )
+
+            # F3(1주차 리뷰): 라벨 외삽이 "실제로 막힌" 발주와 "아직 만기가 안 된 정상
+            # 재고 중" 발주를 구분할 수 있도록, 이 품목에서 막힌 order_date 전체(halt·
+            # delay·강제 생성)를 모아 derive_labels에 넘긴다.
+            blocked_orders[sc.item_id] = (
+                set(trace.halt_blocked_order_dates)
+                | set(trace.delay_blocked_order_dates)
+                | {row["order_date"] for row in forced_rows}
+            )
 
             with conn:
                 conn.execute("DELETE FROM stock_usage_daily WHERE item_id = ?", (sc.item_id,))
@@ -508,17 +681,26 @@ def inject_scenarios(
                     shipment_rows,
                 )
 
-        content_hash = baseline.compute_content_hash(conn)
+        # F2(1주차 리뷰): config_hash를 content_hash보다 먼저 확정해야 한다.
+        # compute_content_hash는 meta 테이블 전체(자기 자신인 content_hash 키만 제외)를
+        # 직렬화하므로, config_hash를 나중에 갱신하면 방금 계산한 content_hash가 "갱신 전"
+        # config_hash 값을 반영한 채로 저장되어 완성 DB에서 재계산한 content_hash와
+        # meta.content_hash가 어긋난다.
         config_hash = hashlib.sha256(scenario_config_path.read_bytes()).hexdigest()
         with conn:
-            conn.execute("UPDATE meta SET value = ? WHERE key = 'content_hash'", (content_hash,))
             conn.execute("UPDATE meta SET value = ? WHERE key = 'config_hash'", (config_hash,))
+
+        content_hash = baseline.compute_content_hash(conn)
+        with conn:
+            conn.execute("UPDATE meta SET value = ? WHERE key = 'content_hash'", (content_hash,))
 
         item_count = conn.execute("SELECT COUNT(*) FROM items").fetchone()[0]
         ts_count = conn.execute("SELECT COUNT(*) FROM stock_usage_daily").fetchone()[0]
         shipment_count = conn.execute("SELECT COUNT(*) FROM incoming_shipments").fetchone()[0]
 
-        labels = labels_mod.derive_labels(conn, cfg, onset_overrides=onset_overrides)
+        labels = labels_mod.derive_labels(
+            conn, cfg, onset_overrides=onset_overrides, blocked_orders=blocked_orders
+        )
     finally:
         conn.close()
 

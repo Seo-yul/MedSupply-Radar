@@ -385,7 +385,8 @@ run_id = f"{as_of.isoformat()}#{params_hash[:8]}"     예: "2026-08-01#a1b2c3d4"
     "scenario_type": "supply_halt",
     "onset_date": "2026-07-18",
     "stockout_date": "2026-08-05",
-    "params_ref": "scenarios/supply_halt_v1"
+    "params_ref": "scenarios/supply_halt_v1",
+    "stockout_basis": "observed"
   }
 ]
 ```
@@ -395,10 +396,18 @@ run_id = f"{as_of.isoformat()}#{params_hash[:8]}"     예: "2026-08-01#a1b2c3d4"
 | `item_id` | str | 대상 품목 |
 | `scenario_type` | str | `demand_surge` \| `supply_halt` \| `delivery_delay` \| `composite` |
 | `onset_date` | str | 시나리오 발생 시작일(ISO 날짜) |
-| `stockout_date` | str | 실제 소진 발생일(ISO 날짜) |
-| `params_ref` | str | 주입에 쓴 시나리오 파라미터 참조 키 |
+| `stockout_date` | str | 실측 소진일 또는 외삽 예측일(ISO 날짜) — `stockout_basis` 참조 |
+| `params_ref` | str | 주입에 쓴 시나리오 파라미터 참조 키(scenario_id) |
+| `stockout_basis` | str | `observed`(base_date까지 closing_stock이 실제로 0에 도달) \| `extrapolated`(미도달 — 최근 28일 평균 사용량과 잔여 재고로 선형 외삽한 예측일) |
 
 - **파일에 없는 품목은 정상**으로 규정한다. 오탐률 분모 = 전체 품목 수 − 라벨 품목 수.
+- **`delay_days`(scenario_config.yaml, delivery_delay 파라미터)의 의미(1주차 리뷰 F5 판정):**
+  관측 가능한 "지연 일수"가 아니라 주입기(`scripts/datagen/inject.py`) 내부의 **재발주
+  게이트** 기간이다 — 막힌 발주가 이 기간만큼 슬롯을 붙잡아 둔 뒤 풀려나 새 발주를 다시
+  시도할 수 있게 하는 파라미터일 뿐, 데이터에 이 값이 직접 기록되지는 않는다. 실제로
+  관측 가능한(측정 스크립트가 볼 수 있는) 지연 정도는 `as_of`(또는 `base_date`)와 미이행
+  발주의 `expected_date` 차이로 결정된다 — 이 라벨의 `onset_date`~`stockout_date` 구간이
+  그 근거다.
 - **격리 원칙(중요):** 이 파일은 앱·분석 코드가 **절대 참조하지 않는다.** `medsupply/` 전체와
   `app.py`는 `data/scenarios/`·`ground_truth` 경로·모듈을 어떤 형태로도 import하거나 읽지 않는다.
   참조가 허용되는 곳은 측정 스크립트(`scripts/measure_detection.py`)와 `eval/`뿐이다. 라벨을 보고

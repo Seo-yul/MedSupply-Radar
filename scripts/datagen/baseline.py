@@ -310,7 +310,14 @@ def compute_content_hash(conn: sqlite3.Connection) -> str:
 
 @dataclass(frozen=True)
 class GenerationSummary:
-    """생성 요약 — CLI 출력 및 테스트 검증에 쓰인다."""
+    """생성 요약 — CLI 출력 및 테스트 검증에 쓰인다.
+
+    generate_baseline이 채우면 전 품목(124개) 기준 집계다. scripts/datagen/inject.py의
+    inject_scenarios가 채울 때는 truncation_count만 시나리오 품목(20개) 기준으로 집계된
+    값이다 — 정상 품목(비시나리오)은 베이스라인 불변식(truncation_count == 0, 재시뮬레이션
+    대상이 아님)이 항상 성립하므로, 시나리오 품목만 합산해도 전체 truncation_count와
+    동일하다(1주차 리뷰 F10 — 집계 범위 명시).
+    """
 
     item_count: int
     timeseries_row_count: int
@@ -442,11 +449,18 @@ def _build_arg_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> GenerationSummary:
+    """baseline.py 자체의 독립 CLI 진입점 — 언제나 베이스라인 경로만 실행한다.
+
+    이 모듈은 시나리오 주입을 구현하지 않으므로(주입은 scripts/datagen/inject.py 소관)
+    --baseline-only 플래그 값과 무관하게 항상 generate_baseline만 호출한다. 공식 진입점은
+    scripts/generate_dataset.py다(--baseline-only 여부로 generate_baseline·inject_scenarios를
+    직접 갈라 호출하며, 이 main()을 거치지 않는다) — 이 함수는 baseline.py를 단독으로
+    직접 실행할 때만 쓰인다(1주차 리뷰 F10: "시나리오 주입은 미구현" 에러가 도달 불가
+    데드코드가 되어 제거함 — generate_dataset.py가 더 이상 이 main()을 호출하지 않아
+    이 함수의 "미구현" 에러 분기를 거칠 경로 자체가 없었다).
+    """
     parser = _build_arg_parser()
     args = parser.parse_args(argv)
-
-    if not args.baseline_only:
-        parser.error("시나리오 주입은 미구현(S-12)")
 
     summary = generate_baseline(args.out, seed=args.seed, base_date=args.base_date)
 

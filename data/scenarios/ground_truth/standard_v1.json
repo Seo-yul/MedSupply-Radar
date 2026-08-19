@@ -19,7 +19,7 @@
     "item_id": "ITM-0044",
     "scenario_type": "demand_surge",
     "onset_date": "2026-07-10",
-    "stockout_date": "2026-08-06",
+    "stockout_date": "2026-09-01",
     "params_ref": "SC-003",
     "stockout_basis": "extrapolated"
   },
@@ -35,15 +35,15 @@
     "item_id": "ITM-0084",
     "scenario_type": "demand_surge",
     "onset_date": "2026-07-01",
-    "stockout_date": "2026-08-02",
+    "stockout_date": "2026-08-22",
     "params_ref": "SC-005",
     "stockout_basis": "extrapolated"
   },
   {
     "item_id": "ITM-0011",
     "scenario_type": "supply_halt",
-    "onset_date": "2026-07-29",
-    "stockout_date": "2026-08-22",
+    "onset_date": "2026-07-19",
+    "stockout_date": "2026-08-13",
     "params_ref": "SC-006",
     "stockout_basis": "extrapolated"
   },
@@ -74,8 +74,8 @@
   {
     "item_id": "ITM-0065",
     "scenario_type": "supply_halt",
-    "onset_date": "2026-07-27",
-    "stockout_date": "2026-09-13",
+    "onset_date": "2026-07-26",
+    "stockout_date": "2026-08-03",
     "params_ref": "SC-010",
     "stockout_basis": "extrapolated"
   },
@@ -90,34 +90,34 @@
   {
     "item_id": "ITM-0068",
     "scenario_type": "delivery_delay",
-    "onset_date": "2026-07-08",
-    "stockout_date": "2026-07-16",
+    "onset_date": "2026-07-24",
+    "stockout_date": "2026-08-22",
     "params_ref": "SC-012",
-    "stockout_basis": "observed"
+    "stockout_basis": "extrapolated"
   },
   {
     "item_id": "ITM-0035",
     "scenario_type": "delivery_delay",
-    "onset_date": "2026-07-26",
-    "stockout_date": "2026-08-05",
+    "onset_date": "2026-07-08",
+    "stockout_date": "2026-09-17",
     "params_ref": "SC-013",
     "stockout_basis": "extrapolated"
   },
   {
     "item_id": "ITM-0121",
     "scenario_type": "delivery_delay",
-    "onset_date": "2026-07-06",
-    "stockout_date": "2026-07-14",
+    "onset_date": "2026-07-18",
+    "stockout_date": "2026-08-24",
     "params_ref": "SC-014",
-    "stockout_basis": "observed"
+    "stockout_basis": "extrapolated"
   },
   {
     "item_id": "ITM-0017",
     "scenario_type": "delivery_delay",
-    "onset_date": "2026-07-20",
-    "stockout_date": "2026-07-30",
+    "onset_date": "2026-06-30",
+    "stockout_date": "2026-09-14",
     "params_ref": "SC-015",
-    "stockout_basis": "observed"
+    "stockout_basis": "extrapolated"
   },
   {
     "item_id": "ITM-0001",
@@ -138,10 +138,10 @@
   {
     "item_id": "ITM-0058",
     "scenario_type": "composite",
-    "onset_date": "2026-06-21",
-    "stockout_date": "2026-06-29",
+    "onset_date": "2026-07-03",
+    "stockout_date": "2026-08-07",
     "params_ref": "SC-018",
-    "stockout_basis": "observed"
+    "stockout_basis": "extrapolated"
   },
   {
     "item_id": "ITM-0093",
