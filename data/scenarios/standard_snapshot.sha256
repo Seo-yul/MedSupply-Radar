@@ -1,0 +1,2 @@
+# python scripts/generate_dataset.py --config data/scenarios/scenario_config.yaml --out data/medsupply.db --seed 20260801 --base-date 2026-08-01
+d0d2c9cdc60977dbd257ef5a721ad1b5b93e2405d0232eb81349bb98a8fe8008
