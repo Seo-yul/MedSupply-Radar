@@ -1,0 +1,14 @@
+version: 1
+tasks:
+  notice_extract:
+    active: v1
+    versions:
+      v1:
+        file: notice_extract/v1.md
+        description: 공급중단 공고 구조화 추출 v1
+  risk_explain:
+    active: v1
+    versions:
+      v1:
+        file: risk_explain/v1.md
+        description: 위험 원인 설명·대응방안 생성 v1
