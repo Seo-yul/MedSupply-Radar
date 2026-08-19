@@ -24,6 +24,9 @@ def sma_forecast(usage: pd.Series, window: int, horizon: int) -> ForecastResult:
     if horizon < 1:
         raise ValueError(f"horizon must be >= 1. Got {horizon}")
 
+    if window < 1:
+        raise ValueError(f"window must be >= 1. Got {window}")
+
     # Validate usage series
     if len(usage) == 0:
         raise ValueError("usage series is empty")

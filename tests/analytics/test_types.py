@@ -176,10 +176,12 @@ class TestRiskAssessment:
             depletion_date=date(2026, 8, 7),
             forecast=forecast,
             anomalies=anomalies,
+            reflected_receipts=True,
         )
         assert assessment.item_id == "001-ABC"
         assert assessment.grade == RiskGrade.DANGER
         assert len(assessment.anomalies) == 1
+        assert assessment.reflected_receipts is True
 
     def test_risk_assessment_frozen(self):
         """Test RiskAssessment immutability."""
@@ -202,6 +204,7 @@ class TestRiskAssessment:
             depletion_date=None,
             forecast=forecast,
             anomalies=(),
+            reflected_receipts=False,
         )
         with pytest.raises(FrozenInstanceError):
             assessment.score = 20
@@ -235,6 +238,7 @@ class TestRiskAssessment:
             depletion_date=date(2026, 8, 7),
             forecast=forecast,
             anomalies=anomalies,
+            reflected_receipts=True,
         )
         evidence = assessment.to_evidence()
 
@@ -247,6 +251,7 @@ class TestRiskAssessment:
         assert "score" in evidence
         assert "days_to_stockout" in evidence
         assert "depletion_date" in evidence
+        assert "reflected_receipts" in evidence
         assert "forecast" in evidence
         assert "anomalies" in evidence
 
@@ -259,6 +264,7 @@ class TestRiskAssessment:
         assert evidence["score"] == 92
         assert evidence["days_to_stockout"] == 6
         assert evidence["depletion_date"] == "2026-08-07"
+        assert evidence["reflected_receipts"] is True
 
         # Check forecast
         assert evidence["forecast"]["method"] == "ses"
@@ -295,11 +301,13 @@ class TestRiskAssessment:
             depletion_date=None,
             forecast=forecast,
             anomalies=(),
+            reflected_receipts=False,
         )
         evidence = assessment.to_evidence()
 
         assert evidence["days_to_stockout"] is None
         assert evidence["depletion_date"] is None
+        assert evidence["reflected_receipts"] is False
 
     def test_to_evidence_json_serializable(self):
         """Test to_evidence() result is JSON serializable with ensure_ascii=False."""
@@ -330,6 +338,7 @@ class TestRiskAssessment:
             depletion_date=date(2026, 8, 7),
             forecast=forecast,
             anomalies=anomalies,
+            reflected_receipts=True,
         )
         evidence = assessment.to_evidence()
 
@@ -341,3 +350,4 @@ class TestRiskAssessment:
         deserialized = json.loads(json_str)
         assert deserialized["grade"] == "위험"
         assert deserialized["anomalies"][0]["detail"] == "사용량 급증했습니다"
+        assert deserialized["reflected_receipts"] is True

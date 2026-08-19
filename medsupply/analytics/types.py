@@ -1,8 +1,7 @@
 """Type definitions for analytics domain."""
 from __future__ import annotations
 
-import json
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import date
 from enum import Enum
 
@@ -88,6 +87,7 @@ class RiskAssessment:
     depletion_date: date | None
     forecast: ForecastResult
     anomalies: tuple[AnomalyFlag, ...]
+    reflected_receipts: bool  # depletion.DepletionEstimate.reflected_receipts를 그대로 옮긴 값
 
     def to_evidence(self) -> dict:
         """Convert to JSON-serializable evidence dict for risk_results.factors_json.
@@ -105,6 +105,7 @@ class RiskAssessment:
             "score": self.score,
             "days_to_stockout": self.days_to_stockout,
             "depletion_date": self.depletion_date.isoformat() if self.depletion_date else None,
+            "reflected_receipts": self.reflected_receipts,
             "forecast": {
                 "method": self.forecast.method,
                 "horizon_days": self.forecast.horizon_days,

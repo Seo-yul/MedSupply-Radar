@@ -45,6 +45,8 @@ def estimate_depletion(
           shipments with expected_date > as_of at their scheduled date.
           already received (actual_date != NULL) or delayed (expected_date <= as_of)
           shipments are not reflected.
+          지연 입고(expected_date <= as_of)를 소진일 추정에 반영하지 않는 것은 의도된
+          설계다 — 지연 자체의 감지·판단은 anomaly.detect_receipt_delay의 소관이다.
     """
     # Validate daily_forecast
     if len(daily_forecast) == 0:
