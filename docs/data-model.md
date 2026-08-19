@@ -247,6 +247,7 @@ LLM 설명 생성은 이 테이블의 최신 run을 조회해 근거를 채운�
 | `created_at` | TEXT | 생성 시각 | NOT NULL, DEFAULT 현재 로컬시각 |
 | `item_id` | TEXT | 품목 | NOT NULL, FK → `items` |
 | `action_type` | TEXT | 조치 유형(대체 검토·발주 요청 등) | NOT NULL |
+| `risk_type` | TEXT | 조치가 대응한 위험 유형(M-21 이력 참조용, v1.1 승인 변경) | NULL 허용, CHECK(§2.5 값 집합 + NULL) |
 | `owner` | TEXT | 담당자 | |
 | `note` | TEXT | 메모 | |
 | `status` | TEXT | 진행 상태 | NOT NULL, DEFAULT `'진행 중'`, CHECK(`진행 중`, `완료`) |

@@ -220,6 +220,9 @@ CREATE TABLE action_history (
     created_at        TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%S', 'now', 'localtime')),
     item_id           TEXT NOT NULL,
     action_type       TEXT NOT NULL,               -- 조치 유형(대체 검토·발주 요청 등)
+    risk_type         TEXT                         -- M-21 이력 참조용, v1.1 승인 변경
+        CHECK (risk_type IN ('demand_surge', 'supply_halt', 'delivery_delay', 'composite', 'general')
+            OR risk_type IS NULL),
     owner             TEXT,                        -- 담당자
     note              TEXT,
     status            TEXT NOT NULL DEFAULT '진행 중'

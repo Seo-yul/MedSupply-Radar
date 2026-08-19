@@ -1,0 +1,162 @@
+[
+  {
+    "item_id": "ITM-0019",
+    "scenario_type": "demand_surge",
+    "onset_date": "2026-07-04",
+    "stockout_date": "2026-08-23",
+    "params_ref": "SC-001",
+    "stockout_basis": "extrapolated"
+  },
+  {
+    "item_id": "ITM-0009",
+    "scenario_type": "demand_surge",
+    "onset_date": "2026-06-25",
+    "stockout_date": "2026-08-28",
+    "params_ref": "SC-002",
+    "stockout_basis": "extrapolated"
+  },
+  {
+    "item_id": "ITM-0044",
+    "scenario_type": "demand_surge",
+    "onset_date": "2026-07-10",
+    "stockout_date": "2026-08-06",
+    "params_ref": "SC-003",
+    "stockout_basis": "extrapolated"
+  },
+  {
+    "item_id": "ITM-0087",
+    "scenario_type": "demand_surge",
+    "onset_date": "2026-06-10",
+    "stockout_date": "2026-09-11",
+    "params_ref": "SC-004",
+    "stockout_basis": "extrapolated"
+  },
+  {
+    "item_id": "ITM-0084",
+    "scenario_type": "demand_surge",
+    "onset_date": "2026-07-01",
+    "stockout_date": "2026-08-02",
+    "params_ref": "SC-005",
+    "stockout_basis": "extrapolated"
+  },
+  {
+    "item_id": "ITM-0011",
+    "scenario_type": "supply_halt",
+    "onset_date": "2026-07-29",
+    "stockout_date": "2026-08-22",
+    "params_ref": "SC-006",
+    "stockout_basis": "extrapolated"
+  },
+  {
+    "item_id": "ITM-0036",
+    "scenario_type": "supply_halt",
+    "onset_date": "2026-07-15",
+    "stockout_date": "2026-08-09",
+    "params_ref": "SC-007",
+    "stockout_basis": "extrapolated"
+  },
+  {
+    "item_id": "ITM-0103",
+    "scenario_type": "supply_halt",
+    "onset_date": "2026-07-03",
+    "stockout_date": "2026-07-17",
+    "params_ref": "SC-008",
+    "stockout_basis": "observed"
+  },
+  {
+    "item_id": "ITM-0098",
+    "scenario_type": "supply_halt",
+    "onset_date": "2026-07-19",
+    "stockout_date": "2026-07-31",
+    "params_ref": "SC-009",
+    "stockout_basis": "observed"
+  },
+  {
+    "item_id": "ITM-0065",
+    "scenario_type": "supply_halt",
+    "onset_date": "2026-07-27",
+    "stockout_date": "2026-09-13",
+    "params_ref": "SC-010",
+    "stockout_basis": "extrapolated"
+  },
+  {
+    "item_id": "ITM-0026",
+    "scenario_type": "delivery_delay",
+    "onset_date": "2026-07-21",
+    "stockout_date": "2026-09-11",
+    "params_ref": "SC-011",
+    "stockout_basis": "extrapolated"
+  },
+  {
+    "item_id": "ITM-0068",
+    "scenario_type": "delivery_delay",
+    "onset_date": "2026-07-08",
+    "stockout_date": "2026-07-16",
+    "params_ref": "SC-012",
+    "stockout_basis": "observed"
+  },
+  {
+    "item_id": "ITM-0035",
+    "scenario_type": "delivery_delay",
+    "onset_date": "2026-07-26",
+    "stockout_date": "2026-08-05",
+    "params_ref": "SC-013",
+    "stockout_basis": "extrapolated"
+  },
+  {
+    "item_id": "ITM-0121",
+    "scenario_type": "delivery_delay",
+    "onset_date": "2026-07-06",
+    "stockout_date": "2026-07-14",
+    "params_ref": "SC-014",
+    "stockout_basis": "observed"
+  },
+  {
+    "item_id": "ITM-0017",
+    "scenario_type": "delivery_delay",
+    "onset_date": "2026-07-20",
+    "stockout_date": "2026-07-30",
+    "params_ref": "SC-015",
+    "stockout_basis": "observed"
+  },
+  {
+    "item_id": "ITM-0001",
+    "scenario_type": "composite",
+    "onset_date": "2026-06-18",
+    "stockout_date": "2026-08-03",
+    "params_ref": "SC-016",
+    "stockout_basis": "extrapolated"
+  },
+  {
+    "item_id": "ITM-0039",
+    "scenario_type": "composite",
+    "onset_date": "2026-06-25",
+    "stockout_date": "2026-07-23",
+    "params_ref": "SC-017",
+    "stockout_basis": "observed"
+  },
+  {
+    "item_id": "ITM-0058",
+    "scenario_type": "composite",
+    "onset_date": "2026-06-21",
+    "stockout_date": "2026-06-29",
+    "params_ref": "SC-018",
+    "stockout_basis": "observed"
+  },
+  {
+    "item_id": "ITM-0093",
+    "scenario_type": "composite",
+    "onset_date": "2026-06-20",
+    "stockout_date": "2026-07-22",
+    "params_ref": "SC-019",
+    "stockout_basis": "observed"
+  },
+  {
+    "item_id": "ITM-0107",
+    "scenario_type": "composite",
+    "onset_date": "2026-07-02",
+    "stockout_date": "2026-07-24",
+    "params_ref": "SC-020",
+    "stockout_basis": "observed"
+  }
+]

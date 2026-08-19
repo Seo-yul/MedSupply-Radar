@@ -353,6 +353,45 @@ def test_save_action_history_invalid_status_does_not_bump_version(fixture_conn) 
     assert _data_version(fixture_conn) == before
 
 
+def test_save_action_history_without_risk_type_stores_null(fixture_conn) -> None:
+    """risk_type 미지정 시 하위호환 — NULL로 저장된다(기존 호출부 영향 없음)."""
+    history_id = writer.save_action_history(fixture_conn, ITEM_1, "대체 검토", "약사A", "메모")
+
+    row = fixture_conn.execute(
+        "SELECT risk_type FROM action_history WHERE history_id = ?", (history_id,)
+    ).fetchone()
+    assert row["risk_type"] is None
+
+
+def test_save_action_history_with_valid_risk_type_round_trips(fixture_conn) -> None:
+    history_id = writer.save_action_history(
+        fixture_conn, ITEM_1, "대체 검토", "약사A", "메모", risk_type="supply_halt"
+    )
+
+    row = fixture_conn.execute(
+        "SELECT risk_type FROM action_history WHERE history_id = ?", (history_id,)
+    ).fetchone()
+    assert row["risk_type"] == "supply_halt"
+
+
+def test_save_action_history_invalid_risk_type_raises_value_error(fixture_conn) -> None:
+    with pytest.raises(ValueError):
+        writer.save_action_history(
+            fixture_conn, ITEM_1, "대체 검토", "약사A", "메모", risk_type="알수없음"
+        )
+
+
+def test_save_action_history_invalid_risk_type_does_not_bump_version(fixture_conn) -> None:
+    before = _data_version(fixture_conn)
+
+    with pytest.raises(ValueError):
+        writer.save_action_history(
+            fixture_conn, ITEM_1, "대체 검토", "약사A", "메모", risk_type="알수없음"
+        )
+
+    assert _data_version(fixture_conn) == before
+
+
 # --- save_order_request --------------------------------------------------------
 
 

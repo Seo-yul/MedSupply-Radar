@@ -20,6 +20,9 @@ _VALID_GRADES = {"위험", "경고", "주의", "정상"}
 _VALID_NOTICE_STATUS = {"자동확정", "확인 필요", "확인 완료"}
 _VALID_ACTION_STATUS = {"진행 중", "완료"}
 _VALID_SEVERITY = {"긴급", "높음", "확인"}
+_VALID_ACTION_RISK_TYPES = {
+    "demand_surge", "supply_halt", "delivery_delay", "composite", "general",
+}
 
 
 def _validate_choice(value: str, valid: set[str], field: str) -> None:
@@ -212,22 +215,28 @@ def save_action_history(
     note: str,
     status: str = "진행 중",
     order_id: int | None = None,
+    risk_type: str | None = None,
 ) -> int:
     """쓰기 단일 경로 — data_version 증가
 
     action_history에 INSERT하고 실제 rowid(cur.lastrowid)를 반환한다. created_at은
     호출 시각(datetime.now().isoformat(timespec='seconds'))으로 채운다. status가
-    {'진행 중','완료'} 밖이면 ValueError.
+    {'진행 중','완료'} 밖이면 ValueError. risk_type은 기존 호출부 하위호환을 위한
+    keyword 전용 인자로, 생략하면 NULL로 저장된다. 값을 줄 경우
+    {'demand_surge','supply_halt','delivery_delay','composite','general'} 밖이면
+    ValueError(M-21 이력 참조용, v1.1 승인 변경).
     """
     _validate_choice(status, _VALID_ACTION_STATUS, "status")
+    if risk_type is not None:
+        _validate_choice(risk_type, _VALID_ACTION_RISK_TYPES, "risk_type")
 
     created_at = datetime.now().isoformat(timespec="seconds")
 
     with conn:
         cur = conn.execute(
             "INSERT INTO action_history(created_at, item_id, action_type, owner, note,"
-            " status, order_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
-            (created_at, item_id, action_type, owner, note, status, order_id),
+            " status, order_id, risk_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            (created_at, item_id, action_type, owner, note, status, order_id, risk_type),
         )
         history_id = cur.lastrowid
         _bump_data_version(conn)
