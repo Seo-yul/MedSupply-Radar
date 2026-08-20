@@ -187,4 +187,5 @@ def load_item_detail(item_id: str, data_version: int = 0) -> dict:
         "substitutes": substitutes,
         "ingredient_name_kr": item.get("ingredient_name_kr") or "-",
         "ingredient_name_en": item.get("ingredient_name_en") or "-",
+        "explanation": queries.get_explanation(conn, item_id),
     }

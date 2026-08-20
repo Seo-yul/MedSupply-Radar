@@ -37,7 +37,7 @@ BASE_DATE = "2026-08-01"
 EXPECTED_KEYS = {
     "item", "risk", "prev_risk", "series", "forecast", "current_stock",
     "avg_daily_usage", "avg_prev", "next_shipment", "has_active_notice",
-    "substitutes", "ingredient_name_kr", "ingredient_name_en",
+    "substitutes", "ingredient_name_kr", "ingredient_name_en", "explanation",
 }
 
 
@@ -517,6 +517,51 @@ class TestNoRiskRun:
         assert detail["forecast"] is None
         # run이 없어도 재고 파생값은 여전히 계산된다(무예외 전제).
         assert detail["current_stock"] is not None
+
+
+# ---------------------------------------------------------------------------
+# explanation — llm_explanations 저장분(get_explanation 결과 그대로)
+# ---------------------------------------------------------------------------
+
+
+class TestExplanation:
+    def test_none_when_no_stored_explanation(
+        self, db_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        _activate(monkeypatch, db_path)
+        conn = _direct_conn(db_path)
+        item_id = _first_item_id(conn)
+        conn.close()
+
+        detail = workbench.load_item_detail(item_id, data_version=inventory.current_data_version())
+        assert detail["explanation"] is None
+
+    def test_present_matches_stored_row_when_saved(
+        self, db_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        _activate(monkeypatch, db_path)
+        conn = _direct_conn(db_path)
+        item_id = _first_item_id(conn)
+        run_id = _latest_run_id(conn)
+        writer.save_explanation(
+            conn,
+            item_id,
+            {"explanation": {"cause_summary": "테스트 요약"}, "hallucination_flags": []},
+            prompt_version="risk_explain@v1",
+            provider="anthropic",
+            model="claude-x",
+            run_id=run_id,
+        )
+        conn.close()
+
+        detail = workbench.load_item_detail(
+            item_id, data_version=inventory.current_data_version()
+        )
+        explanation = detail["explanation"]
+        assert explanation is not None
+        assert explanation["provider"] == "anthropic"
+        assert explanation["model"] == "claude-x"
+        assert explanation["payload"]["explanation"]["cause_summary"] == "테스트 요약"
 
 
 # ---------------------------------------------------------------------------

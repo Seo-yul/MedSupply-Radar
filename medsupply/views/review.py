@@ -2,9 +2,9 @@
 (medsupply.services.workbench 경유).
 
 마크업·CSS 클래스는 하드코딩 데모 버전(task-M16-brief.md 이전)과 동일하게 유지한다 —
-이 파일이 바뀌는 것은 f-string에 들어가는 값뿐이다(재디자인 금지). "AI 문의" 코파일럿
-패널과 "AI 근거 설명" 탭의 정적 본문은 이번 태스크 범위 밖이다(각각 M-22·M-21에서
-치환 예정) — copilot_answer 로직과 정적 안내문은 손대지 않는다.
+이 파일이 바뀌는 것은 f-string에 들어가는 값뿐이다(재디자인 금지). "AI 근거 설명" 탭은
+llm_explanations 저장분으로 치환됐다(task-M23-brief.md). "AI 문의" 코파일럿 패널은
+여전히 이번 범위 밖이다 — copilot_answer 로직과 정적 안내문은 손대지 않는다.
 """
 
 from __future__ import annotations
@@ -17,6 +17,8 @@ import streamlit as st
 
 from medsupply import settings
 from medsupply.data import queries, writer
+from medsupply.llm.config import load_llm_config
+from medsupply.llm.explanation import explain_item
 from medsupply.services import inventory, workbench
 from medsupply.ui.charts import gauge, trend_chart
 from medsupply.ui.components import header
@@ -138,6 +140,91 @@ def _substitutes_html(detail: dict) -> str:
 
     html.append("</div>")
     return "".join(html)
+
+
+#: info_tab(AI 근거 설명) 고정 문구(task-M23-brief.md 치환 규칙 §3·§5).
+_EXPLANATION_PENDING_NOTICE = "AI 원인 설명이 아직 생성되지 않았습니다."
+_EXPLANATION_PENDING_HINT = (
+    "API 키 설정 후: python scripts/warm_explanations.py --db data/medsupply.db"
+    " (M-27에서 제공 예정)"
+)
+_EXPLANATION_SCOPE_NOTE = "AI는 위험등급 판정에 관여하지 않습니다."
+_EXPLANATION_GENERATE_LABEL = "설명 생성"
+
+
+def _explanation_badge_html(flags: list[str]) -> str:
+    """hallucination_flags 경고 배지(브리프 §2) — clinical-warning 클래스 재사용.
+
+    verify_explanation_grounding은 role-blind 부분 신호다(medsupply.llm.grounding
+    모듈 docstring "구조적 한계" 참조) — "탐지된 경고"로만 표기하고 무결 보증처럼 쓰지
+    않는다. 플래그를 숨기지 않는다: 앞 2개를 그대로 요약에 포함한다.
+    """
+    if not flags:
+        return ""
+    summary = " · ".join(flags[:2])
+    return (
+        '<div class="clinical-warning">'
+        f"사후 대조 경고 {len(flags)}건 — 아래 설명에 근거 밖 인용이 있을 수 있습니다: {summary}"
+        "</div>"
+    )
+
+
+def _explanation_actions_html(actions: list[dict]) -> str:
+    """action 블록들 — 기존 01·02·03 마크업 구조 재사용, 개수는 actions 길이(브리프 §1)."""
+    return "".join(
+        '<div class="action">'
+        f'<b>{i:02d} · {a.get("title", "")}</b>'
+        f'<p>{a.get("description", "")}</p>'
+        "</div>"
+        for i, a in enumerate(actions, start=1)
+    )
+
+
+def _explanation_panel_html(explanation_row: dict | None) -> str:
+    """AI 근거 설명 탭(info_tab) 패널 — llm_explanations 저장분 유무에 따른 3분기
+    (task-M23-brief.md 치환 규칙 1~3). 마크업·클래스는 하드코딩 데모와 동일하게 유지한다.
+
+    explanation_row는 medsupply.data.queries.get_explanation의 반환값 그대로
+    (services.workbench.load_item_detail의 "explanation" 키) — None이면 저장분 없음
+    (현재 기본 경로, 키 없는 환경).
+    """
+    header_html = (
+        '<div class="panel"><div class="panel-title">왜 위험한가?</div>'
+        '<div class="panel-sub">NHS SPS 방식으로 핵심 판단과 권장 조치를 분리했습니다.</div>'
+    )
+    footer_html = f'<div class="tiny">{_EXPLANATION_SCOPE_NOTE}</div></div>'
+
+    if explanation_row is None:
+        body_html = (
+            f'<div class="notice">{_EXPLANATION_PENDING_NOTICE}</div>'
+            f'<div class="tiny">{_EXPLANATION_PENDING_HINT}</div>'
+        )
+        return header_html + body_html + footer_html
+
+    payload = explanation_row["payload"]
+    explanation = payload["explanation"]
+    flags = payload.get("hallucination_flags", [])
+
+    history_note = explanation.get("history_note")
+    history_html = f'<div class="tiny">{history_note}</div>' if history_note else ""
+
+    meta_html = (
+        '<div class="tiny">생성: '
+        f'{explanation_row.get("provider") or "-"}/{explanation_row.get("model") or "-"}'
+        f' · 프롬프트 {explanation_row.get("prompt_version") or "-"}'
+        f' · {explanation_row.get("generated_at") or "-"}'
+        f' · 근거 {len(explanation.get("evidence_refs", []))}건</div>'
+    )
+
+    body_html = (
+        _explanation_badge_html(flags)
+        + f'<div class="notice">{explanation.get("cause_summary", "")}</div>'
+        + history_html
+        + "<br>"
+        + _explanation_actions_html(explanation.get("actions", []))
+        + meta_html
+    )
+    return header_html + body_html + footer_html
 
 
 def _active_notice_posted_date(conn, item_id: str, base_date: date) -> date | None:
@@ -341,7 +428,21 @@ def render() -> None:
 
     info_tab, alt_tab, source_tab = st.tabs(["AI 근거 설명", "대체 후보", "공고·근거"])
     with info_tab:
-        st.markdown('<div class="panel"><div class="panel-title">왜 위험한가?</div><div class="panel-sub">NHS SPS 방식으로 핵심 판단과 권장 조치를 분리했습니다.</div><div class="notice">최근 4주간 일평균 사용량이 18정에서 25.4정으로 <b>41% 증가</b>한 반면, 현재 재고는 152정으로 감소했습니다. 제조사의 공급중단 공고와 입고 지연이 동시에 확인되어, 현재 추세가 유지되면 <b>6일 이내 소진</b>될 가능성이 높습니다.</div><br><div class="action"><b>01 · 대체 가능 품목 재고 확인</b><p>동일 성분·함량·제형 후보 2개를 확인하고 약사가 대체 가능 여부를 검토합니다.</p></div><div class="action"><b>02 · 유통사 입고 일정 재확인</b><p>미확정 발주 건의 공급 가능 수량과 최단 입고일을 확인합니다.</p></div><div class="action"><b>03 · 사용 부서에 위험 공유</b><p>예상 소진일과 대체 검토 필요성을 처방 부서에 사전 공유합니다.</p></div></div>', unsafe_allow_html=True)
+        st.markdown(_explanation_panel_html(detail["explanation"]), unsafe_allow_html=True)
+
+        llm_cfg = load_llm_config()
+        if llm_cfg.anthropic_key_set or llm_cfg.openai_key_set:
+            if st.button(_EXPLANATION_GENERATE_LABEL):
+                write_conn = workbench.open_write_conn()
+                try:
+                    explain_item(write_conn, selected_item_id)
+                except Exception as exc:
+                    st.error(f"설명 생성 실패: {exc}")
+                else:
+                    st.cache_data.clear()
+                    st.rerun()
+                finally:
+                    write_conn.close()
     with alt_tab:
         st.markdown(
             '<div class="clinical-warning"><b>약사 확인 필수</b> · 동일 조건 후보와 조건이 다른 후보를 구분하며, 자동 대체 처방을 의미하지 않습니다.</div>'

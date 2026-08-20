@@ -1,6 +1,6 @@
 """medsupply/data/queries.py(읽기 전용 조회 계층) 계약 검증.
 
-화면·분석·측정·LLM 전 도메인이 공용으로 소비하는 조회 함수 14종을 고정한다. 어떤 함수도
+화면·분석·측정·LLM 전 도메인이 공용으로 소비하는 조회 함수 15종을 고정한다. 어떤 함수도
 INSERT/UPDATE/DELETE를 하지 않는다 — 이 파일은 각 함수의 대표 경로, 필터 최소 1개, 빈 결과
 경로를 함께 검증한다.
 
@@ -16,7 +16,7 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from medsupply.data import db, queries
+from medsupply.data import db, queries, writer
 from tests.conftest import (
     AS_OF_TODAY,
     INGREDIENT_1,
@@ -546,6 +546,56 @@ def test_get_forecast_returns_dict_with_daily_list(fixture_conn) -> None:
 
 def test_get_forecast_missing_combo_returns_none(fixture_conn) -> None:
     assert queries.get_forecast(fixture_conn, RUN_YESTERDAY, ITEM_1) is None
+
+
+# --- get_explanation -----------------------------------------------------------
+
+
+def test_get_explanation_returns_none_when_absent(fixture_conn) -> None:
+    assert queries.get_explanation(fixture_conn, ITEM_1) is None
+
+
+def test_get_explanation_returns_row_when_present(fixture_conn) -> None:
+    writer.save_explanation(
+        fixture_conn,
+        ITEM_1,
+        {"explanation": {"cause_summary": "요약"}, "hallucination_flags": []},
+        prompt_version="risk_explain@v1",
+        provider="anthropic",
+        model="claude-x",
+        run_id=RUN_TODAY,
+    )
+
+    row = queries.get_explanation(fixture_conn, ITEM_1)
+
+    assert row is not None
+    assert row["item_id"] == ITEM_1
+    assert row["run_id"] == RUN_TODAY
+    assert row["prompt_version"] == "risk_explain@v1"
+    assert row["provider"] == "anthropic"
+    assert row["model"] == "claude-x"
+    assert row["generated_at"]
+
+
+def test_get_explanation_parses_payload_json_into_dict(fixture_conn) -> None:
+    payload = {
+        "explanation": {
+            "cause_summary": "최근 4주 사용량 증가와 공급중단 공고가 겹쳤다.",
+            "actions": [{"title": "대체품 확인", "description": "동일 조건 후보 확인", "evidence_refs": ["risk:" + RUN_TODAY]}],
+            "evidence_refs": ["risk:" + RUN_TODAY],
+            "history_note": None,
+        },
+        "hallucination_flags": ["unsupported_number: 999"],
+    }
+    writer.save_explanation(
+        fixture_conn, ITEM_1, payload, prompt_version="risk_explain@v1",
+        provider="anthropic", model="claude-x", run_id=RUN_TODAY,
+    )
+
+    row = queries.get_explanation(fixture_conn, ITEM_1)
+
+    assert row["payload"] == payload
+    assert "payload_json" not in row
 
 
 # --- list_action_history ------------------------------------------------------

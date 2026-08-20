@@ -412,6 +412,24 @@ def get_risk_results(conn: sqlite3.Connection, run_id: str) -> pd.DataFrame:
     return pd.read_sql_query(query, conn, params={"run_id": run_id})
 
 
+def get_explanation(conn: sqlite3.Connection, item_id: str) -> dict | None:
+    """품목 1건의 저장된 AI 근거 설명(llm_explanations, item_id PK) — 없으면 None.
+
+    payload_json은 json.loads 해 payload 키로 반환한다(get_notice_detail과 동일 관례) —
+    payload는 {explanation: RiskExplanation.model_dump(), hallucination_flags: list[str]}
+    형태다(medsupply.llm.explanation.explain_item이 영속화하는 구조 그대로).
+    """
+    row = conn.execute(
+        "SELECT * FROM llm_explanations WHERE item_id = ?", (item_id,)
+    ).fetchone()
+    if row is None:
+        return None
+
+    result = dict(row)
+    result["payload"] = json.loads(result.pop("payload_json"))
+    return result
+
+
 def get_forecast(conn: sqlite3.Connection, run_id: str, item_id: str) -> dict | None:
     """지정 run·품목의 예측 1행을 dict로(daily_json은 json.loads 해 daily 리스트로 변환).
 
