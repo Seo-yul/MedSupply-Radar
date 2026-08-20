@@ -57,40 +57,83 @@ class TestLoadParams:
         assert params.anomaly.baseline_window == 28
         assert params.anomaly.receipt_delay_days == 3
 
-    def test_depletion_params_defaults(self):
-        """Test depletion parameter defaults."""
+    def test_depletion_params_match_frozen_adoption(self):
+        """[depletion]은 **S-17d 채택(cand-F) 값으로 동결**돼 있다.
+
+        갱신 사유: 이 테스트는 원래 v1 값(reflect_receipts=False)을 하드코딩하고 있었다.
+        S-17d에서 cand-F(reflect_receipts=true + overdue_cutoff=true)가 채택되면서 값이
+        바뀌었으므로, 단언을 약화(값 비교 삭제)하지 않고 **채택된 값으로 갱신**한다.
+        동결 선언이 있는 지금은 이 핀 자체가 "3주차 평가 기준을 말없이 바꾸지 못하게 하는"
+        가드로 기능한다 — 값을 또 바꾸려면 이 테스트를 함께 바꿔야 하고, 그때 동결 위반이
+        드러난다. 로더 자체의 동작은 아래 명시 주입 테스트들이 config 값과 무관하게 검증한다.
+        """
         params = load_params()
-        assert params.depletion.reflect_receipts is False
-        assert params.depletion.overdue_cutoff is False
+        assert params.depletion.reflect_receipts is True
+        assert params.depletion.overdue_cutoff is True
+
+    def test_frozen_params_hash(self):
+        """S-17d 동결 시점의 params_hash를 고정한다(어떤 파라미터가 바뀌어도 여기서 걸린다)."""
+        assert load_params().params_hash == "6ec9bf05"
+
+    @staticmethod
+    def _config_without(key: str) -> str:
+        """현행 config에서 `key = ...` 줄만 제거한 TOML 문자열(주석 문구에 의존하지 않는다)."""
+        content = Path("config/analytics_params.toml").read_text(encoding="utf-8")
+        return "".join(
+            line for line in content.splitlines(keepends=True)
+            if not line.lstrip().startswith(f"{key} =")
+        )
 
     def test_depletion_overdue_cutoff_is_required_in_toml(self, tmp_path):
         """[depletion].overdue_cutoff는 다른 키와 동일하게 TOML에 명시 필수다.
 
         dataclass 기본값(False)은 기존 호출부 호환용이지 TOML 생략 허용이 아니다.
         """
-        content = Path("config/analytics_params.toml").read_text(encoding="utf-8")
-        bad_content = content.replace(
-            "overdue_cutoff = false   # 연체 건이 있으면 미래 예정 입고도 전부 미반영(공급 신뢰 붕괴 시 보수 전환)\n",
-            "",
-        )
         tmp_config = tmp_path / "analytics_params.toml"
-        tmp_config.write_text(bad_content)
+        tmp_config.write_text(self._config_without("overdue_cutoff"))
 
         with pytest.raises(ValueError) as exc_info:
             load_params(tmp_config)
 
         assert "overdue_cutoff" in str(exc_info.value)
 
-    def test_depletion_overdue_cutoff_round_trips(self, tmp_path):
-        """TOML의 overdue_cutoff=true가 그대로 로드되고 params_hash를 바꾼다."""
-        content = Path("config/analytics_params.toml").read_text(encoding="utf-8")
+    @pytest.mark.parametrize("value", [True, False])
+    def test_depletion_booleans_round_trip(self, tmp_path, value):
+        """reflect_receipts·overdue_cutoff가 TOML 값 그대로 로드된다(config 현재 값과 무관).
+
+        명시 주입 방식이라 채택 파라미터가 어느 쪽으로 바뀌어도 이 테스트는 계속 유효하다.
+        """
+        literal = "true" if value else "false"
+        content = (
+            self._config_without("reflect_receipts").replace(
+                "[depletion]", f"[depletion]\nreflect_receipts = {literal}", 1
+            )
+        )
+        content = "".join(
+            line for line in content.splitlines(keepends=True)
+            if not line.lstrip().startswith("overdue_cutoff =")
+        ).replace("[depletion]", f"[depletion]\noverdue_cutoff = {literal}", 1)
+
         tmp_config = tmp_path / "analytics_params.toml"
-        tmp_config.write_text(content.replace("overdue_cutoff = false", "overdue_cutoff = true"))
+        tmp_config.write_text(content)
 
         params = load_params(tmp_config)
 
-        assert params.depletion.overdue_cutoff is True
-        assert params.params_hash != load_params().params_hash
+        assert params.depletion.reflect_receipts is value
+        assert params.depletion.overdue_cutoff is value
+
+    def test_depletion_change_alters_params_hash(self, tmp_path):
+        """[depletion] 값이 달라지면 params_hash도 달라진다(현행 값 반대로 뒤집어 확인)."""
+        current = load_params()
+        flipped_reflect = "false" if current.depletion.reflect_receipts else "true"
+        content = self._config_without("reflect_receipts").replace(
+            "[depletion]", f"[depletion]\nreflect_receipts = {flipped_reflect}", 1
+        )
+
+        tmp_config = tmp_path / "analytics_params.toml"
+        tmp_config.write_text(content)
+
+        assert load_params(tmp_config).params_hash != current.params_hash
 
     def test_score_params_defaults(self):
         """Test score parameter defaults."""

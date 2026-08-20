@@ -20,14 +20,18 @@ from __future__ import annotations
 
 import pytest
 
+from datetime import date
+
 from scripts.measure_detection import (
     ALERT_GRADES,
     DANGER_PLUS_GRADES,
     RISK_TYPE_MATCH_RULES,
     WARNING_PLUS_GRADES,
+    horizon_end,
     modal_risk_type,
     risk_type_matches,
     score_sweep,
+    split_labels_by_horizon,
     threshold_metrics,
 )
 
@@ -417,3 +421,84 @@ class TestScoreSweepDualThreshold:
             assert result[key]["detection_rate"] is None  # 0/0을 0.0으로 위장하지 않는다
             assert result[key]["counts"]["labeled"] == 0
             assert result[key]["counts"]["normal"] == len(_DUAL_PREDICTIONS)
+
+
+# ---------------------------------------------------------------------------
+# 오라클 지평(Task S-17d) — 경계 ±1일 손검산. 라벨 파일은 열지 않는다(합성 라벨).
+# ---------------------------------------------------------------------------
+
+
+def _horizon_label(item_id: str, stockout: str) -> dict:
+    return {
+        "item_id": item_id, "scenario_type": "supply_halt",
+        "onset_date": "2026-07-01", "stockout_date": stockout,
+        "params_ref": f"SC-{item_id}", "stockout_basis": "extrapolated",
+    }
+
+
+class TestHorizonSplit:
+    """지평 = 스윕 종료일 + horizon_days. 경계는 '이하'(포함)다."""
+
+    SWEEP_END = date(2026, 8, 1)
+    HORIZON_DAYS = 30  # → 지평 종료일 2026-08-31
+
+    def test_horizon_end_is_sweep_end_plus_horizon_days(self) -> None:
+        assert horizon_end(self.SWEEP_END, self.HORIZON_DAYS) == date(2026, 8, 31)
+
+    def test_boundary_plus_minus_one_day(self) -> None:
+        """경계 하루 전(08-30)·당일(08-31)은 지평 안, 하루 뒤(09-01)는 지평 밖."""
+        labels = [
+            _horizon_label("BEFORE", "2026-08-30"),
+            _horizon_label("ON", "2026-08-31"),
+            _horizon_label("AFTER", "2026-09-01"),
+        ]
+
+        in_horizon, excluded = split_labels_by_horizon(
+            labels, self.SWEEP_END, self.HORIZON_DAYS
+        )
+
+        assert [row["item_id"] for row in in_horizon] == ["BEFORE", "ON"]
+        assert [row["item_id"] for row in excluded] == ["AFTER"]
+
+    def test_split_does_not_mutate_input_labels(self) -> None:
+        """라벨은 절대 수정하지 않는다 — 채점 시점 계산일 뿐이다."""
+        labels = [_horizon_label("ON", "2026-08-31"), _horizon_label("AFTER", "2026-09-01")]
+        snapshot = [dict(row) for row in labels]
+
+        split_labels_by_horizon(labels, self.SWEEP_END, self.HORIZON_DAYS)
+
+        assert labels == snapshot
+
+    def test_score_sweep_reports_raw_and_within_horizon_side_by_side(self) -> None:
+        """raw(전체 라벨)와 within_horizon(지평 내)이 나란히 나온다 — raw는 그대로 유지."""
+        predictions = {
+            "ON": {"2026-07-01": "주의"},       # 지평 안, 감지
+            "AFTER": {"2026-07-01": "정상"},    # 지평 밖, 미감지
+            "N1": {"2026-07-01": "정상"},       # 정상 품목
+        }
+        labels = [_horizon_label("ON", "2026-08-31"), _horizon_label("AFTER", "2026-09-01")]
+
+        result = score_sweep(
+            predictions, labels, sweep_end=self.SWEEP_END, horizon_days=self.HORIZON_DAYS
+        )
+
+        # raw: 전체 라벨 2건 중 1건 감지
+        assert result["counts"]["labeled"] == 2
+        assert result["detection_rate"] == pytest.approx(0.5)
+
+        wh = result["within_horizon"]
+        assert wh["horizon_end"] == "2026-08-31"
+        assert wh["counts"] == {"labeled_total": 2, "labeled_in_horizon": 1, "excluded": 1}
+        assert wh["excluded_labels"] == [
+            {"item_id": "AFTER", "scenario_type": "supply_halt", "stockout_date": "2026-09-01"}
+        ]
+        # 지평 내: 1건 중 1건 감지
+        assert wh["threshold_watch"]["detection_rate"] == pytest.approx(1.0)
+        assert wh["threshold_watch"]["counts"]["labeled"] == 1
+        # 오탐 모집단은 지평과 무관하게 동일하다(정상 품목엔 stockout_date가 없다).
+        assert wh["threshold_watch"]["counts"]["normal"] == result["counts"]["normal"]
+        assert wh["threshold_watch"]["false_positive_rate"] == result["false_positive_rate"]
+
+    def test_within_horizon_is_none_without_horizon_arguments(self) -> None:
+        result = score_sweep(_DUAL_PREDICTIONS, _dual_labels())
+        assert result["within_horizon"] is None

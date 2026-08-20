@@ -20,8 +20,12 @@ baseline_window = 28     # recent_window 직전 구간
 receipt_delay_days = 3   # 예정일 대비 지연 임계(초과 시 receipt_delay)
 
 [depletion]
-reflect_receipts = false # 입고예정 반영 기본 미반영(보수적)
-overdue_cutoff = false   # 연체 건이 있으면 미래 예정 입고도 전부 미반영(공급 신뢰 붕괴 시 보수 전환)
+# S-17d 채택(cand-F): as_of 시점 pending을 정확히 반영하되, 연체 품목은 보수 전환한다.
+# 근거 — 기준선의 감지 100%는 탐지력이 아니라 오탐 100%를 만드는 것과 같은 결함(입고 전면
+# 무시)의 이면이었다. 입고를 정확히 반영하자 오탐이 45.2%로 떨어졌고, 연체 차단이 '유령
+# 예정 입고'를 걷어내 delivery_delay 감지를 5/5로 되살렸다.
+reflect_receipts = true  # as_of 시점 미도착 예정 입고를 소진 추정에 반영
+overdue_cutoff = true    # 연체 건이 있으면 미래 예정 입고도 전부 미반영(공급 신뢰 붕괴 시 보수 전환)
 
 [score]
 # 0~100 점수 = 등급 구간 기본점 + 요인 가점(상한 100)

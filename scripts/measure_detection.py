@@ -318,10 +318,36 @@ def threshold_metrics(
     return report, per_item, false_positive_ids
 
 
+def horizon_end(sweep_end: date, horizon_days: int) -> date:
+    """오라클 지평 종료일 = 스윕 종료일 + horizon_days.
+
+    "스윕이 끝난 뒤 horizon_days 안에 품절되는 라벨만 이 스윕이 맞힐 기회가 있었다"는 뜻이다
+    (Task S-17d). horizon_days는 grade.watch_days를 쓴다 — '주의' 판정이 곧
+    "watch_days 안에 소진 예상"이므로, 그 창 밖의 품절은 애초에 '주의' 이상으로 뜰 근거가 없다.
+    """
+    return sweep_end + timedelta(days=horizon_days)
+
+
+def split_labels_by_horizon(
+    labels: list[dict], sweep_end: date, horizon_days: int
+) -> tuple[list[dict], list[dict]]:
+    """라벨을 (지평 안, 지평 밖)으로 나눈다 — 기준: stockout_date <= sweep_end + horizon_days.
+
+    **라벨 파일은 건드리지 않는다.** 채점 시점에만 계산하는 뷰이며, 원본 라벨의 어떤 필드도
+    수정·삭제하지 않는다(raw 감지율은 지금까지와 똑같이 전체 라벨로 계속 산출한다).
+    """
+    cutoff = horizon_end(sweep_end, horizon_days)
+    in_horizon = [row for row in labels if date.fromisoformat(row["stockout_date"]) <= cutoff]
+    out_of_horizon = [row for row in labels if date.fromisoformat(row["stockout_date"]) > cutoff]
+    return in_horizon, out_of_horizon
+
+
 def score_sweep(
     predictions: dict[str, dict[str, str]],
     labels: list[dict],
     risk_types: dict[str, dict[str, str]] | None = None,
+    sweep_end: date | None = None,
+    horizon_days: int | None = None,
 ) -> dict:
     """스윕 결과(predictions) + 라벨 리스트 → metrics-spec 지표 dict(순수 함수).
 
@@ -358,6 +384,17 @@ def score_sweep(
         false_positive_items}. 문턱이 감지와 오탐 **양쪽에 대칭으로** 걸리므로 한쪽만
         유리해지는 비교가 되지 않는다. 최상위 키('주의 이상' 기준)는 이 확장과 무관하게
         기존 값 그대로다.
+
+        within_horizon(Task S-17d 신설 키)은 sweep_end·horizon_days가 모두 주어졌을 때만
+        채워진다(아니면 None). "이 스윕이 맞힐 기회가 있었던 라벨"만 남긴 뷰다 —
+        stockout_date <= sweep_end + horizon_days. 지평 밖 라벨은 스윕이 끝난 한참 뒤에
+        품절되므로 '주의' 이상으로 뜰 근거 자체가 없다. **raw 감지율(최상위 키)은 전체 라벨
+        기준 그대로 유지하고**, within_horizon은 나란히 병기하는 두 번째 뷰다 — 어느 쪽도
+        다른 쪽을 대체하지 않는다. 구성:
+        {criterion, sweep_end, horizon_days, horizon_end, counts{labeled_total,
+        labeled_in_horizon, excluded}, excluded_labels[{item_id, scenario_type,
+        stockout_date}], threshold_watch/threshold_warning/threshold_danger(각각
+        threshold_metrics 결과)}.
     """
     label_by_item = {row["item_id"]: row for row in labels}
     labeled_ids = set(label_by_item)
@@ -422,6 +459,41 @@ def score_sweep(
             "items": dict(sorted(match_items.items())),
         }
 
+    if sweep_end is None or horizon_days is None:
+        within_horizon = None
+    else:
+        in_horizon, excluded = split_labels_by_horizon(labels, sweep_end, horizon_days)
+        in_horizon_by_item = {row["item_id"]: row for row in in_horizon}
+        within_horizon = {
+            "criterion": "stockout_date <= sweep_end + grade.watch_days",
+            "sweep_end": sweep_end.isoformat(),
+            "horizon_days": horizon_days,
+            "horizon_end": horizon_end(sweep_end, horizon_days).isoformat(),
+            "counts": {
+                "labeled_total": n_labeled,
+                "labeled_in_horizon": len(in_horizon),
+                "excluded": len(excluded),
+            },
+            "excluded_labels": sorted(
+                (
+                    {
+                        "item_id": row["item_id"],
+                        "scenario_type": row["scenario_type"],
+                        "stockout_date": row["stockout_date"],
+                    }
+                    for row in excluded
+                ),
+                key=lambda row: row["item_id"],
+            ),
+        }
+        for key, grades in (
+            ("threshold_watch", ALERT_GRADES),
+            ("threshold_warning", WARNING_PLUS_GRADES),
+            ("threshold_danger", DANGER_PLUS_GRADES),
+        ):
+            report, _, _ = threshold_metrics(predictions, in_horizon_by_item, normal_ids, grades)
+            within_horizon[key] = report
+
     return {
         "detection_rate": watch_report["detection_rate"],
         "lead_days": watch_report["lead_days"],
@@ -432,6 +504,7 @@ def score_sweep(
         "risk_type_match": risk_type_match,
         "threshold_warning": warning_report,
         "threshold_danger": danger_report,
+        "within_horizon": within_horizon,
     }
 
 
@@ -503,6 +576,18 @@ def _human_summary(results: dict) -> str:
             + _format_rate(rtm["overall"], rtm["counts"]["matched"], rtm["counts"]["labeled"])
         )
 
+    wh = results.get("within_horizon")
+    if wh is not None:
+        wc = wh["counts"]
+        for key, label in (("threshold_watch", "주의+"), ("threshold_warning", "경고+")):
+            section = wh[key]
+            counts = section["counts"]
+            lines.append(
+                f"[지평 내 {label}] 감지 "
+                + _format_rate(section["detection_rate"], counts["detected"], counts["labeled"])
+                + f" (지평 {wh['horizon_end']}까지, 제외 {wc['excluded']}건)"
+            )
+
     for key in ("threshold_warning", "threshold_danger"):
         section = results.get(key)
         if section is None:
@@ -548,6 +633,7 @@ def _run_predict_only(args: argparse.Namespace) -> int:
         "params_ref": args.params,
         "generated_at": _now_iso(),
         "sweep": _sweep_info(args.start, args.end),
+        "grade_watch_days": params.grade.watch_days,
         "predictions": predictions,
         "risk_types": risk_types,
     }
@@ -564,7 +650,14 @@ def _run_score(args: argparse.Namespace) -> int:
     payload = _load_json(args.score)
     labels = _load_json(args.labels)
 
-    results = score_sweep(payload["predictions"], labels, payload.get("risk_types"))
+    horizon_days = payload.get("grade_watch_days")
+    results = score_sweep(
+        payload["predictions"],
+        labels,
+        payload.get("risk_types"),
+        sweep_end=date.fromisoformat(payload["sweep"]["end"]),
+        horizon_days=horizon_days,
+    )
     results["sweep"] = payload["sweep"]
 
     meta = {
@@ -589,7 +682,13 @@ def _run_full(args: argparse.Namespace) -> int:
         conn.close()
 
     labels = _load_json(args.labels)
-    results = score_sweep(predictions, labels, risk_types)
+    results = score_sweep(
+        predictions,
+        labels,
+        risk_types,
+        sweep_end=args.end,
+        horizon_days=params.grade.watch_days,
+    )
     results["sweep"] = _sweep_info(args.start, args.end)
 
     meta = {
