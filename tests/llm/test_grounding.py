@@ -217,7 +217,60 @@ class TestCollectRiskEvidence:
             f"risk:{RUN_TODAY}",
             "usage:recent28",
             "stock:current",
-            "anomaly:usage_surge:2026-07-29",
+            "anomaly:1:usage_surge",
+        ]
+
+    def test_duplicate_anomaly_kind_and_date_produce_unique_seq_based_refs(
+        self, fixture_conn
+    ) -> None:
+        """리뷰 F1: detected_on이 모두 as_of와 같아 예전 `anomaly:{kind}:{detected_on}`
+        방식으로는 두 anomaly가 동일한 ref로 충돌·중복 방출됐다. 새 규칙(`anomaly:{seq}:
+        {kind}`, seq=1-based 위치)은 리스트 위치로 판별하므로 항상 고유하다."""
+        _insert_risk_result(
+            fixture_conn,
+            run_id=RUN_TODAY,
+            item_id=ITEM_3,
+            factors={
+                "anomalies": [
+                    {
+                        "kind": "usage_surge", "detected_on": AS_OF_TODAY, "metric": 0.3,
+                        "detail": "1차 급증",
+                    },
+                    {
+                        "kind": "usage_surge", "detected_on": AS_OF_TODAY, "metric": 0.5,
+                        "detail": "2차 급증",
+                    },
+                ]
+            },
+        )
+
+        evidence = collect_risk_evidence(fixture_conn, ITEM_3, run_id=RUN_TODAY)
+
+        anomaly_refs = [ref for ref in evidence.evidence_refs if ref.startswith("anomaly:")]
+        assert anomaly_refs == ["anomaly:1:usage_surge", "anomaly:2:usage_surge"]
+        assert len(evidence.evidence_refs) == len(set(evidence.evidence_refs))
+
+    def test_substitutes_current_stock_respects_run_as_of_no_lookahead(
+        self, fixture_conn
+    ) -> None:
+        """리뷰 F4: 대체품목(ITEM_2)에 run의 as_of(2026-08-01) 이후 재고 기록이 있어도
+        그 시점 값(40)만 근거로 쓴다 — 미래 정보 룩어헤드 차단."""
+        fixture_conn.execute(
+            "INSERT INTO stock_usage_daily(item_id, date, usage_qty, incoming_qty,"
+            " closing_stock) VALUES (?, ?, ?, ?, ?)",
+            (ITEM_2, "2026-08-10", 1, 0, 999),
+        )
+        fixture_conn.commit()
+
+        evidence = collect_risk_evidence(fixture_conn, ITEM_1, run_id=RUN_TODAY)
+
+        assert evidence.substitutes_same_condition == [
+            {
+                "item_id": ITEM_2,
+                "item_name": "세프트리악손주 1g(대한제약)",
+                "supplier": "대한제약",
+                "current_stock": 40,
+            }
         ]
 
     def test_active_notices_sorted_by_published_date_desc_then_notice_id_asc(
@@ -348,7 +401,7 @@ def _make_evidence(**overrides) -> RiskEvidence:
         ],
         evidence_refs=[
             f"risk:{RUN_TODAY}", "usage:recent28", "stock:current",
-            "anomaly:usage_surge:2026-07-28", f"notice:{NOTICE_HALT}", "shipment:1",
+            "anomaly:1:usage_surge", f"notice:{NOTICE_HALT}", "shipment:1",
             f"substitute:{ITEM_2}",
         ],
     )
@@ -357,7 +410,12 @@ def _make_evidence(**overrides) -> RiskEvidence:
 
 
 def _make_explanation(**overrides) -> RiskExplanation:
-    """기본값은 _make_evidence() 기본값과 완전히 정합하는(플래그 0건) 설명이다."""
+    """기본값은 _make_evidence() 기본값과 완전히 정합하는(플래그 0건) 설명이다.
+
+    대응방안이 대체품목 재고 수치(40)를 본문에 직접 인용한다 — 리뷰 F2 이전에는
+    substitutes_same_condition 안의 수치가 대조 풀 밖이라 이 인용 자체가 오탐이었지만,
+    F2(evidence 전체 재귀 파생)로 대체품목 재고도 근거 안 사실이 됐다.
+    """
     defaults = dict(
         cause_summary=(
             "공급중단 공고(2026-07-15)로 재고 소진이 임박했다. 현재 재고 80, 최근 일평균"
@@ -366,7 +424,7 @@ def _make_explanation(**overrides) -> RiskExplanation:
         actions=[
             RiskAction(
                 title="대체 품목 확보",
-                description="같은 대체군 품목의 확보를 검토한다.",
+                description="같은 대체군 품목(재고 40)의 확보를 검토한다.",
                 evidence_refs=[f"substitute:{ITEM_2}"],
             ),
             RiskAction(
@@ -496,6 +554,92 @@ class TestVerifyExplanationGrounding:
         evidence = _make_evidence(avg_daily_usage=9.6)
 
         flags = verify_explanation_grounding(evidence, _make_explanation())
+
+        assert flags == []
+
+    def test_unsupported_number_negative_allows_bidirectional_half_rounding(self) -> None:
+        """리뷰 F3: .5 경계는 half-up(27)·floor(26) 어느 쪽으로 인용해도 무플래그다."""
+        evidence = _make_evidence(avg_daily_usage=26.5)
+        action = [RiskAction(title="A", description="설명.", evidence_refs=[f"risk:{RUN_TODAY}"])]
+
+        floor_flags = verify_explanation_grounding(
+            evidence,
+            _make_explanation(
+                cause_summary="현재 재고 80, 최근 일평균 사용량 26 수준이다.", actions=action,
+            ),
+        )
+        ceil_flags = verify_explanation_grounding(
+            evidence,
+            _make_explanation(
+                cause_summary="현재 재고 80, 최근 일평균 사용량 27 수준이다.", actions=action,
+            ),
+        )
+
+        assert floor_flags == []
+        assert ceil_flags == []
+
+    def test_unsupported_number_flags_range_digits_individually_not_as_negative(self) -> None:
+        """리뷰 F5: "15-25개" 범위 표기의 하이픈이 -25로 오파싱되지 않는다 — 부호 없는
+        토큰화로 15·25 각각을 양수로 검사하고, 근거 밖이면 각각 플래그한다."""
+        explanation = _make_explanation(
+            cause_summary="예상 소요량은 15-25개 범위로 평가된다.",
+            actions=[
+                RiskAction(title="A", description="설명.", evidence_refs=[f"risk:{RUN_TODAY}"]),
+            ],
+        )
+
+        flags = verify_explanation_grounding(_make_evidence(), explanation)
+
+        assert flags == ["unsupported_number: 15", "unsupported_number: 25"]
+
+    def test_normal_explanation_citing_anomaly_detail_dosage_and_substitute_stock_has_no_flags(
+        self,
+    ) -> None:
+        """리뷰 F2 검증 시나리오(리뷰어 공격/우회 시나리오를 정상 케이스로 승격):
+        anomaly.detail에만 등장하는 날짜·수치("입고 예정 2026-07-18 대비 14일 지연"),
+        item_name의 용량("500mg"), 대체품목 재고를 각각 본문에 인용해도 전부 근거 안이다
+        (evidence 전체 재귀 파생 — 손으로 나열한 필드가 아니라 evidence.model_dump() 트리
+        전체를 훑으므로 anomaly detail 같은 자유 텍스트 안의 토큰까지 포착한다).
+
+        metric은 0.14(비율)로 둬 "14"가 metric 필드가 아니라 오직 detail 문자열 스캔으로만
+        근거 확인되도록 분리했다.
+        """
+        evidence = _make_evidence(
+            item_name="세프트리악손주 500mg(한국제약)",
+            anomalies=[
+                {
+                    "kind": "receipt_delay",
+                    "detected_on": "2026-07-30",
+                    "metric": 0.14,
+                    "detail": "입고 예정 2026-07-18 대비 14일 지연",
+                }
+            ],
+            evidence_refs=[
+                f"risk:{RUN_TODAY}", "usage:recent28", "stock:current",
+                "anomaly:1:receipt_delay", f"notice:{NOTICE_HALT}", "shipment:1",
+                f"substitute:{ITEM_2}",
+            ],
+        )
+        explanation = _make_explanation(
+            cause_summary=(
+                "세프트리악손주 500mg 품목은 2026-07-18 입고 예정 대비 14일 지연되어 재고"
+                " 소진이 임박했다. 현재 재고 80, 최근 일평균 사용량 10 수준이다."
+            ),
+            actions=[
+                RiskAction(
+                    title="대체 품목 확보",
+                    description="같은 대체군 품목(재고 40)의 확보를 검토한다.",
+                    evidence_refs=[f"substitute:{ITEM_2}"],
+                ),
+                RiskAction(
+                    title="입고 지연 확인",
+                    description="입고 지연 사유를 공급사에 확인한다.",
+                    evidence_refs=["anomaly:1:receipt_delay"],
+                ),
+            ],
+        )
+
+        flags = verify_explanation_grounding(evidence, explanation)
 
         assert flags == []
 

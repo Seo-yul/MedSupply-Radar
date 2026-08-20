@@ -208,6 +208,26 @@ def test_get_substitutes_no_siblings_in_own_group_returns_empty(fixture_conn) ->
     assert df.empty
 
 
+def test_get_substitutes_as_of_excludes_future_stock_rows(fixture_conn) -> None:
+    """as_of 지정 시 그 날짜 이후 재고 기록은 룩어헤드로 보고 배제한다(리뷰 F4).
+
+    ITEM_2에 미래(2026-08-05) closing_stock=999를 추가한 뒤, as_of=2026-08-01로 조회하면
+    여전히 그 시점 최신인 40(기본 시드의 2026-08-01)이 나와야 한다.
+    """
+    fixture_conn.execute(
+        "INSERT INTO stock_usage_daily(item_id, date, usage_qty, incoming_qty, closing_stock)"
+        " VALUES (?, ?, ?, ?, ?)",
+        (ITEM_2, "2026-08-05", 5, 0, 999),
+    )
+    fixture_conn.commit()
+
+    as_of_df = queries.get_substitutes(fixture_conn, ITEM_1, as_of=date(2026, 8, 1))
+    assert as_of_df.iloc[0]["current_stock"] == 40
+
+    default_df = queries.get_substitutes(fixture_conn, ITEM_1)
+    assert default_df.iloc[0]["current_stock"] == 999
+
+
 # --- get_incoming_shipments ---------------------------------------------------
 
 

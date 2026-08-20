@@ -148,7 +148,11 @@ def get_current_stock_map(conn: sqlite3.Connection) -> pd.DataFrame:
 
 
 def get_substitutes(
-    conn: sqlite3.Connection, item_id: str, *, same_condition_only: bool = True
+    conn: sqlite3.Connection,
+    item_id: str,
+    *,
+    same_condition_only: bool = True,
+    as_of: date | None = None,
 ) -> pd.DataFrame:
     """같은 대체군(및 옵션에 따라 같은 성분의 타 대체군) 품목 목록.
 
@@ -156,6 +160,12 @@ def get_substitutes(
     False: 같은 ingredient_code를 갖는 타 대체군 품목도 포함하고, same_condition 불리언
     컬럼으로 두 집합을 구분한다. current_stock은 각 품목의 stock_usage_daily 중 최신 date의
     closing_stock이며 기록이 없으면 NULL이다.
+
+    as_of(선택, 기본 None): 지정하면 "최신"을 date <= as_of 범위로 제한한다 — 과거 run
+    기준으로 대체 후보 재고를 조회할 때(medsupply.llm.grounding) as_of 이후 기록을
+    미래 정보로 끌어오는 룩어헤드를 막기 위함이다(리뷰 F4). None(기본)이면 기존과 동일하게
+    전체 기간 중 최신 1건이다 — 기존 호출부(services.workbench)는 이 인자를 넘기지 않으므로
+    동작이 그대로 보존된다.
     """
     source = get_item(conn, item_id)
     group_id = source["substitute_group_id"]
@@ -170,6 +180,11 @@ def get_substitutes(
         )
         params["ingredient_code"] = ingredient_code
 
+    stock_date_filter = ""
+    if as_of is not None:
+        stock_date_filter = " AND s.date <= :as_of"
+        params["as_of"] = str(as_of)
+
     query = f"""
         SELECT
             i.item_id,
@@ -183,7 +198,7 @@ def get_substitutes(
             CASE WHEN i.substitute_group_id = :group_id THEN 1 ELSE 0 END AS same_condition,
             (
                 SELECT s.closing_stock FROM stock_usage_daily AS s
-                WHERE s.item_id = i.item_id
+                WHERE s.item_id = i.item_id{stock_date_filter}
                 ORDER BY s.date DESC
                 LIMIT 1
             ) AS current_stock

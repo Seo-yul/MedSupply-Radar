@@ -17,6 +17,7 @@ hallucination_flags(list[str])를 반환한다 — 위반이어도 예외를 던
 from __future__ import annotations
 
 import json
+import math
 import re
 import sqlite3
 from datetime import date, timedelta
@@ -39,10 +40,28 @@ _ISO_DATE_RE = re.compile(r"\d{4}-\d{2}-\d{2}")
 #: (브리프: "2자리 이상 숫자(연도·날짜 구성부 제외)"). 4자리라는 이유만으로 전부 면제하지는
 #: 않는다 — "년" 뒤에 붙은 경우만 연도로 본다(순수 4자리 수량은 정상적으로 대조 대상이다).
 _YEAR_RE = re.compile(r"\d{4}(?=년)")
-#: 수치 토큰 — 부호·소수점 허용(usage_change_pct처럼 음수로 나올 수 있는 값 대응).
-_NUMBER_RE = re.compile(r"-?\d+(?:\.\d+)?")
-#: 숫자 문자만 남겨 자릿수를 세기 위한 보조 패턴("2자리 이상" 판정에 부호·소수점은 제외).
+#: 수치 토큰 — 부호는 토큰화하지 않는다(픽스 라운드 1 리뷰 F5). "10-20개" 같은 범위 표기의
+#: 하이픈을 음수 부호로 오인하면 "-20"이 돼버려 실제로는 두 양수 10·20을 검사해야 할 자리에
+#: 엉뚱한 음수 하나만 남는다. 음수로 존재하는 evidence 값(예: usage_change_pct)과의 대조는
+#: 토큰화가 아니라 _numeric_equivalents의 절대값 허용이 담당한다.
+_NUMBER_RE = re.compile(r"\d+(?:\.\d+)?")
+#: 숫자 문자만 남겨 자릿수를 세기 위한 보조 패턴("2자리 이상" 판정에 소수점은 제외).
 _DIGITS_ONLY_RE = re.compile(r"[^\d]")
+
+
+def _unique_preserve_order(items) -> list[str]:
+    """items를 최초 등장 순서를 지킨 채 중복 제거한다.
+
+    collect_risk_evidence의 evidence_refs(리뷰 F1: 집합이어야 함)와
+    verify_explanation_grounding의 플래그 순서 결정성 둘 다가 이 헬퍼를 공유한다.
+    """
+    seen: set[str] = set()
+    ordered: list[str] = []
+    for item in items:
+        if item not in seen:
+            seen.add(item)
+            ordered.append(item)
+    return ordered
 
 
 def _resolve_run_id(conn: sqlite3.Connection, run_id: str | None) -> str | None:
@@ -157,9 +176,16 @@ def _next_shipment(
     return next_shipment, int(row["shipment_id"])
 
 
-def _substitutes_same_condition(conn: sqlite3.Connection, item_id: str) -> list[dict]:
-    """같은 대체군(same_condition_only=True) 품목 — item_id 오름차순(쿼리 정렬 그대로)."""
-    df = queries.get_substitutes(conn, item_id, same_condition_only=True)
+def _substitutes_same_condition(
+    conn: sqlite3.Connection, item_id: str, as_of_date: date
+) -> list[dict]:
+    """같은 대체군(same_condition_only=True) 품목 — item_id 오름차순(쿼리 정렬 그대로).
+
+    as_of_date를 queries.get_substitutes에 그대로 전달해, run의 as_of 이후에 기록된
+    재고(예: 과거 run 조회 시 그 뒤에 쌓인 최신 데이터)가 "현재 재고"로 끌려 들어오는
+    룩어헤드를 막는다(리뷰 F4).
+    """
+    df = queries.get_substitutes(conn, item_id, same_condition_only=True, as_of=as_of_date)
     return [
         {
             "item_id": row["item_id"],
@@ -186,9 +212,11 @@ def collect_risk_evidence(
 
     모든 값은 queries.py 함수 조회로만 채운다(원시 SQL 없음). evidence_refs 채번 규칙은
     task-M20-brief.md 표를 그대로 따른다: risk:{run_id}, usage:recent28, stock:current(항상
-    포함), anomaly:{kind}:{detected_on}(anomalies 각각), notice:{notice_id}(active_notices
-    각각), shipment:{shipment_id}(next_shipment 있을 때만), substitute:{item_id}
-    (substitutes_same_condition 각각).
+    포함), anomaly:{seq}:{kind}(anomalies 각각, seq=1-based 리스트 위치 — detected_on은
+    as_of와 동일해 충돌하는 경우가 있어 판별자로 못 쓴다, 리뷰 F1), notice:{notice_id}
+    (active_notices 각각), shipment:{shipment_id}(next_shipment 있을 때만), substitute:
+    {item_id}(substitutes_same_condition 각각). evidence_refs는 집합이다 — 마지막에
+    _unique_preserve_order로 중복을 제거해 반환한다(리뷰 F1).
     """
     resolved_run_id = _resolve_run_id(conn, run_id)
 
@@ -219,14 +247,15 @@ def collect_risk_evidence(
 
     active_notices = _active_notices(conn, item_id, as_of_date)
     next_shipment, shipment_id = _next_shipment(conn, item_id, as_of_date)
-    substitutes = _substitutes_same_condition(conn, item_id)
+    substitutes = _substitutes_same_condition(conn, item_id, as_of_date)
 
     evidence_refs = [f"risk:{resolved_run_id}", "usage:recent28", "stock:current"]
-    evidence_refs += [f"anomaly:{a['kind']}:{a['detected_on']}" for a in anomalies]
+    evidence_refs += [f"anomaly:{seq}:{a['kind']}" for seq, a in enumerate(anomalies, start=1)]
     evidence_refs += [f"notice:{n['notice_id']}" for n in active_notices]
     if next_shipment is not None:
         evidence_refs.append(f"shipment:{shipment_id}")
     evidence_refs += [f"substitute:{s['item_id']}" for s in substitutes]
+    evidence_refs = _unique_preserve_order(evidence_refs)
 
     return RiskEvidence(
         item_id=item_id,
@@ -258,17 +287,6 @@ def collect_risk_evidence(
 # ---------------------------------------------------------------------------
 
 
-def _unique_preserve_order(items) -> list[str]:
-    """items를 최초 등장 순서를 지킨 채 중복 제거한다(플래그 순서 결정성 확보)."""
-    seen: set[str] = set()
-    ordered: list[str] = []
-    for item in items:
-        if item not in seen:
-            seen.add(item)
-            ordered.append(item)
-    return ordered
-
-
 def _body_text(explanation: RiskExplanation) -> str:
     """대조 대상 본문 = cause_summary + 각 action.description(브리프 §unsupported_date 정의를
     unsupported_number·phantom_notice에도 동일 적용)."""
@@ -276,49 +294,101 @@ def _body_text(explanation: RiskExplanation) -> str:
     return "\n".join(parts)
 
 
-def _evidence_date_set(evidence: RiskEvidence) -> set[str]:
-    """본문이 인용할 수 있는 ISO 날짜 전체 — as_of·depletion_date·anomalies detected_on·
-    notices published_date·shipment expected_date."""
-    dates = {evidence.as_of}
-    if evidence.depletion_date:
-        dates.add(evidence.depletion_date)
-    for anomaly in evidence.anomalies:
-        detected_on = anomaly.get("detected_on")
-        if detected_on:
-            dates.add(detected_on)
-    for notice in evidence.active_notices:
-        published_date = notice.get("published_date")
-        if published_date:
-            dates.add(published_date)
-    if evidence.next_shipment:
-        expected_date = evidence.next_shipment.get("expected_date")
-        if expected_date:
-            dates.add(expected_date)
+def _dates_in_text(text: str) -> list[str]:
+    """text에 등장하는 ISO 날짜(YYYY-MM-DD)를 등장 순서 그대로(중복 포함) 반환한다.
+
+    본문 스캔(순서가 플래그 순서를 결정)과 evidence 풀 파생(순서 무관, 집합으로 합침)
+    양쪽이 공유하는 단일 추출 지점이다.
+    """
+    return _ISO_DATE_RE.findall(text)
+
+
+def _number_tokens_in_text(text: str) -> list[str]:
+    """text에서 "2자리 이상 숫자" 토큰만(날짜 구성부 제외) 최초 등장 순서로 추출한다.
+
+    ISO 날짜 전체와 "NNNN년"(단독 연도 표기)을 먼저 공백으로 치환해 걷어낸 뒤 숫자를
+    찾는다 — 빈 문자열이 아니라 공백으로 치환해 그 결과 인접 숫자가 우연히 이어붙지
+    않게 한다. 본문 스캔과 evidence 풀 파생(리뷰 F2) 양쪽이 공유하는 단일 추출 지점이라,
+    부호 없는 토큰화(리뷰 F5)도 이 한 곳만 고치면 양쪽에 동시 반영된다.
+    """
+    masked = _YEAR_RE.sub(" ", _ISO_DATE_RE.sub(" ", text))
+    return [
+        token
+        for token in _NUMBER_RE.findall(masked)
+        if len(_DIGITS_ONLY_RE.sub("", token)) >= 2
+    ]
+
+
+def _numeric_equivalents(value: float) -> set[float]:
+    """value의 "허용 표현" 집합 — 절대값과 원부호 각각에 대해 소수 1자리 그대로, 그리고
+    정수화 시 내림(floor)·올림(ceil) 양방향을 전부 더한다.
+
+    리뷰 F3: 0.5 경계에서 "half-up"과 "floor"(또는 그 반대) 어느 쪽으로 인용해도 허용해야
+    한다는 룰링에 따라, 단일 round()(파이썬 기본은 은행가 반올림이라 26.5 → 26으로만
+    치우친다) 대신 floor·ceil 둘 다 포함한다 — 예: 26.5 → {26.5, 26.0, 27.0}. 정수처럼
+    이미 반올림이 무의미한 값(floor==ceil==value)은 자연히 한 값으로 수렴한다.
+    """
+    equivalents: set[float] = set()
+    for candidate in (float(value), abs(float(value))):
+        equivalents.add(round(candidate, 1))
+        equivalents.add(round(float(math.floor(candidate)), 1))
+        equivalents.add(round(float(math.ceil(candidate)), 1))
+    return equivalents
+
+
+def _walk_leaves(value):
+    """중첩 dict/list를 재귀 순회하며 컨테이너가 아닌 리프 값만 yield한다.
+
+    evidence.model_dump() 트리 전체에 적용하는 범용 순회다 — 필드를 하나씩 나열하지
+    않으므로 RiskEvidence 스키마가 확장돼도 이 함수를 고칠 필요 없이 새 필드까지 자동으로
+    훑는다(리뷰 F2: "필드 나열이 아니라 객체 순회로 구현").
+    """
+    if isinstance(value, dict):
+        for item in value.values():
+            yield from _walk_leaves(item)
+    elif isinstance(value, (list, tuple)):
+        for item in value:
+            yield from _walk_leaves(item)
+    else:
+        yield value
+
+
+def _evidence_date_pool(evidence: RiskEvidence) -> set[str]:
+    """evidence 전체에서 재귀 파생한 ISO 날짜 집합(리뷰 F2).
+
+    evidence.model_dump() 트리의 모든 리프를 훑어, 문자열 리프마다 그 안에 등장하는 ISO
+    날짜 토큰을 전부 모은다 — as_of·depletion_date처럼 그 자체가 날짜인 필드는 물론,
+    anomalies[].detail 같은 자유 텍스트 안에 "부수적으로" 언급된 날짜(예: "입고 예정
+    2026-07-18 대비 14일 지연")까지 포함한다. 근거 안에 실재하는 사실은 절대 플래그하지
+    않는다는 원칙을 지키기 위해, 손으로 나열한 날짜 필드 목록 대신 트리 전체를 본다.
+    """
+    dates: set[str] = set()
+    for leaf in _walk_leaves(evidence.model_dump()):
+        if isinstance(leaf, str):
+            dates |= set(_dates_in_text(leaf))
     return dates
 
 
 def _evidence_number_pool(evidence: RiskEvidence) -> set[float]:
-    """본문 수치 대조에 쓸 "허용 표현" 집합 — score·days_to_stockout·current_stock·
-    avg_daily_usage·usage_change_pct·shipment qty 각각에 정수화·절대값·소수 1자리 반올림
-    동치를 전부 더해 만든다(브리프: "정수화·절대값·소수1 반올림 동치 허용").
-    """
-    raw_values: list[float] = [
-        evidence.score,
-        evidence.days_to_stockout,
-        evidence.current_stock,
-        evidence.avg_daily_usage,
-        evidence.usage_change_pct,
-    ]
-    if evidence.next_shipment is not None:
-        raw_values.append(evidence.next_shipment.get("qty"))
+    """evidence 전체에서 재귀 파생한 "허용 수치 표현" 집합(리뷰 F2).
 
+    evidence.model_dump() 트리의 모든 리프를 훑어, 수치 리프(bool 제외 — bool은 int의
+    서브클래스라 escalated_by_notice의 True/False가 0/1로 오인되지 않도록 명시적으로
+    건너뛴다)는 곧바로, 문자열 리프는 그 안의 2자리 이상 숫자 토큰을 추출해
+    _numeric_equivalents로 각각 반올림·절대값·양방향 정수화 동치를 더한다. score·
+    current_stock 같은 구조화 필드뿐 아니라 anomalies[].detail·item_name·substitutes의
+    item_name·current_stock 등 evidence가 공급한 문자열 안의 숫자까지 전부 포함된다 —
+    스키마가 확장되면 이 풀도 코드 수정 없이 자동으로 따라간다.
+    """
     pool: set[float] = set()
-    for value in raw_values:
-        if value is None:
+    for leaf in _walk_leaves(evidence.model_dump()):
+        if isinstance(leaf, bool):
             continue
-        for candidate in (float(value), abs(float(value))):
-            pool.add(round(candidate, 1))
-            pool.add(round(float(round(candidate)), 1))
+        if isinstance(leaf, (int, float)):
+            pool |= _numeric_equivalents(leaf)
+        elif isinstance(leaf, str):
+            for token in _number_tokens_in_text(leaf):
+                pool |= _numeric_equivalents(float(token))
     return pool
 
 
@@ -331,6 +401,20 @@ def verify_explanation_grounding(evidence: RiskEvidence, explanation: RiskExplan
     한 검사 안에서 여러 위반이 나오면(예: 근거 밖 ID를 여러 개 인용) 본문에 처음 등장한
     순서로 각각 플래그 하나씩 만든다(중복은 1건으로 합친다). 위반이 있어도 예외를 던지지
     않는다 — 호출부(M-21)가 hallucination_flags로 결과에 그대로 부착한다.
+
+    날짜·수치 대조 풀은 evidence 전체를 재귀 순회해(_evidence_date_pool·
+    _evidence_number_pool, evidence.model_dump() 트리 — 손으로 나열한 필드가 아님) 모든
+    수치·날짜 필드는 물론 anomalies[].detail·item_name 등 evidence가 공급한 문자열 안의
+    숫자·ISO 날짜 토큰까지 포함한다(리뷰 F2) — 스키마가 확장돼도 이 함수를 고칠 필요가
+    없다.
+
+    **구조적 한계(과대 서술 금지)**: 이 대조기는 "그 값이 evidence 어딘가에 존재하는가"만
+    본다 — 본문이 그 값에 부여한 **역할**이 evidence 안에서의 역할과 같은지는 확인하지
+    않는다(role-blind). 예를 들어 evidence의 shipment qty가 200일 때 본문이 "현재 재고
+    200개"라고 썼다면(실제로는 입고 예정 수량이지 재고가 아니다) 200이라는 숫자 자체는
+    evidence 안에 있으므로 unsupported_number로 잡히지 않는다 — 이런 교차 인용
+    (cross-citation) 오류는 5종 플래그 중 어떤 것도 방어하지 않으며, 이 함수의 탐지
+    범위를 벗어난다.
     """
     flags: list[str] = []
     body = _body_text(explanation)
@@ -350,21 +434,16 @@ def verify_explanation_grounding(evidence: RiskEvidence, explanation: RiskExplan
         if not action.evidence_refs:
             flags.append(f"empty_refs: actions[{index}].evidence_refs ({action.title!r})")
 
-    # 3. unsupported_date — 본문의 ISO 날짜 중 evidence 날짜 집합 밖의 것.
-    evidence_dates = _evidence_date_set(evidence)
-    body_dates = _unique_preserve_order(_ISO_DATE_RE.findall(body))
+    # 3. unsupported_date — 본문의 ISO 날짜 중 evidence 전체 재귀 파생 날짜 집합 밖의 것.
+    evidence_dates = _evidence_date_pool(evidence)
+    body_dates = _unique_preserve_order(_dates_in_text(body))
     flags.extend(
         f"unsupported_date: {found_date}" for found_date in body_dates if found_date not in evidence_dates
     )
 
-    # 4. unsupported_number — 날짜 구성부(ISO 날짜·"NNNN년")를 먼저 걷어낸 뒤, 2자리 이상
-    #    숫자 토큰만 evidence 수치 풀과 대조한다.
-    masked_body = _YEAR_RE.sub(" ", _ISO_DATE_RE.sub(" ", body))
-    number_tokens = _unique_preserve_order(
-        token
-        for token in _NUMBER_RE.findall(masked_body)
-        if len(_DIGITS_ONLY_RE.sub("", token)) >= 2
-    )
+    # 4. unsupported_number — 본문의 2자리 이상 숫자 토큰 중 evidence 전체 재귀 파생 수치
+    #    풀 밖의 것.
+    number_tokens = _unique_preserve_order(_number_tokens_in_text(body))
     allowed_numbers = _evidence_number_pool(evidence)
     flags.extend(
         f"unsupported_number: {token}"
