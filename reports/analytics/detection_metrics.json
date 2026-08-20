@@ -1,10 +1,10 @@
 {
   "meta": {
-    "dataset_content_hash": "d0d2c9cdc60977dbd257ef5a721ad1b5b93e2405d0232eb81349bb98a8fe8008",
+    "dataset_content_hash": "31937ef068052afede0e72739e28f76d7248c231b0f91a3eea095f8d9c23bdc9",
     "config_hash": "2259bbf9",
     "labels_version": "standard_v1.json",
     "params_ref": "config/analytics_params.toml",
-    "generated_at": "2026-08-20T03:08:24",
+    "generated_at": "2026-08-21T02:43:07",
     "measured_by": "scripts/measure_detection.py"
   },
   "results": {
@@ -69,10 +69,447 @@
       "detected": 20,
       "false_positives": 104
     },
+    "risk_type_match": {
+      "overall": 0.25,
+      "counts": {
+        "labeled": 20,
+        "matched": 5
+      },
+      "by_type": {
+        "composite": {
+          "labeled": 5,
+          "matched": 0,
+          "match_rate": 0.0
+        },
+        "delivery_delay": {
+          "labeled": 5,
+          "matched": 2,
+          "match_rate": 0.4
+        },
+        "demand_surge": {
+          "labeled": 5,
+          "matched": 3,
+          "match_rate": 0.6
+        },
+        "supply_halt": {
+          "labeled": 5,
+          "matched": 0,
+          "match_rate": 0.0
+        }
+      },
+      "items": {
+        "ITM-0001": {
+          "scenario_type": "composite",
+          "modal_risk_type": "demand_surge",
+          "matched": false,
+          "detected": true,
+          "first_alert": "2026-07-01"
+        },
+        "ITM-0009": {
+          "scenario_type": "demand_surge",
+          "modal_risk_type": "demand_surge",
+          "matched": true,
+          "detected": true,
+          "first_alert": "2026-07-01"
+        },
+        "ITM-0011": {
+          "scenario_type": "supply_halt",
+          "modal_risk_type": "general",
+          "matched": false,
+          "detected": true,
+          "first_alert": "2026-07-01"
+        },
+        "ITM-0017": {
+          "scenario_type": "delivery_delay",
+          "modal_risk_type": "delivery_delay",
+          "matched": true,
+          "detected": true,
+          "first_alert": "2026-07-01"
+        },
+        "ITM-0019": {
+          "scenario_type": "demand_surge",
+          "modal_risk_type": "general",
+          "matched": false,
+          "detected": true,
+          "first_alert": "2026-07-01"
+        },
+        "ITM-0026": {
+          "scenario_type": "delivery_delay",
+          "modal_risk_type": "general",
+          "matched": false,
+          "detected": true,
+          "first_alert": "2026-07-02"
+        },
+        "ITM-0035": {
+          "scenario_type": "delivery_delay",
+          "modal_risk_type": "delivery_delay",
+          "matched": true,
+          "detected": true,
+          "first_alert": "2026-07-01"
+        },
+        "ITM-0036": {
+          "scenario_type": "supply_halt",
+          "modal_risk_type": "general",
+          "matched": false,
+          "detected": true,
+          "first_alert": "2026-07-07"
+        },
+        "ITM-0039": {
+          "scenario_type": "composite",
+          "modal_risk_type": "demand_surge",
+          "matched": false,
+          "detected": true,
+          "first_alert": "2026-07-01"
+        },
+        "ITM-0044": {
+          "scenario_type": "demand_surge",
+          "modal_risk_type": "demand_surge",
+          "matched": true,
+          "detected": true,
+          "first_alert": "2026-07-01"
+        },
+        "ITM-0058": {
+          "scenario_type": "composite",
+          "modal_risk_type": "general",
+          "matched": false,
+          "detected": true,
+          "first_alert": "2026-07-08"
+        },
+        "ITM-0065": {
+          "scenario_type": "supply_halt",
+          "modal_risk_type": "general",
+          "matched": false,
+          "detected": true,
+          "first_alert": "2026-07-06"
+        },
+        "ITM-0068": {
+          "scenario_type": "delivery_delay",
+          "modal_risk_type": "general",
+          "matched": false,
+          "detected": true,
+          "first_alert": "2026-07-01"
+        },
+        "ITM-0084": {
+          "scenario_type": "demand_surge",
+          "modal_risk_type": "demand_surge",
+          "matched": true,
+          "detected": true,
+          "first_alert": "2026-07-01"
+        },
+        "ITM-0087": {
+          "scenario_type": "demand_surge",
+          "modal_risk_type": "general",
+          "matched": false,
+          "detected": true,
+          "first_alert": "2026-07-08"
+        },
+        "ITM-0093": {
+          "scenario_type": "composite",
+          "modal_risk_type": "delivery_delay",
+          "matched": false,
+          "detected": true,
+          "first_alert": "2026-07-01"
+        },
+        "ITM-0098": {
+          "scenario_type": "supply_halt",
+          "modal_risk_type": "general",
+          "matched": false,
+          "detected": true,
+          "first_alert": "2026-07-02"
+        },
+        "ITM-0103": {
+          "scenario_type": "supply_halt",
+          "modal_risk_type": "delivery_delay",
+          "matched": false,
+          "detected": true,
+          "first_alert": "2026-07-01"
+        },
+        "ITM-0107": {
+          "scenario_type": "composite",
+          "modal_risk_type": "general",
+          "matched": false,
+          "detected": true,
+          "first_alert": "2026-07-01"
+        },
+        "ITM-0121": {
+          "scenario_type": "delivery_delay",
+          "modal_risk_type": "general",
+          "matched": false,
+          "detected": true,
+          "first_alert": "2026-07-01"
+        }
+      }
+    },
     "sweep": {
       "start": "2026-07-01",
       "end": "2026-08-01",
       "days": 32
     }
+  },
+  "calibration": {
+    "task": "S-17",
+    "status": "BLOCKED",
+    "performed_at": "2026-08-21T02:43:52",
+    "procedure": "후보 4개 사전 등록 → 표준 스냅샷 읽기 전용 스윕 → 사전 확정된 채택 기준 순서 적용. 결과를 본 뒤 후보를 추가·수정하지 않았다.",
+    "sweep": {
+      "start": "2026-07-01",
+      "end": "2026-08-01",
+      "days": 32
+    },
+    "labels_version": "standard_v1.json",
+    "dataset_content_hash": "31937ef068052afede0e72739e28f76d7248c231b0f91a3eea095f8d9c23bdc9",
+    "adoption_criteria": [
+      "① 감지율 100% 유지 필수(미달 후보 즉시 탈락)",
+      "② 오탐률 최소",
+      "③ 동률이면 선행일수 중앙값 큰 쪽",
+      "④ 동률이면 risk_type 일치율 높은 쪽",
+      "⑤ 동률이면 변경점 적은 쪽(A>B>C>D)"
+    ],
+    "candidates": [
+      {
+        "name": "baseline-v1",
+        "note": "기준선(현행 v1) — 1차 측정 재현 확인",
+        "changes_from_v1": {},
+        "config_hash": "2259bbf9",
+        "detection_rate": 1.0,
+        "detected": "20/20",
+        "false_positive_rate": 1.0,
+        "false_positives": "104/104",
+        "lead_days_median": 47.5,
+        "lead_days_min": 16,
+        "danger_precision": 1.0,
+        "risk_type_match_rate": 0.25,
+        "risk_type_matched": "5/20",
+        "delivery_delay_detected": "5/5",
+        "delivery_delay_lead_median": 71,
+        "eliminated_by": null
+      },
+      {
+        "name": "cand-A",
+        "note": "A",
+        "changes_from_v1": {
+          "depletion.reflect_receipts": true
+        },
+        "config_hash": "09880936",
+        "detection_rate": 0.9,
+        "detected": "18/20",
+        "false_positive_rate": 0.9326923076923077,
+        "false_positives": "97/104",
+        "lead_days_median": 52.0,
+        "lead_days_min": 0,
+        "danger_precision": 1.0,
+        "risk_type_match_rate": 0.25,
+        "risk_type_matched": "5/20",
+        "delivery_delay_detected": "5/5",
+        "delivery_delay_lead_median": 54,
+        "eliminated_by": "기준 ① 미달(감지율 100% 아님)"
+      },
+      {
+        "name": "cand-B",
+        "note": "A + watch_days=21",
+        "changes_from_v1": {
+          "depletion.reflect_receipts": true,
+          "grade.watch_days": 21
+        },
+        "config_hash": "57dda288",
+        "detection_rate": 0.9,
+        "detected": "18/20",
+        "false_positive_rate": 0.9038461538461539,
+        "false_positives": "94/104",
+        "lead_days_median": 51.5,
+        "lead_days_min": 0,
+        "danger_precision": 1.0,
+        "risk_type_match_rate": 0.25,
+        "risk_type_matched": "5/20",
+        "delivery_delay_detected": "5/5",
+        "delivery_delay_lead_median": 54,
+        "eliminated_by": "기준 ① 미달(감지율 100% 아님)"
+      },
+      {
+        "name": "cand-C",
+        "note": "A + surge_ratio=0.20",
+        "changes_from_v1": {
+          "depletion.reflect_receipts": true,
+          "anomaly.surge_ratio": 0.2
+        },
+        "config_hash": "0f6109c5",
+        "detection_rate": 0.9,
+        "detected": "18/20",
+        "false_positive_rate": 0.9326923076923077,
+        "false_positives": "97/104",
+        "lead_days_median": 52.0,
+        "lead_days_min": 0,
+        "danger_precision": 1.0,
+        "risk_type_match_rate": 0.25,
+        "risk_type_matched": "5/20",
+        "delivery_delay_detected": "5/5",
+        "delivery_delay_lead_median": 54,
+        "eliminated_by": "기준 ① 미달(감지율 100% 아님)"
+      },
+      {
+        "name": "cand-D",
+        "note": "A + surge_ratio=0.20 + recent_window=5",
+        "changes_from_v1": {
+          "depletion.reflect_receipts": true,
+          "anomaly.surge_ratio": 0.2,
+          "anomaly.recent_window": 5
+        },
+        "config_hash": "9c81e511",
+        "detection_rate": 0.9,
+        "detected": "18/20",
+        "false_positive_rate": 0.9326923076923077,
+        "false_positives": "97/104",
+        "lead_days_median": 52.0,
+        "lead_days_min": 0,
+        "danger_precision": 1.0,
+        "risk_type_match_rate": 0.25,
+        "risk_type_matched": "5/20",
+        "delivery_delay_detected": "5/5",
+        "delivery_delay_lead_median": 54,
+        "eliminated_by": "기준 ① 미달(감지율 100% 아님)"
+      }
+    ],
+    "delivery_delay_tracking": {
+      "ITM-0017": {
+        "baseline-v1": {
+          "detected": true,
+          "first_alert": "2026-07-01"
+        },
+        "cand-A": {
+          "detected": true,
+          "first_alert": "2026-07-01"
+        },
+        "cand-B": {
+          "detected": true,
+          "first_alert": "2026-07-07"
+        },
+        "cand-C": {
+          "detected": true,
+          "first_alert": "2026-07-01"
+        },
+        "cand-D": {
+          "detected": true,
+          "first_alert": "2026-07-01"
+        }
+      },
+      "ITM-0026": {
+        "baseline-v1": {
+          "detected": true,
+          "first_alert": "2026-07-02"
+        },
+        "cand-A": {
+          "detected": true,
+          "first_alert": "2026-07-21"
+        },
+        "cand-B": {
+          "detected": true,
+          "first_alert": "2026-07-21"
+        },
+        "cand-C": {
+          "detected": true,
+          "first_alert": "2026-07-21"
+        },
+        "cand-D": {
+          "detected": true,
+          "first_alert": "2026-07-21"
+        }
+      },
+      "ITM-0035": {
+        "baseline-v1": {
+          "detected": true,
+          "first_alert": "2026-07-01"
+        },
+        "cand-A": {
+          "detected": true,
+          "first_alert": "2026-07-08"
+        },
+        "cand-B": {
+          "detected": true,
+          "first_alert": "2026-07-16"
+        },
+        "cand-C": {
+          "detected": true,
+          "first_alert": "2026-07-08"
+        },
+        "cand-D": {
+          "detected": true,
+          "first_alert": "2026-07-08"
+        }
+      },
+      "ITM-0068": {
+        "baseline-v1": {
+          "detected": true,
+          "first_alert": "2026-07-01"
+        },
+        "cand-A": {
+          "detected": true,
+          "first_alert": "2026-07-01"
+        },
+        "cand-B": {
+          "detected": true,
+          "first_alert": "2026-07-01"
+        },
+        "cand-C": {
+          "detected": true,
+          "first_alert": "2026-07-01"
+        },
+        "cand-D": {
+          "detected": true,
+          "first_alert": "2026-07-01"
+        }
+      },
+      "ITM-0121": {
+        "baseline-v1": {
+          "detected": true,
+          "first_alert": "2026-07-01"
+        },
+        "cand-A": {
+          "detected": true,
+          "first_alert": "2026-07-01"
+        },
+        "cand-B": {
+          "detected": true,
+          "first_alert": "2026-07-01"
+        },
+        "cand-C": {
+          "detected": true,
+          "first_alert": "2026-07-01"
+        },
+        "cand-D": {
+          "detected": true,
+          "first_alert": "2026-07-01"
+        }
+      }
+    },
+    "undetected_items": {
+      "baseline-v1": [],
+      "cand-A": [
+        "ITM-0036",
+        "ITM-0058"
+      ],
+      "cand-B": [
+        "ITM-0036",
+        "ITM-0058"
+      ],
+      "cand-C": [
+        "ITM-0036",
+        "ITM-0058"
+      ],
+      "cand-D": [
+        "ITM-0036",
+        "ITM-0058"
+      ]
+    },
+    "adopted": null,
+    "blocked_reason": "기준 ①을 통과한 후보가 없다 — A·B·C·D 전부 감지 18/20(90%)로 하락했다. 동시에 두 번째 BLOCKED 조건(오탐률 ≥50% 잔존)도 성립한다 — 최저가 cand-B의 90.4%. reflect_receipts=true는 오탐을 104/104 → 94~97/104(최대 -9.6%p)로만 줄인 반면, 시나리오 품목 ITM-0036(supply_halt)·ITM-0058(composite)의 소진 추정일을 스윕 종료일 2026-08-01 밖으로 밀어 first_alert를 소멸시켰다. 파라미터 1회 보정 범위 밖의 원인이므로 채택하지 않는다(컨트롤러 판정 사안).",
+    "params_unchanged": true,
+    "params_ref_in_effect": "config/analytics_params.toml (v1, config_hash 2259bbf9)",
+    "freeze": null,
+    "notes": [
+      "delivery_delay 라벨 품목은 4개가 아니라 5개다(standard_v1.json 기준) — 5품목 전부 전 후보에서 감지 유지(5/5). depletion.estimate_depletion이 expected_date <= as_of인 지연 입고를 반영하지 않는 차단 처리 덕분에 핵심 리스크는 현실화되지 않았다. 다만 선행일수 중앙값은 71일 → 54일로 하락했다.",
+      "risk_type 일치율은 전 후보 25%(5/20)로 동일해 타이브레이크 ④가 변별력을 갖지 못했다. 라벨 20품목 중 11품목의 최빈 risk_type이 'general'이다(이상신호·공고 요인 0개).",
+      "최고등급 정밀도는 전 후보 100% 유지.",
+      "이 파일의 results는 채택이 없었으므로 v1 파라미터 재측정값이다 — 1차 측정과 수치가 완전히 동일하며(감지 20/20, 오탐 104/104, 선행 중앙값 47.5), risk_type_match 키만 새로 추가됐다."
+    ]
   }
 }

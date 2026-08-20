@@ -29,6 +29,9 @@
 - 오탐: 비라벨(정상) 품목이 스윕 중 1회라도 '주의' 이상이면 오탐 품목 1건.
 - 최고등급 정밀도: 스윕 중 1회라도 '위험' 판정된 품목 집합 중 라벨 품목의 비율(분모가 0이면
   판정 불가 → null).
+- risk_type 일치율(Task S-17 확장): 라벨 품목별로 "스윕 중 최빈 risk_type"이 라벨
+  scenario_type이 허용하는 risk_type 집합(``RISK_TYPE_MATCH_RULES``)에 드는지 본다.
+  등급·감지·오탐 판정과는 **완전히 분리된 부가 지표**다(채택 기준의 3차 타이브레이크용).
 
 ## 예측 파일(``--predict-only`` 산출물) 스키마
 metrics-spec의 공통 meta/results 헤더는 **최종 결과 JSON**(``--out``)에만 적용된다. 예측
@@ -37,12 +40,15 @@ metrics-spec의 공통 meta/results 헤더는 **최종 결과 JSON**(``--out``)�
     {
       "dataset_content_hash": "...", "config_hash": "...", "params_ref": "...",
       "generated_at": "...", "sweep": {"start", "end", "days"},
-      "predictions": {"<item_id>": {"<date ISO>": "<grade>", ...}, ...}
+      "predictions": {"<item_id>": {"<date ISO>": "<grade>", ...}, ...},
+      "risk_types": {"<item_id>": {"<date ISO>": "<risk_type>", ...}, ...}
     }
 ``--score``는 이 파일의 dataset_content_hash·config_hash·params_ref·sweep을 그대로 최종
 결과 JSON에 옮긴다 — 그래서 predict-only 시점에 쓰인 DB·params가 그대로 결과 meta에
 반영되고, 일괄 실행과 2단계 실행이 같은 입력에서 항상 같은 결과를 낸다(generated_at만
-채점 시각으로 달라진다).
+채점 시각으로 달라진다). ``risk_types``는 S-17에서 추가된 필드로, 이것이 있어야 2단계
+경로도 일괄 실행과 동일한 ``risk_type_match``를 산출한다 — 이 필드가 없는 옛 예측 파일을
+``--score``에 넣으면 ``risk_type_match``만 null이 되고 나머지 지표는 그대로 나온다.
 """
 
 from __future__ import annotations
@@ -51,6 +57,8 @@ import argparse
 import json
 import statistics
 import sys
+from collections import Counter
+from collections.abc import Mapping
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
@@ -69,6 +77,24 @@ ALERT_GRADES = frozenset({"주의", "경고", "위험"})
 DANGER_GRADE = "위험"
 
 MEASURED_BY = "scripts/measure_detection.py"
+
+#: 라벨 scenario_type → "일치"로 인정할 risk_type 집합(Task S-17 브리프 §3의 매핑 규칙).
+#:
+#: 브리프는 규칙을 ``usage_surge→demand_surge`` / ``supply_halt→supply_halt·composite`` /
+#: ``delivery_delay→delivery_delay·composite`` / ``compound→composite``로 적는데, 실제 라벨
+#: 파일이 쓰는 이름은 ``demand_surge``·``composite``다. 두 표기를 모두 키로 등록해 어느 쪽
+#: 표기의 라벨이 들어와도 같은 판정이 나오게 한다(별칭이지 새 규칙이 아니다).
+#:
+#: composite를 허용하는 쪽이 supply_halt·delivery_delay뿐인 것은 의도다 — 브리프가 그 둘만
+#: 허용으로 지정했다. demand_surge는 정확히 demand_surge여야 일치로 센다.
+RISK_TYPE_MATCH_RULES: dict[str, frozenset[str]] = {
+    "demand_surge": frozenset({"demand_surge"}),
+    "usage_surge": frozenset({"demand_surge"}),
+    "supply_halt": frozenset({"supply_halt", "composite"}),
+    "delivery_delay": frozenset({"delivery_delay", "composite"}),
+    "composite": frozenset({"composite"}),
+    "compound": frozenset({"composite"}),
+}
 
 
 # ---------------------------------------------------------------------------
@@ -95,18 +121,38 @@ def _date_range(start: date, end: date) -> list[date]:
 # ---------------------------------------------------------------------------
 
 
-def run_sweep(conn, start: date, end: date, params: AnalyticsParams) -> dict[str, dict[str, str]]:
-    """[start, end] 매일 assess_snapshot을 실행해 {item_id: {date_iso: grade}}로 모은다.
+def run_sweep_detail(
+    conn, start: date, end: date, params: AnalyticsParams
+) -> tuple[dict[str, dict[str, str]], dict[str, dict[str, str]]]:
+    """[start, end] 매일 assess_snapshot을 1회씩 실행해 등급 격자와 risk_type 격자를 함께 모은다.
 
     라벨을 전혀 읽지 않는다(인자로 받지도 않는다) — --predict-only가 이 함수만 호출하고
     끝낼 수 있는 이유다. 일자별 룩어헤드 차단은 assess_snapshot(as_of=d)이 이미 보장한다.
+
+    등급과 risk_type을 한 번의 스윕에서 같이 뽑는 이유는 비용이다 — assess_snapshot은
+    스윕에서 가장 비싼 호출이라 risk_type 때문에 스윕을 두 번 돌 수는 없다.
+
+    Returns:
+        (predictions, risk_types) — 둘 다 {item_id: {date_iso: 값}} 형식이고 키 집합이 같다.
     """
     predictions: dict[str, dict[str, str]] = {}
+    risk_types: dict[str, dict[str, str]] = {}
     for d in _date_range(start, end):
         snapshot = assess_snapshot(conn, d, params)
         day_key = d.isoformat()
         for row in snapshot.itertuples(index=False):
             predictions.setdefault(row.item_id, {})[day_key] = row.grade
+            risk_types.setdefault(row.item_id, {})[day_key] = row.risk_type
+    return predictions, risk_types
+
+
+def run_sweep(conn, start: date, end: date, params: AnalyticsParams) -> dict[str, dict[str, str]]:
+    """[start, end] 매일 assess_snapshot을 실행해 {item_id: {date_iso: grade}}로 모은다.
+
+    run_sweep_detail의 등급 격자만 뽑아 주는 얇은 래퍼다(기존 계약 유지 — 감지·오탐 판정에
+    필요한 것은 등급뿐이다).
+    """
+    predictions, _ = run_sweep_detail(conn, start, end, params)
     return predictions
 
 
@@ -135,6 +181,31 @@ def _round_maybe(value: float | int) -> float | int:
     return round(value, 2) if isinstance(value, float) else value
 
 
+def modal_risk_type(day_risk_types: Mapping[str, str]) -> str | None:
+    """스윕 기간 중 가장 자주 나온 risk_type. 관측이 없으면 None.
+
+    동률은 risk_type 이름 사전순 오름차순으로 끊는다 — 임의의 dict 순서에 결과가 흔들리지
+    않게 하기 위한 결정성 규칙이다(어느 쪽이 '더 옳은가'를 판단하지 않는다).
+    """
+    if not day_risk_types:
+        return None
+    counts = Counter(day_risk_types.values())
+    top_count = max(counts.values())
+    return sorted(name for name, count in counts.items() if count == top_count)[0]
+
+
+def risk_type_matches(scenario_type: str, risk_type: str | None) -> bool:
+    """risk_type이 scenario_type의 허용 집합(RISK_TYPE_MATCH_RULES)에 드는지.
+
+    규칙에 없는 scenario_type은 "같은 이름이면 일치"로 대우한다(모르는 유형을 조용히 전부
+    불일치로 깎지 않기 위한 보수적 기본값).
+    """
+    if risk_type is None:
+        return False
+    accepted = RISK_TYPE_MATCH_RULES.get(scenario_type, frozenset({scenario_type}))
+    return risk_type in accepted
+
+
 def _lead_day_stats(lead_days: list[int]) -> dict[str, float | int | None]:
     if not lead_days:
         return {"min": None, "median": None, "mean": None, "max": None}
@@ -146,7 +217,11 @@ def _lead_day_stats(lead_days: list[int]) -> dict[str, float | int | None]:
     }
 
 
-def score_sweep(predictions: dict[str, dict[str, str]], labels: list[dict]) -> dict:
+def score_sweep(
+    predictions: dict[str, dict[str, str]],
+    labels: list[dict],
+    risk_types: dict[str, dict[str, str]] | None = None,
+) -> dict:
     """스윕 결과(predictions) + 라벨 리스트 → metrics-spec 지표 dict(순수 함수).
 
     Args:
@@ -155,14 +230,26 @@ def score_sweep(predictions: dict[str, dict[str, str]], labels: list[dict]) -> d
             키 전체다 — 라벨에 없는 품목은 정상으로 규정한다(docs/data-model.md §4).
         labels: ground truth 라벨 리스트(item_id·scenario_type·stockout_date 키 필요,
             나머지 필드는 무시).
+        risk_types: {item_id: {date_iso: risk_type}} — run_sweep_detail의 두 번째 반환값
+            (또는 예측 파일의 "risk_types" 값). None이면 risk_type 일치율을 계산할 근거가
+            없으므로 결과의 "risk_type_match"가 통째로 None이 된다. 등급 기반 지표
+            (감지율·오탐률·선행일수·정밀도)는 이 인자와 **무관하게** 항상 동일하다.
 
     Returns:
         detection_rate, lead_days({min,median,mean,max}), false_positive_rate,
         danger_precision, by_type({scenario_type: {labeled,detected,detection_rate,
-        lead_days}}), counts({labeled,normal,detected,false_positives})를 담은 dict.
+        lead_days}}), counts({labeled,normal,detected,false_positives}),
+        risk_type_match(아래 설명)를 담은 dict.
         "sweep"(start/end/days)은 이 함수의 관심사가 아니다 — 호출부가 별도로 채운다.
         분모가 0인 비율(라벨 0건의 감지율, 정상 0건의 오탐률, 위험 판정 0건의 정밀도)은
         None으로 표기한다(0/0을 0.0으로 위장하지 않는다).
+
+        risk_type_match(Task S-17 신설 키)는
+        {overall, counts{labeled,matched}, by_type{scenario_type:{labeled,matched,
+        match_rate}}, items{item_id:{scenario_type, modal_risk_type, matched, detected,
+        first_alert}}} 형태다. items는 라벨 품목별 감사 추적을 겸한다 — 채택 기준이
+        요구하는 "유형별 개별 품목의 감지 유지 여부"를 라벨 접근이 허용된 이 경로에서만
+        확인할 수 있게 하기 위해 detected·first_alert를 함께 싣는다.
     """
     label_by_item = {row["item_id"]: row for row in labels}
     labeled_ids = set(label_by_item)
@@ -172,6 +259,8 @@ def score_sweep(predictions: dict[str, dict[str, str]], labels: list[dict]) -> d
     lead_days_all: list[int] = []
     labels_by_type: dict[str, list[str]] = {}
     success_lead_by_type: dict[str, list[int]] = {}
+    match_items: dict[str, dict] = {}
+    matched_by_type: dict[str, int] = {}
 
     for item_id, row in label_by_item.items():
         scenario_type = row["scenario_type"]
@@ -186,6 +275,19 @@ def score_sweep(predictions: dict[str, dict[str, str]], labels: list[dict]) -> d
             lead = (stockout_date - first_alert).days
             lead_days_all.append(lead)
             success_lead_by_type.setdefault(scenario_type, []).append(lead)
+
+        if risk_types is not None:
+            item_modal = modal_risk_type(risk_types.get(item_id, {}))
+            matched = risk_type_matches(scenario_type, item_modal)
+            if matched:
+                matched_by_type[scenario_type] = matched_by_type.get(scenario_type, 0) + 1
+            match_items[item_id] = {
+                "scenario_type": scenario_type,
+                "modal_risk_type": item_modal,
+                "matched": matched,
+                "detected": success,
+                "first_alert": first_alert.isoformat() if first_alert is not None else None,
+            }
 
     false_positive_ids = [
         item_id for item_id in normal_ids if _first_alert(predictions[item_id]) is not None
@@ -207,6 +309,26 @@ def score_sweep(predictions: dict[str, dict[str, str]], labels: list[dict]) -> d
             "lead_days": _lead_day_stats(succ),
         }
 
+    if risk_types is None:
+        risk_type_match = None
+    else:
+        n_matched = sum(1 for entry in match_items.values() if entry["matched"])
+        match_by_type = {}
+        for scenario_type, item_ids in sorted(labels_by_type.items()):
+            n_type = len(item_ids)
+            n_type_matched = matched_by_type.get(scenario_type, 0)
+            match_by_type[scenario_type] = {
+                "labeled": n_type,
+                "matched": n_type_matched,
+                "match_rate": (n_type_matched / n_type) if n_type else None,
+            }
+        risk_type_match = {
+            "overall": (n_matched / n_labeled) if n_labeled else None,
+            "counts": {"labeled": n_labeled, "matched": n_matched},
+            "by_type": match_by_type,
+            "items": dict(sorted(match_items.items())),
+        }
+
     return {
         "detection_rate": (len(detected_ids) / n_labeled) if n_labeled else None,
         "lead_days": _lead_day_stats(lead_days_all),
@@ -219,6 +341,7 @@ def score_sweep(predictions: dict[str, dict[str, str]], labels: list[dict]) -> d
             "detected": len(detected_ids),
             "false_positives": len(false_positive_ids),
         },
+        "risk_type_match": risk_type_match,
     }
 
 
@@ -281,6 +404,15 @@ def _human_summary(results: dict) -> str:
         rate_str = f"{rate:.1%}" if rate is not None else "n/a"
         lines.append(f"  {scenario_type}: {bucket['detected']}/{bucket['labeled']} ({rate_str})")
 
+    rtm = results.get("risk_type_match")
+    if rtm is None:
+        lines.append("risk_type 일치율: n/a(예측에 risk_type 없음)")
+    else:
+        lines.append(
+            "risk_type 일치율: "
+            + _format_rate(rtm["overall"], rtm["counts"]["matched"], rtm["counts"]["labeled"])
+        )
+
     sw = results["sweep"]
     lines.append(f"스윕: {sw['start']} ~ {sw['end']} ({sw['days']}일)")
     return "\n".join(lines)
@@ -302,7 +434,7 @@ def _run_predict_only(args: argparse.Namespace) -> int:
     params = load_params(args.params)
     conn = db.get_connection(args.db)
     try:
-        predictions = run_sweep(conn, args.start, args.end, params)
+        predictions, risk_types = run_sweep_detail(conn, args.start, args.end, params)
         dataset_content_hash = _dataset_content_hash(conn)
     finally:
         conn.close()
@@ -314,6 +446,7 @@ def _run_predict_only(args: argparse.Namespace) -> int:
         "generated_at": _now_iso(),
         "sweep": _sweep_info(args.start, args.end),
         "predictions": predictions,
+        "risk_types": risk_types,
     }
     _write_json(args.predict_only, payload)
     print(
@@ -328,7 +461,7 @@ def _run_score(args: argparse.Namespace) -> int:
     payload = _load_json(args.score)
     labels = _load_json(args.labels)
 
-    results = score_sweep(payload["predictions"], labels)
+    results = score_sweep(payload["predictions"], labels, payload.get("risk_types"))
     results["sweep"] = payload["sweep"]
 
     meta = {
@@ -347,13 +480,13 @@ def _run_full(args: argparse.Namespace) -> int:
     params = load_params(args.params)
     conn = db.get_connection(args.db)
     try:
-        predictions = run_sweep(conn, args.start, args.end, params)
+        predictions, risk_types = run_sweep_detail(conn, args.start, args.end, params)
         dataset_content_hash = _dataset_content_hash(conn)
     finally:
         conn.close()
 
     labels = _load_json(args.labels)
-    results = score_sweep(predictions, labels)
+    results = score_sweep(predictions, labels, risk_types)
     results["sweep"] = _sweep_info(args.start, args.end)
 
     meta = {
