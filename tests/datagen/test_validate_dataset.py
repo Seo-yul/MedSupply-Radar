@@ -272,17 +272,41 @@ class TestCorruptionDetection:
         assert result.status == "FAIL"
 
     def test_stale_stored_hash_fails_without_expect_hash(self, valid_db_path: Path) -> None:
-        """meta.content_hash 갱신 없이 데이터만 바뀌면(예: 이력 시드 적재 후 재계산 누락)
-        --expect-hash 없이도 재계산 불일치 자체로 FAIL해야 한다."""
+        """meta.content_hash 갱신 없이 **원천 데이터**가 바뀌면 --expect-hash 없이도
+        재계산 불일치 자체로 FAIL해야 한다.
+
+        갱신 사유(S-17 리뷰 F1): 이 테스트는 원래 action_history 삽입을 '데이터 변경'
+        프로브로 썼는데, action_history는 앱 사용 중 사람이 만드는 **런타임 기록**이라
+        새 범위(부트스트랩 원천)에서 의도적으로 제외됐다. 단언을 약화하지 않고 프로브를
+        원천 테이블(items)로 교체해 테스트의 원래 의도를 그대로 유지한다.
+        """
+        conn = sqlite3.connect(valid_db_path)
+        conn.execute("UPDATE items SET item_name = item_name || '(변조)' WHERE item_id = ?",
+                     (ITEM_IDS[0],))
+        conn.commit()
+        result = vd.check_content_hash(conn, None)
+        conn.close()
+        assert result.status == "FAIL"
+
+    def test_runtime_table_changes_do_not_break_anchor(self, valid_db_path: Path) -> None:
+        """파생·런타임 테이블이 바뀌어도 content_hash 앵커는 흔들리지 않는다(F1 룰링의 핵심).
+
+        배치를 돌리거나(risk_results·forecasts) 앱을 쓰기만 해도(action_history·alerts)
+        앵커가 깨지던 것이 F1의 결함이었다.
+        """
         conn = sqlite3.connect(valid_db_path)
         conn.execute(
             "INSERT INTO action_history(item_id, action_type, risk_type) VALUES (?, ?, ?)",
             (ITEM_IDS[0], "부서 공유", "general"),
         )
+        conn.execute(
+            "INSERT INTO alerts(alert_type, item_id, title, dedupe_key) VALUES (?, ?, ?, ?)",
+            ("등급 변동", ITEM_IDS[0], "테스트 알림", "test-dedupe-1"),
+        )
         conn.commit()
         result = vd.check_content_hash(conn, None)
         conn.close()
-        assert result.status == "FAIL"
+        assert result.status == "PASS"
 
     def test_action_history_seed_count_mismatch_fails(self, valid_db_path: Path) -> None:
         conn = sqlite3.connect(valid_db_path)
@@ -435,7 +459,16 @@ class TestApplyHistorySeed:
     가능하다(두 함수 모두 out_path를 삭제 후 재생성하므로). skip=False면 8건을 적재하고
     content_hash를 재계산·갱신, skip=True면 아무 것도 하지 않는다."""
 
-    def test_loads_eight_rows_and_refreshes_hash(self, tmp_path: Path) -> None:
+    def test_loads_eight_rows_and_keeps_hash_self_consistent(self, tmp_path: Path) -> None:
+        """이력 시드 8건을 적재하고, 저장된 content_hash가 재계산 값과 계속 일치한다.
+
+        갱신 사유(S-17 리뷰 F1): 원래 이 테스트는 ``new_hash != pre_hash``를 단언했다.
+        action_history가 새 범위(부트스트랩 원천)에서 제외됐으므로, 시드 적재는 앵커를
+        **바꾸지 않는 것이 정상**이다. 단언을 삭제해 약화하는 대신 **새 의미론의 등식으로
+        교체**한다(pre == new == stored == recomputed) — 자기정합이라는 원래 검증 의도는
+        그대로 유지되고, 오히려 "런타임 데이터가 앵커를 흔들지 않는다"는 F1 계약까지 함께
+        고정된다.
+        """
         out = tmp_path / "medsupply.db"
         generate_baseline(out, seed=999, base_date="2026-08-01")
         conn = sqlite3.connect(out)
@@ -450,7 +483,7 @@ class TestApplyHistorySeed:
 
         assert count == 8
         assert new_hash is not None
-        assert new_hash != pre_hash
+        assert new_hash == pre_hash
 
         conn = sqlite3.connect(out)
         try:

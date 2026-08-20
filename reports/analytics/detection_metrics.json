@@ -1,10 +1,10 @@
 {
   "meta": {
-    "dataset_content_hash": "31937ef068052afede0e72739e28f76d7248c231b0f91a3eea095f8d9c23bdc9",
+    "dataset_content_hash": "c34bf4cb9215e1ba4b7a21c9d0f1d7236e2164ae08b630bf54fdf82d4c2f6483",
     "config_hash": "6ec9bf05",
     "labels_version": "standard_v1.json",
     "params_ref": "config/analytics_params.toml",
-    "generated_at": "2026-08-21T03:22:32",
+    "generated_at": "2026-08-21T03:55:26",
     "measured_by": "scripts/measure_detection.py"
   },
   "results": {
@@ -1385,7 +1385,35 @@
         "declared": true,
         "statement": "동결: 이후 scenario_config·datagen·analytics_params 변경 금지(3주차 평가 기준)",
         "params_hash": "6ec9bf05",
-        "dataset_content_hash": "31937ef068052afede0e72739e28f76d7248c231b0f91a3eea095f8d9c23bdc9"
+        "dataset_content_hash": "c34bf4cb9215e1ba4b7a21c9d0f1d7236e2164ae08b630bf54fdf82d4c2f6483",
+        "dataset_content_hash_continuity": {
+          "note": "S-17 리뷰 F1 룰링으로 content_hash의 **범위**가 재정의됐다. 데이터 행은 하나도 바뀌지 않았고 해시 정의만 좁아졌으므로, 두 값은 같은 스냅샷을 가리킨다. 감사 연속성을 위해 대응표를 남긴다.",
+          "구 범위(전 테이블)": "31937ef068052afede0e72739e28f76d7248c231b0f91a3eea095f8d9c23bdc9",
+          "신 범위(부트스트랩 원천)": "c34bf4cb9215e1ba4b7a21c9d0f1d7236e2164ae08b630bf54fdf82d4c2f6483",
+          "scope_new": [
+            "items",
+            "ingredients",
+            "ingredient_aliases",
+            "substitute_groups",
+            "stock_usage_daily",
+            "incoming_shipments",
+            "notices"
+          ],
+          "scope_excluded": [
+            "risk_results",
+            "forecasts",
+            "llm_explanations",
+            "alerts",
+            "action_history",
+            "order_requests",
+            "notice_extractions",
+            "notice_item_map",
+            "meta"
+          ],
+          "reason": "구 범위는 파생·런타임 테이블까지 해싱해 배치 실행(risk_results·forecasts)이나 앱 사용(alerts·action_history)만으로 앵커가 깨졌다 — S-17d 배치 재실행 직후 validate_dataset 10번 항목이 실제로 FAIL했다. 신 범위는 재현 가능한 입력만 가리키므로 배치·앱 사용에 흔들리지 않는다.",
+          "verification": "표준 스냅샷 사본에 run_risk_batch를 추가 실행해 run 5개가 된 상태에서도 신 범위 해시가 c34bf4cb… 로 불변임을 확인했다. validate_dataset --expect-hash @data/scenarios/standard_snapshot.sha256 → VALIDATION PASSED (10/10).",
+          "ruling_recorded_at": "2026-08-21T03:55:49"
+        }
       }
     }
   }

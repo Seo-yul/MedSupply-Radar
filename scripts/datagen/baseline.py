@@ -286,17 +286,58 @@ def _all_table_names(conn: sqlite3.Connection) -> list[str]:
     return [row[0] for row in rows]
 
 
+#: content_hash 해싱 대상 = **부트스트랩 원천 데이터** 테이블만(사전순 고정).
+#:
+#: 원천(source)은 "생성기·적재기가 만들어 넣은 뒤 앱 실행으로는 바뀌지 않는 데이터"다.
+#: 여기 없는 테이블은 전부 파생(derived)이거나 런타임 상태다:
+#:   risk_results·forecasts   — 배치(run_risk_batch) 실행마다 run이 추가된다
+#:   llm_explanations         — LLM 호출 결과 캐시
+#:   alerts·action_history·order_requests — 앱 사용 중 사람이 만드는 기록
+#:   notice_extractions·notice_item_map   — 공고 처리(process_notices) 산출물
+#:   meta                     — data_version이 저장 호출마다 증가한다
+#:
+#: notices는 원천에 포함한다 — load_notices가 적재하는 공고 원문이며, 그 이후 앱 실행으로는
+#: 바뀌지 않는다(공고에서 뽑아낸 파생물인 notice_extractions·notice_item_map만 제외된다).
+CONTENT_HASH_TABLES: tuple[str, ...] = (
+    "incoming_shipments",
+    "ingredient_aliases",
+    "ingredients",
+    "items",
+    "notices",
+    "stock_usage_daily",
+    "substitute_groups",
+)
+
+
 def compute_content_hash(conn: sqlite3.Connection) -> str:
+    """스냅샷의 **부트스트랩 원천 데이터** 해시(sha256 hex).
+
+    범위: CONTENT_HASH_TABLES에 열거된 테이블만. 파생·런타임 테이블(risk_results·forecasts·
+    llm_explanations·alerts·action_history·order_requests·notice_extractions·notice_item_map·
+    meta)은 제외한다.
+
+    **범위를 좁힌 사유(S-17 리뷰 F1 룰링)**: 이전 구현은 존재하는 모든 테이블을 해싱해서,
+    배치를 한 번 돌리거나(risk_results·forecasts 증가) 앱을 쓰기만 해도(alerts·action_history)
+    해시가 달라졌다. 그러면 content_hash가 "이 데이터셋이 그 데이터셋인가"를 고정하는 앵커
+    구실을 못 한다 — 실제로 표준 스냅샷에서 배치 재실행 후 재계산 값이 저장 값과 어긋나
+    validate_dataset 10번 항목이 FAIL했다. 앵커는 **재현 가능한 입력**을 가리켜야 하고,
+    파생 산출물은 그 입력과 파라미터로부터 다시 만들 수 있으므로 앵커에 들어갈 이유가 없다.
+
+    이 변경은 **데이터 행을 하나도 바꾸지 않는 장부(ledger) 수정**이라 데이터 동결과
+    양립한다 — 해시의 정의를 고칠 뿐 해시 대상 데이터는 그대로다.
+
+    행 직렬화 규칙은 종전과 같다: 테이블별로 PK(없으면 rowid) 오름차순 정렬 후
+    "테이블명\\x1f값1\\x1f값2..."를 만들고 레코드 사이를 \\x1e로 잇는다. NULL은 \\x00.
+    """
+    present = set(_all_table_names(conn))
     parts: list[str] = []
-    for table in _all_table_names(conn):
+    for table in CONTENT_HASH_TABLES:
+        if table not in present:
+            continue
         pk_cols = _pk_columns(conn, table)
         order_clause = ", ".join(pk_cols) if pk_cols else "rowid"
         cur = conn.execute(f"SELECT * FROM {table} ORDER BY {order_clause}")
-        col_names = [d[0] for d in cur.description]
-        key_idx = col_names.index("key") if table == "meta" else None
         for row in cur.fetchall():
-            if key_idx is not None and row[key_idx] == "content_hash":
-                continue
             values = ["\x00" if v is None else str(v) for v in row]
             parts.append(table + "\x1f" + "\x1f".join(values))
     serialized = "\x1e".join(parts)

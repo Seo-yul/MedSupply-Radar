@@ -1,3 +1,12 @@
 # 1) python scripts/generate_dataset.py --config data/scenarios/scenario_config.yaml --out data/medsupply.db --seed 20260801 --base-date 2026-08-01
 # 2) python scripts/load_notices.py --db data/medsupply.db --raw data/notices/raw --index data/notices/notices_index.csv
-f0a2894279b3c2245d42079e66e44ffd6ea4990ad7c96b7874bea2ad2219677c
+#
+# 아래 값은 DB **파일**의 sha256이 아니라 meta.content_hash(부트스트랩 원천 데이터 해시)다.
+# 파일 해시는 앵커가 될 수 없다 — 배치 실행(risk_results·forecasts)·앱 사용(alerts·
+# action_history)만으로 파일이 바뀌기 때문이다. content_hash는 원천 테이블
+# (items·ingredients·ingredient_aliases·substitute_groups·stock_usage_daily·
+# incoming_shipments·notices)만 해싱하므로 그런 변화에 흔들리지 않는다.
+# 범위 정의와 사유: scripts/datagen/baseline.py::compute_content_hash (S-17 리뷰 F1 룰링)
+#
+# 검증: python scripts/validate_dataset.py --db data/medsupply.db --expect-hash @data/scenarios/standard_snapshot.sha256
+c34bf4cb9215e1ba4b7a21c9d0f1d7236e2164ae08b630bf54fdf82d4c2f6483

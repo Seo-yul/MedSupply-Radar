@@ -228,7 +228,13 @@ class TestContentHashSelfConsistency:
             conn.close()
         assert stored == recomputed == summary.content_hash
 
-    def test_hash_changes_after_load_since_data_version_included(self, db_path: Path) -> None:
+    def test_hash_changes_after_load_since_notices_are_source_data(self, db_path: Path) -> None:
+        """공고 적재 후 content_hash가 바뀐다 — notices가 **부트스트랩 원천**이기 때문이다.
+
+        갱신 사유(S-17 리뷰 F1): 원래 이름·근거는 "data_version이 포함되므로"였는데,
+        새 범위에서 meta는 제외됐다. 해시가 바뀌는 진짜 이유는 notices 행이 늘어서다
+        (단언은 그대로 — 근거 서술만 실제와 맞춘다).
+        """
         conn = sqlite3.connect(db_path)
         try:
             pre_hash = conn.execute(
