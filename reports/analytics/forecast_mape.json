@@ -1,6 +1,7 @@
 {
-  "measured_at": "2026-08-21T04:46:57",
+  "measured_at": "2026-08-21T05:35:05",
   "db": "data/medsupply.db",
+  "dataset_content_hash": "c34bf4cb9215e1ba4b7a21c9d0f1d7236e2164ae08b630bf54fdf82d4c2f6483",
   "params_hash": "6ec9bf05",
   "as_of_list": [
     "2026-07-01",

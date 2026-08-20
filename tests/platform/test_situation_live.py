@@ -15,6 +15,7 @@ import shutil
 import sqlite3
 import subprocess
 import sys
+from datetime import date, timedelta
 from pathlib import Path
 
 import pytest
@@ -62,6 +63,28 @@ def _run_batch(db_path: Path) -> None:
         capture_output=True, text=True, cwd=REPO_ROOT,
     )
     assert proc.returncode == 0, proc.stdout + proc.stderr
+
+
+def _force_single_essential_risk_item(db_path: Path, days_to_stockout: int) -> None:
+    """모든 품목의 is_essential을 0으로 내린 뒤 1개만 필수의약품+경고 등급·지정
+    days_to_stockout으로 고정한다 — "필수의약품 위험·경고" 집계 대상을 결정론적으로
+    만든다(F7 ② 검증용)."""
+    conn = sqlite3.connect(db_path)
+    try:
+        conn.execute("UPDATE items SET is_essential = 0")
+        item_id = conn.execute(
+            "SELECT item_id FROM items ORDER BY item_id LIMIT 1"
+        ).fetchone()[0]
+        run_id = conn.execute("SELECT run_id FROM risk_results LIMIT 1").fetchone()[0]
+        conn.execute("UPDATE items SET is_essential = 1 WHERE item_id = ?", (item_id,))
+        conn.execute(
+            "UPDATE risk_results SET grade = '경고', days_to_stockout = ?"
+            " WHERE run_id = ? AND item_id = ?",
+            (days_to_stockout, run_id, item_id),
+        )
+        conn.commit()
+    finally:
+        conn.close()
 
 
 def _force_danger_item(db_path: Path) -> str:
@@ -168,3 +191,75 @@ def test_situation_missing_db_shows_warning_without_exception(
     assert not at.exception
     assert len(at.warning) >= 1
     assert any("표준 스냅샷이 없습니다" in w.value for w in at.warning)
+
+
+# ---------------------------------------------------------------------------
+# F7 — 문구 2건 실데이터 바인딩(마크업·클래스 불변, f-string 값만)
+# ---------------------------------------------------------------------------
+
+
+def test_situation_series_range_binds_to_meta_base_date(
+    live_db: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """① "2026.01.01~08.01" 하드코딩 대신 base_date−365일~base_date를 같은 표기
+    형식(%Y.%m.%d)으로 렌더한다."""
+    monkeypatch.setattr(settings, "DB_PATH", live_db)
+    st.cache_data.clear()
+    st.cache_resource.clear()
+
+    conn = sqlite3.connect(live_db)
+    base_date = date.fromisoformat(
+        conn.execute("SELECT value FROM meta WHERE key = 'base_date'").fetchone()[0]
+    )
+    conn.close()
+    series_start = base_date - timedelta(days=365)
+    expected = f"{series_start:%Y.%m.%d}~{base_date:%Y.%m.%d}"
+
+    at = AppTest.from_function(_run_situation)
+    at.run()
+
+    assert not at.exception
+    rendered = "\n".join(md.value for md in at.markdown)
+    assert expected in rendered
+    assert "2026.01.01~08.01" not in rendered
+
+
+def test_situation_essential_risk_window_binds_to_live_max_days(
+    live_db: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """② "10일 이내 소진" 하드코딩 대신, 필수의약품 위험·경고 집계 대상의 실제 최대
+    days_to_stockout을 "{n}일 이내"로 바인딩한다."""
+    _force_single_essential_risk_item(live_db, 6)
+
+    monkeypatch.setattr(settings, "DB_PATH", live_db)
+    st.cache_data.clear()
+    st.cache_resource.clear()
+
+    at = AppTest.from_function(_run_situation)
+    at.run()
+
+    assert not at.exception
+    rendered = "\n".join(md.value for md in at.markdown)
+    assert "필수의약품 1종이 6일 이내 소진될 수 있습니다" in rendered
+    assert "10일 이내 소진" not in rendered
+
+
+def test_situation_essential_risk_window_shows_dash_when_no_target(
+    live_db: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """대상 0건이면 문장 구조는 유지한 채 '-'로 표시한다."""
+    conn = sqlite3.connect(live_db)
+    conn.execute("UPDATE items SET is_essential = 0")
+    conn.commit()
+    conn.close()
+
+    monkeypatch.setattr(settings, "DB_PATH", live_db)
+    st.cache_data.clear()
+    st.cache_resource.clear()
+
+    at = AppTest.from_function(_run_situation)
+    at.run()
+
+    assert not at.exception
+    rendered = "\n".join(md.value for md in at.markdown)
+    assert "필수의약품 0종이 - 소진될 수 있습니다" in rendered

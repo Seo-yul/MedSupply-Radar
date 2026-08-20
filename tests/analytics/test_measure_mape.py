@@ -432,8 +432,8 @@ class TestCLISmoke:
         payload = json.loads(out_path.read_text(encoding="utf-8"))
 
         assert set(payload.keys()) == {
-            "measured_at", "db", "params_hash", "as_of_list", "horizon_days",
-            "per_as_of", "overall",
+            "measured_at", "db", "dataset_content_hash", "params_hash", "as_of_list",
+            "horizon_days", "per_as_of", "overall",
         }
         assert set(payload["overall"].keys()) == _BUCKET_KEYS
         assert set(payload["per_as_of"]["2026-01-15"].keys()) == _BUCKET_KEYS
@@ -506,3 +506,70 @@ class TestCLIDeterminism:
         payload1.pop("measured_at")
         payload2.pop("measured_at")
         assert payload1 == payload2
+
+
+# ---------------------------------------------------------------------------
+# dataset_content_hash — meta.content_hash 앵커(F9)
+# ---------------------------------------------------------------------------
+
+
+class TestDatasetContentHashAnchor:
+    def test_payload_includes_dataset_content_hash_from_meta(self, tmp_path: Path) -> None:
+        """F9: 출력 payload에 meta.content_hash를 dataset_content_hash로 그대로 실어
+        리포트를 특정 데이터셋 상태에 앵커링한다."""
+        db_path = tmp_path / "anchor.db"
+        conn = db.get_connection(str(db_path))
+        db.init_db(conn, drop=False)
+        conn.execute(
+            "INSERT INTO items(item_id, item_name, is_essential) VALUES (?, ?, ?)",
+            ("ITM-A", "품목A", 0),
+        )
+        start = date(2026, 1, 1)
+        rows = [
+            ("ITM-A", (start + timedelta(days=i)).isoformat(), 10, 0, 100) for i in range(30)
+        ]
+        conn.executemany(
+            "INSERT INTO stock_usage_daily(item_id, date, usage_qty, incoming_qty, closing_stock)"
+            " VALUES (?, ?, ?, ?, ?)",
+            rows,
+        )
+        expected_hash = "deadbeef" * 8
+        conn.execute("INSERT INTO meta(key, value) VALUES ('content_hash', ?)", (expected_hash,))
+        conn.commit()
+        conn.close()
+
+        out_path = tmp_path / "anchor_out.json"
+        rc = md.main(["--db", str(db_path), "--as-of", "2026-01-15", "--out", str(out_path)])
+
+        assert rc == 0
+        payload = json.loads(out_path.read_text(encoding="utf-8"))
+        assert payload["dataset_content_hash"] == expected_hash
+
+    def test_dataset_content_hash_is_none_when_meta_missing(self, tmp_path: Path) -> None:
+        """meta.content_hash가 없는 DB(스키마만 적재되고 meta 행이 전혀 없는 경우)에서도
+        KeyError 없이 None으로 채워야 한다."""
+        db_path = tmp_path / "no_meta.db"
+        conn = db.get_connection(str(db_path))
+        db.init_db(conn, drop=False)
+        conn.execute(
+            "INSERT INTO items(item_id, item_name, is_essential) VALUES (?, ?, ?)",
+            ("ITM-A", "품목A", 0),
+        )
+        start = date(2026, 1, 1)
+        rows = [
+            ("ITM-A", (start + timedelta(days=i)).isoformat(), 10, 0, 100) for i in range(30)
+        ]
+        conn.executemany(
+            "INSERT INTO stock_usage_daily(item_id, date, usage_qty, incoming_qty, closing_stock)"
+            " VALUES (?, ?, ?, ?, ?)",
+            rows,
+        )
+        conn.commit()
+        conn.close()
+
+        out_path = tmp_path / "no_meta_out.json"
+        rc = md.main(["--db", str(db_path), "--as-of", "2026-01-15", "--out", str(out_path)])
+
+        assert rc == 0
+        payload = json.loads(out_path.read_text(encoding="utf-8"))
+        assert payload["dataset_content_hash"] is None

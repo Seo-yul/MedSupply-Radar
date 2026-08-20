@@ -37,6 +37,12 @@ ground_truth 어느 경로도 참조하지 않는다(tests/test_isolation.py의 
 동일 입력(같은 DB·as_of 집합·params) → 동일 출력(measured_at 제외). --as-of는 중복 제거·
 오름차순 정렬 후 처리하므로 CLI 인자 순서는 결과에 영향을 주지 않는다. now() 호출은
 measured_at 스탬프에만 쓴다.
+
+## 앵커링(F9)
+출력 payload의 dataset_content_hash는 --db가 가리키는 DB의 meta.content_hash를 그대로
+싣는다(queries.get_meta 경유) — 리포트가 "그 시점의 어떤 데이터셋 상태"에서 나왔는지
+사후에 대조할 수 있게 한다. meta.content_hash가 없는 DB(스키마만 있고 meta 행이 비어
+있는 경우)에서는 null이다.
 """
 
 from __future__ import annotations
@@ -361,12 +367,16 @@ def main(argv: list[str] | None = None) -> int:
     conn = db.get_connection(args.db)
     try:
         backtest = run_backtest(conn, args.as_of, params)
+        # 리포트를 특정 데이터셋 상태에 앵커링한다 — meta.content_hash가 없는 DB(예: meta
+        # 행이 비어 있는 스키마-only DB)에서도 KeyError 없이 None으로 채운다.
+        dataset_content_hash = queries.get_meta(conn).get("content_hash")
     finally:
         conn.close()
 
     payload = {
         "measured_at": _now_iso(),
         "db": args.db,
+        "dataset_content_hash": dataset_content_hash,
         "params_hash": params.params_hash,
         "as_of_list": [d.isoformat() for d in backtest["as_of_list"]],
         "horizon_days": params.forecast.horizon_days,

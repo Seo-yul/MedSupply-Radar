@@ -7,7 +7,7 @@
 from __future__ import annotations
 
 import json
-from datetime import date
+from datetime import date, timedelta
 
 import pandas as pd
 import streamlit as st
@@ -63,6 +63,9 @@ def render() -> None:
     base_date = date.fromisoformat(meta["base_date"])
     issue_no = base_date.timetuple().tm_yday
     mast_date_str = f"{base_date.year}년 {base_date.month}월 {base_date.day}일 09:30 기준"
+    # 시계열 패널의 표시 범위 — base_date 기준 12개월(base_date−365일~base_date), 마스트헤드와
+    # 같은 표기 형식(%Y.%m.%d)으로 렌더한다(F7 ①, 하드코딩 "2026.01.01~08.01" 대체).
+    series_start = base_date - timedelta(days=365)
 
     overview_all = inventory.load_overview(data_version=data_version)
     latest_runs = queries.get_latest_runs(conn, 2)
@@ -71,11 +74,16 @@ def render() -> None:
     today_danger = int((overview_all["grade"] == "위험").sum())
     today_soon = int((overview_all["days_to_stockout"] <= 7).sum())
     normal_count = int((overview_all["grade"] == "정상").sum())
-    essential_risk_count = int(
-        (
-            (overview_all["is_essential"] == 1)
-            & overview_all["grade"].isin(["위험", "경고"])
-        ).sum()
+    essential_risk_mask = (overview_all["is_essential"] == 1) & overview_all["grade"].isin(
+        ["위험", "경고"]
+    )
+    essential_risk_count = int(essential_risk_mask.sum())
+    # "핵심 신호" 문구의 소진 임박 창 — 집계 대상(필수의약품 위험·경고)의 실제 최대
+    # days_to_stockout을 "{n}일 이내"로 바인딩한다(F7 ②, 하드코딩 "10일 이내" 대체).
+    # 대상 0건이면 문장 구조는 유지한 채 '-'.
+    essential_risk_days = overview_all.loc[essential_risk_mask, "days_to_stockout"].dropna()
+    stockout_window_text = (
+        f"{int(essential_risk_days.max())}일 이내" if not essential_risk_days.empty else "-"
     )
 
     danger_delta: int | None = None
@@ -130,7 +138,8 @@ def render() -> None:
     with left:
         st.markdown(
             '<div class="panel"><div class="panel-title">의약품 공급 상태</div>'
-            '<div class="panel-sub">2026.01.01~08.01 · 상태별 사건과 대응 진행상황을 확인합니다.</div>',
+            f'<div class="panel-sub">{series_start:%Y.%m.%d}~{base_date:%Y.%m.%d}'
+            ' · 상태별 사건과 대응 진행상황을 확인합니다.</div>',
             unsafe_allow_html=True,
         )
         status_filter = st.radio(
@@ -204,7 +213,7 @@ def render() -> None:
         )
         st.markdown(
             f'<div class="notice"><b>오늘의 핵심 신호</b><br>필수의약품 {essential_risk_count}종이'
-            f' 10일 이내 소진될 수 있습니다. 신규 공급 공고 {notice_count}건이 기관 품목'
+            f' {stockout_window_text} 소진될 수 있습니다. 신규 공급 공고 {notice_count}건이 기관 품목'
             f' {mapped_item_count}개와 매핑되었습니다.</div>',
             unsafe_allow_html=True,
         )
