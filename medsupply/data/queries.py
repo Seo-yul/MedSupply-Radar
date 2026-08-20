@@ -350,6 +350,11 @@ def get_latest_runs(conn: sqlite3.Connection, n: int = 2) -> list[str]:
     — config 파일 값을 조회 조건으로 결합하지 않고, 오직 "이 조회 시점의 최신 run이 속한
     패밀리"만 기준으로 삼는다. 패밀리가 다른 구 run은 DB에서 지우지 않는다(보존) — 이 함수의
     반환 목록에서만 제외된다.
+
+    가드(재리뷰 마이크로 픽스): '#' 포함 형식은 run_risk_batch.py만의 관례일 뿐 writer.py가
+    강제하지 않는다 — 최신 run_id에 '#'이 없으면 패밀리 개념 자체가 없으므로, 그 run_id와
+    완전히 같은 값(자기 자신만의 패밀리)만 반환한다. partition을 써서 '#'이 없어도
+    IndexError로 죽지 않는다.
     """
     latest_row = conn.execute(
         """
@@ -362,18 +367,26 @@ def get_latest_runs(conn: sqlite3.Connection, n: int = 2) -> list[str]:
     if latest_row is None:
         return []
 
-    family = latest_row["run_id"].split("#", 1)[1]
+    latest_run_id = latest_row["run_id"]
+    _, sep, family = latest_run_id.partition("#")
+
+    if sep:
+        where_clause = "substr(run_id, instr(run_id, '#') + 1) = ?"
+        family_param = family
+    else:
+        where_clause = "run_id = ?"
+        family_param = latest_run_id
 
     rows = conn.execute(
-        """
+        f"""
         SELECT run_id, MAX(as_of) AS as_of
         FROM risk_results
-        WHERE substr(run_id, instr(run_id, '#') + 1) = ?
+        WHERE {where_clause}
         GROUP BY run_id
         ORDER BY as_of DESC, run_id DESC
         LIMIT ?
         """,
-        (family, n),
+        (family_param, n),
     ).fetchall()
     return [row["run_id"] for row in rows]
 

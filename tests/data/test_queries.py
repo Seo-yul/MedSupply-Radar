@@ -481,6 +481,22 @@ def test_get_latest_runs_on_standard_snapshot_filters_to_current_family() -> Non
         conn.close()
 
 
+def test_get_latest_runs_hashless_run_id_returns_itself_without_crashing(empty_conn) -> None:
+    """재리뷰 마이크로 픽스: run_id에 '#'이 없는 형식(run_risk_batch만의 관례일 뿐 writer가
+    강제하지 않는다)이어도 패밀리 파싱에서 IndexError로 죽지 않는다 — '#'이 없으면 패밀리
+    개념 자체가 없으므로 그 run_id와 완전히 같은 값만(자기 자신만의 패밀리) 반환한다."""
+    conn = empty_conn
+    conn.execute("INSERT INTO items(item_id, item_name) VALUES ('ITEM-X', '테스트품목')")
+    conn.execute(
+        "INSERT INTO risk_results(run_id, item_id, as_of, grade, base_grade, risk_type,"
+        " factors_json) VALUES ('legacyrun001', 'ITEM-X', '2026-08-01', '정상', '정상',"
+        " 'general', '{}')"
+    )
+    conn.commit()
+
+    assert queries.get_latest_runs(conn, n=2) == ["legacyrun001"]
+
+
 # --- get_risk_results ------------------------------------------------------------
 
 
