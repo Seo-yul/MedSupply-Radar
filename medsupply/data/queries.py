@@ -378,16 +378,14 @@ def list_action_history(
     risk_type: str | None = None,
     limit: int | None = None,
 ) -> pd.DataFrame:
-    """조치 이력 최신순 목록.
+    """조치 이력 최신순 목록(품목명 포함).
 
-    ingredient_code 필터는 items 조인을 경유한다. risk_type은 v1에서 미지원이다
-    (action_history에 위험 유형 컬럼이 없다) — 인자는 받되 필터링에는 쓰지 않는다. 향후
-    risk_results 조인 기반 해석을 붙일 확장 자리로 남겨둔다.
+    ingredient_code 필터는 items 조인을 경유한다. risk_type은 action_history.risk_type
+    컬럼과 정확히 일치하는 행만 남긴다(해당 컬럼은 M-21 이력 참조용으로 이후 추가되어,
+    v1 당시 "미지원" 제약은 해소되었다 — task-M18-brief.md).
     """
-    del risk_type  # v1 미지원(위 docstring 참조) — 예외 없이 받기만 한다.
-
     query = """
-        SELECT h.*
+        SELECT h.*, i.item_name
         FROM action_history AS h
         JOIN items AS i ON i.item_id = h.item_id
         WHERE 1 = 1
@@ -400,6 +398,9 @@ def list_action_history(
     if ingredient_code is not None:
         query += " AND i.ingredient_code = :ingredient_code"
         params["ingredient_code"] = ingredient_code
+    if risk_type is not None:
+        query += " AND h.risk_type = :risk_type"
+        params["risk_type"] = risk_type
 
     query += " ORDER BY h.created_at DESC, h.history_id DESC"
 

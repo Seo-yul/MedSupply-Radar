@@ -447,10 +447,44 @@ def test_list_action_history_limit(fixture_conn) -> None:
     assert list(df["item_id"]) == [ITEM_2]
 
 
+def test_list_action_history_includes_item_name_column(fixture_conn) -> None:
+    df = queries.list_action_history(fixture_conn)
+    by_item = dict(zip(df["item_id"], df["item_name"]))
+    assert by_item[ITEM_1] == "세프트리악손주 1g(한국제약)"
+    assert by_item[ITEM_2] == "세프트리악손주 1g(대한제약)"
+
+
 def test_list_action_history_risk_type_argument_does_not_raise(fixture_conn) -> None:
-    """v1 미지원 — 인자를 받기만 하고 예외 없이 동작해야 한다(브리프 명시)."""
+    """공유 픽스처의 이력 시드는 risk_type이 전부 NULL이라, 유효한 값으로 필터링해도
+    매치 없이 빈 결과를 예외 없이 반환해야 한다(활성화된 필터의 무해한 경계 경로)."""
     df = queries.list_action_history(fixture_conn, risk_type="demand_surge")
     assert isinstance(df, pd.DataFrame)
+    assert df.empty
+
+
+def test_list_action_history_filter_by_risk_type_matches_only_that_type(fixture_conn) -> None:
+    fixture_conn.execute(
+        "UPDATE action_history SET risk_type = 'demand_surge' WHERE item_id = ?", (ITEM_1,)
+    )
+    fixture_conn.execute(
+        "UPDATE action_history SET risk_type = 'supply_halt' WHERE item_id = ?", (ITEM_2,)
+    )
+    fixture_conn.commit()
+
+    df = queries.list_action_history(fixture_conn, risk_type="demand_surge")
+
+    assert list(df["item_id"]) == [ITEM_1]
+
+
+def test_list_action_history_filter_by_risk_type_no_match_is_empty(fixture_conn) -> None:
+    fixture_conn.execute(
+        "UPDATE action_history SET risk_type = 'demand_surge' WHERE item_id = ?", (ITEM_1,)
+    )
+    fixture_conn.commit()
+
+    df = queries.list_action_history(fixture_conn, risk_type="composite")
+
+    assert df.empty
 
 
 # --- fetch_alerts ------------------------------------------------------------
