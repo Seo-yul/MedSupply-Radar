@@ -126,6 +126,27 @@ def get_daily_series(
     return pd.read_sql_query(query, conn, params=params)
 
 
+def get_current_stock_map(conn: sqlite3.Connection) -> pd.DataFrame:
+    """전 품목의 최신(날짜 기준) closing_stock 일괄 조회(단일 SQL, 품목별 반복 조회 없음).
+
+    stock_usage_daily에서 품목별 최신 date 1행의 closing_stock만 남긴다. 반환 컬럼:
+    item_id, current_stock. 시계열이 없는 품목은 결과에 나타나지 않는다(호출부가 좌측
+    조인으로 NULL을 채운다 — 예: services.inventory.load_overview).
+    """
+    query = """
+        SELECT s.item_id, s.closing_stock AS current_stock
+        FROM stock_usage_daily AS s
+        INNER JOIN (
+            SELECT item_id, MAX(date) AS max_date
+            FROM stock_usage_daily
+            GROUP BY item_id
+        ) AS latest
+            ON latest.item_id = s.item_id AND latest.max_date = s.date
+        ORDER BY s.item_id
+    """
+    return pd.read_sql_query(query, conn)
+
+
 def get_substitutes(
     conn: sqlite3.Connection, item_id: str, *, same_condition_only: bool = True
 ) -> pd.DataFrame:

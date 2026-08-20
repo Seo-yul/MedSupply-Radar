@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+from datetime import date
+
 import streamlit as st
 
-from medsupply import theme
+from medsupply import settings, theme
+from medsupply.data import queries
+from medsupply.services import inventory
 from medsupply.views import PAGE_REGISTRY, alerts, evaluation, history, notices, orders, review, situation
 
 
@@ -46,9 +50,17 @@ with st.sidebar:
     active_href = "" if current_page is PG_SITUATION else current_page.url_path
     st.markdown(f'<style>[data-testid="stPageLink"] a[href="{active_href}"] {{ background:rgba(168,53,42,.08) !important; }} [data-testid="stPageLink"] a[href="{active_href}"] p {{ color:var(--seal); font-weight:700; }}</style>', unsafe_allow_html=True)
     st.markdown("---")
+    if settings.DB_PATH.exists():
+        meta = queries.get_meta(inventory.get_conn())
+        base_date = date.fromisoformat(meta["base_date"])
+        date_display = f"{base_date.year}. {base_date.month:02d}. {base_date.day:02d} 09:30"
+        item_count_display = f"{meta.get('item_count', '0')}개 품목 · 위험 시나리오 유형 4종"
+    else:
+        date_display = "2026. 08. 01 09:30"
+        item_count_display = "100개 품목 · 4개 위험 시나리오"
     st.caption("데이터 기준")
-    st.markdown("**2026. 08. 01 09:30**")
-    st.caption("100개 품목 · 4개 위험 시나리오")
+    st.markdown(f"**{date_display}**")
+    st.caption(item_count_display)
     st.markdown("---")
     st.caption("병원 약제부 수급관제 · 데모 환경")
 
