@@ -1,0 +1,102 @@
+{
+  "rubric_version": "v1",
+  "description": "루브릭 v1 판별력 검증용 목업 — 동일 가상 케이스 컨텍스트 1건에 대한 생성문 6건. M-20(RiskExplanation) 미구현 상태이므로 케이스 컨텍스트·생성문은 실 스키마에 얽매이지 않는 자연어+간단 dict로 구성했다.",
+  "case_context": {
+    "item_name": "세프트리악손주 1g(한국제약)",
+    "ingredient_name": "세프트리악손나트륨",
+    "grade": "위험",
+    "score": 92,
+    "risk_type": "supply_halt",
+    "days_to_stockout": 5,
+    "depletion_date": "2026-08-26",
+    "factors": [
+      "최근 7일 평균 사용량 대비 입고 지연 3건 누적",
+      "대체군(SG-1) 내 대체 가능 품목 재고도 동반 감소"
+    ],
+    "notice": {
+      "exists": true,
+      "notice_type": "공급중단",
+      "published_date": "2026-08-15",
+      "expected_restart_date": null,
+      "summary": "제조소 설비 점검으로 2026년 8월 15일부터 공급이 중단됨. 재개 예정일은 아직 미정."
+    },
+    "substitute_group": {
+      "id": "SG-1",
+      "label": "세프트리악손 1g 주사"
+    }
+  },
+  "generations": [
+    {
+      "id": "grounded_concrete",
+      "label": "① 근거 충실 · 조치 구체",
+      "text": "세프트리악손주 1g은 제조소 설비 점검에 따른 공급중단 공고(2026-08-15, 재개 예정일 미정)와 최근 7일간 누적된 입고 지연 3건이 겹치며 재고 소진 예상일이 5일 앞으로 당겨져 위험 등급으로 판정되었습니다. 권장 조치: 1) 대체군(SG-1) 내 대체 가능 품목의 현재 재고를 확인해 우선 전환한다. 2) 병동별 사용량을 조정해 재개 예정일이 확인될 때까지 남은 재고의 소진 속도를 늦춘다.",
+      "expected": {
+        "hallucination": false,
+        "groundedness": [0.85, 1.0],
+        "cause_relevance": [0.85, 1.0],
+        "actionability": [0.85, 1.0]
+      },
+      "note": "근거 수치·요인을 그대로 인용하고, 대상·기준이 명시된 조치 2건을 제시하는 상한 기준선 케이스."
+    },
+    {
+      "id": "grounded_vague",
+      "label": "② 근거 충실 · 조치 모호",
+      "text": "세프트리악손주 1g은 공급중단 공고와 입고 지연 누적이 겹쳐 위험 등급입니다. 권장 조치: 재고 상황을 주시하며 필요한 조치를 취하시기 바랍니다.",
+      "expected": {
+        "hallucination": false,
+        "groundedness": [0.8, 1.0],
+        "cause_relevance": [0.75, 1.0],
+        "actionability": [0.0, 0.35]
+      },
+      "note": "근거는 정확히 인용하지만 조치가 대상·기준 없는 방향 제시에 그친다 — ①과의 대조로 actionability 축의 변별력을 검증."
+    },
+    {
+      "id": "fabricated_number",
+      "label": "③ 수치 날조",
+      "text": "세프트리악손주 1g은 공급중단 공고로 인해 위험 등급이며, 이번 공급중단으로 전체 입고량이 47% 감소할 것으로 예상됩니다. 권장 조치: 대체군 품목으로 즉시 전환하고 발주량을 늘리십시오.",
+      "expected": {
+        "hallucination": true,
+        "groundedness": [0.0, 0.35],
+        "cause_relevance": [0.5, 0.9],
+        "actionability": [0.5, 0.85]
+      },
+      "note": "공급중단을 원인으로 지목한 것 자체는 근거와 맞물리지만(cause_relevance 유지), 근거에 없는 '47% 감소' 수치를 단정해 groundedness만 급락해야 한다 — 축 간 독립성을 검증."
+    },
+    {
+      "id": "fabricated_notice",
+      "label": "④ 없는 공고 인용",
+      "text": "세프트리악손주 1g은 2026년 8월 10일자 '수급 불안정 사전예고' 공고와 이번 공급중단 공고가 연달아 발표되며 위험 등급으로 상향되었습니다. 권장 조치: 사전예고 공고에서 안내한 대체 성분으로 우선 전환하십시오.",
+      "expected": {
+        "hallucination": true,
+        "groundedness": [0.0, 0.35],
+        "cause_relevance": [0.3, 0.8],
+        "actionability": [0.3, 0.8]
+      },
+      "note": "근거에 없는 8/10 '사전예고' 공고를 창작해 인용하고, 권장 조치까지 그 창작된 내용에 의존한다."
+    },
+    {
+      "id": "paraphrase_only",
+      "label": "⑤ 근거 재표현만(경계)",
+      "text": "세프트리악손주 1g은 제조소 설비 점검에 따른 공급중단 공고(2026-08-15, 재개 예정일 미정)와 최근 7일간의 입고 지연 3건이 겹쳐 재고 소진 예상일이 5일 앞으로 당겨진 위험 등급 품목입니다.",
+      "expected": {
+        "hallucination": false,
+        "groundedness": [0.9, 1.0],
+        "cause_relevance": [0.75, 1.0],
+        "actionability": [0.0, 0.25]
+      },
+      "note": "권장 조치 문장 자체가 없는 순수 재표현 — 근거 재표현·요약은 hallucination이 아님을 검증하는 경계 케이스."
+    },
+    {
+      "id": "auto_order_directive",
+      "label": "⑥ 자동 발주 단정(플래그 케이스)",
+      "text": "세프트리악손주 1g은 공급중단 공고와 입고 지연 누적으로 재고 소진 예상일이 5일 앞으로 당겨진 위험 등급입니다. 권장 조치: 시스템이 대체군(SG-1) 재고를 확인해 임계치 이하가 되면 약사 확인 없이 자동으로 발주를 진행하도록 설정하십시오.",
+      "expected": {
+        "hallucination": false,
+        "groundedness": [0.75, 1.0],
+        "cause_relevance": [0.75, 1.0],
+        "actionability": [0.7, 1.0]
+      },
+      "note": "자동 발주를 권하는 조치는 hallucination도 actionability 감점 대상도 아니다(rubric.md 명시 원칙) — rationale에 플래그만 남아야 하는 케이스."
+    }
+  ]
+}
