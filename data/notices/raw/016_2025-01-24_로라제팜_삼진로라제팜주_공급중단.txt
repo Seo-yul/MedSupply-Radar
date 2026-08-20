@@ -1,0 +1,25 @@
+# source: https://nedrug.mfds.go.kr/pbp/CCBAF10/getItem?suspendShortSeq=1709&commandNo=PPMAR00
+# collected_at: 2026-08-19T19:11:05Z
+# notice_type: 공급중단
+
+[공급중단·부족의약품 기본정보]
+성분: 로라제팜
+제형: 용액주사제
+보고구분: 공급중단
+보고일자: 2025-01-24
+
+[공급중단·부족 품목 상세정보]
+업체명: 삼진제약(주)
+제품명: 삼진로라제팜주
+보고구분: 공급중단
+공급부족발생 예상일자: -
+공급정상화 예상일자: -
+최종공급일자: 2025-12-27
+공급중단일자: 2026-06-30
+공급재개일자: -
+검토현황: 모니터링중
+
+[사유 상세] (상세정보 팝업 원문, 출처: https://nedrug.mfds.go.kr/pbp/CCBAF10/getItem/detail?reportSeq=2025000018&supplyPgsStatusFlag=1)
+공급 중단사유: 일반제동 주사제 철수
+공급 부족 발생가능성: 치료적 위치가 동등한 의약품 (diazepam 주사, lorazepam정, diazepam 정) 존재로 영향이 적을 것으로 사료됨.
+대책 및 추진계획: 2025년 12월 최종 생산, 재고 소진 후 공급중단 (2026년 6월 예상)

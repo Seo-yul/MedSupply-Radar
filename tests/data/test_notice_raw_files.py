@@ -101,9 +101,9 @@ def test_at_least_one_notice_collected(raw_txt_files: list[Path]) -> None:
     assert len(raw_txt_files) >= 1, "수집된 공고 원문이 0건이다"
 
 
-def test_at_most_eight_notices(raw_txt_files: list[Path]) -> None:
-    """브리프 목표는 1차분 최대 8건."""
-    assert len(raw_txt_files) <= 8
+def test_at_most_twenty_notices(raw_txt_files: list[Path]) -> None:
+    """기획서 목표는 1·2차 누적 최대 20건(M-09 8건 + M-10 12건)."""
+    assert len(raw_txt_files) <= 20
 
 
 # ---------------------------------------------------------------------------

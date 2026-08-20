@@ -7,3 +7,15 @@ file,published_date,title,source,source_url,notice_type
 006_2025-07-17_에스오메프라졸_넥시움주_공급중단.txt,2025-07-17,넥시움주(에스오메프라졸나트륨) 공급중단 보고,의약품안전나라,https://nedrug.mfds.go.kr/pbp/CCBAF10/getItem?suspendShortSeq=2061&commandNo=PPMAR00,공급중단
 007_2024-10-11_이부프로펜_넬슨이부프로펜정_공급중단.txt,2024-10-11,넬슨이부프로펜정400밀리그램(이부프로펜) 공급중단 보고,의약품안전나라,https://nedrug.mfds.go.kr/pbp/CCBAF10/getItem?suspendShortSeq=1601&commandNo=PPMAR00,공급중단
 008_2024-05-10_프레드니솔론_피알디현탁시럽_공급중단.txt,2024-05-10,피알디현탁시럽0.3%(프레드니솔론) 공급중단 보고,의약품안전나라,https://nedrug.mfds.go.kr/pbp/CCBAF10/getItem?suspendShortSeq=1505&commandNo=PPMAR00,공급중단
+009_2023-01-20_트라마돌_지트람씨알서방정_공급부족.txt,2023-01-20,지트람씨알서방정75밀리그램(트라마돌염산염) 공급부족 보고,의약품안전나라,https://nedrug.mfds.go.kr/pbp/CCBAF10/getItem?suspendShortSeq=328&commandNo=PPMAR00,공급부족
+010_2024-02-21_온단세트론_조프란정_공급부족.txt,2024-02-21,조프란정8밀리그램(온단세트론염산염수화물) 공급부족 보고,의약품안전나라,https://nedrug.mfds.go.kr/pbp/CCBAF10/getItem?suspendShortSeq=1437&commandNo=PPMAR00,공급부족
+011_2024-01-23_메트포르민_네시나메트정_공급중단.txt,2024-01-23,네시나메트정12.5/500밀리그램 공급중단 보고,의약품안전나라,https://nedrug.mfds.go.kr/pbp/CCBAF10/getItem?suspendShortSeq=1406&commandNo=PPMAR00,공급중단
+012_2024-06-10_아세틸시스테인_세브론시럽_공급부족.txt,2024-06-10,"세브론시럽(아세틸시스테인)(수출명:뮤시스틴시럽,스파탐시럽) 공급부족 보고",의약품안전나라,https://nedrug.mfds.go.kr/pbp/CCBAF10/getItem?suspendShortSeq=1518&commandNo=PPMAR00,공급부족
+013_2024-03-15_시타글립틴_스테글루잔정_공급중단.txt,2024-03-15,스테글루잔정5/100밀리그램 공급중단 보고,의약품안전나라,https://nedrug.mfds.go.kr/pbp/CCBAF10/getItem?suspendShortSeq=1461&commandNo=PPMAR00,공급중단
+014_2024-06-04_살부타몰_벤토린네뷸_공급부족.txt,2024-06-04,벤토린네뷸2.5mg(살부타몰황산염) 공급부족 보고,의약품안전나라,https://nedrug.mfds.go.kr/pbp/CCBAF10/getItem?suspendShortSeq=1515&commandNo=PPMAR00,공급부족
+015_2024-10-28_테오필린_데오크레건조시럽_공급중단.txt,2024-10-28,데오크레건조시럽20%(테오필린) 공급중단 보고,의약품안전나라,https://nedrug.mfds.go.kr/pbp/CCBAF10/getItem?suspendShortSeq=1612&commandNo=PPMAR00,공급중단
+016_2025-01-24_로라제팜_삼진로라제팜주_공급중단.txt,2025-01-24,삼진로라제팜주 공급중단 보고,의약품안전나라,https://nedrug.mfds.go.kr/pbp/CCBAF10/getItem?suspendShortSeq=1709&commandNo=PPMAR00,공급중단
+017_2025-12-01_덱사메타손_덱사하이정_공급부족.txt,2025-12-01,덱사하이정4밀리그램(덱사메타손) 공급부족 보고,의약품안전나라,https://nedrug.mfds.go.kr/pbp/CCBAF10/getItem?suspendShortSeq=2235&commandNo=PPMAR00,공급부족
+018_2025-09-10_메틸프레드니솔론_살론주_공급중단.txt,2025-09-10,살론주125밀리그램(메틸프레드니솔론숙시네이트나트륨) 공급중단 보고,의약품안전나라,https://nedrug.mfds.go.kr/pbp/CCBAF10/getItem?suspendShortSeq=2138&commandNo=PPMAR00,공급중단
+019_2023-04-28_트라넥삼산_트렌자민주_공급중단.txt,2023-04-28,트렌자민주250밀리그람(트라넥삼산) 공급중단 보고,의약품안전나라,https://nedrug.mfds.go.kr/pbp/CCBAF10/getItem?suspendShortSeq=1069&commandNo=PPMAR00,공급중단
+020_2024-10-29_리도카인_태준리도카인비스코스_공급중단.txt,2024-10-29,태준리도카인비스코스2%액 공급중단 보고,의약품안전나라,https://nedrug.mfds.go.kr/pbp/CCBAF10/getItem?suspendShortSeq=1616&commandNo=PPMAR00,공급중단
