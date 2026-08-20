@@ -7,26 +7,9 @@ from collections.abc import Sequence
 
 import pandas as pd
 
+from medsupply.analytics.asof import is_overdue_at, is_pending_at
 from medsupply.analytics.params import DepletionParams
 from medsupply.analytics.types import DepletionEstimate
-
-
-def _on_or_before(value, as_of: date) -> bool:
-    """value가 실제 날짜이고 as_of 이하인가. 결측(NaT·None·NaN)은 False.
-
-    NaT를 date와 직접 비교하면 pandas 버전에 따라 조용히 False가 되거나 예외가 날 수 있어,
-    결측 판정을 먼저 하고 비교한다(백테스트 판정의 결정성을 위해 명시적으로 처리한다).
-    """
-    if value is None or pd.isna(value):
-        return False
-    return value <= as_of
-
-
-def _strictly_after(value, as_of: date) -> bool:
-    """value가 실제 날짜이고 as_of보다 뒤인가. 결측(NaT·None·NaN)은 False."""
-    if value is None or pd.isna(value):
-        return False
-    return value > as_of
 
 
 def estimate_depletion(
@@ -108,27 +91,19 @@ def estimate_depletion(
                 if col in receipts_copy.columns:
                     receipts_copy[col] = pd.to_datetime(receipts_copy[col], errors="coerce").dt.date
 
-            # as_of 시점에 이미 도착한 건(도착 스탬프가 as_of 이하). 이 건들은 closing_stock에
-            # 이미 반영돼 있으므로 어떤 경우에도 다시 더하지 않는다(이중 계상 금지).
-            arrived_by_as_of = receipts_copy["actual_date"].apply(
-                lambda value: _on_or_before(value, as_of)
-            )
-            # 연체 = 예정일이 지났는데 as_of 시점에 아직 도착하지 않은 건.
-            overdue = (
-                receipts_copy["expected_date"].apply(lambda value: _on_or_before(value, as_of))
-                & ~arrived_by_as_of
-            )
+            # as_of 시점 상태 재구성(medsupply.analytics.asof가 규칙의 단일 소스).
+            expected = receipts_copy["expected_date"]
+            actual = receipts_copy["actual_date"]
 
-            if params.overdue_cutoff and bool(overdue.any()):
+            if params.overdue_cutoff and any(
+                is_overdue_at(e, a, as_of) for e, a in zip(expected, actual)
+            ):
                 # 연체가 1건이라도 있으면 이 품목의 미래 예정 입고를 전부 미반영한다.
                 pending = pd.Series(False, index=receipts_copy.index)
             else:
-                # as_of 시점의 pending: 예정일이 아직 오지 않았고, as_of 시점에 미도착.
-                pending = (
-                    receipts_copy["expected_date"].apply(
-                        lambda value: _strictly_after(value, as_of)
-                    )
-                    & ~arrived_by_as_of
+                pending = pd.Series(
+                    [is_pending_at(e, a, as_of) for e, a in zip(expected, actual)],
+                    index=receipts_copy.index,
                 )
 
             undelivered = receipts_copy[pending]

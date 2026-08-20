@@ -255,12 +255,74 @@ class TestDetectReceiptDelay:
         assert len(anomalies) == 0
 
     def test_receipt_already_arrived(self, default_params):
-        """Do not detect delay if actual_date exists, regardless of delay."""
+        """as_of 시점에 이미 도착한 건(actual_date <= as_of)은 연체로 보지 않는다.
+
+        Task S-17d 정밀화: 판정 기준은 "actual_date가 있는가"가 아니라 "as_of까지 도착했는가"다.
+        여기서는 08-05 도착 < as_of 08-10이므로 종전과 동일하게 미검출이 맞다.
+        """
         receipts = pd.DataFrame({
             "shipment_id": ["S001"],
             "expected_date": ["2026-07-25"],
             "expected_qty": [300.0],
             "actual_date": ["2026-08-05"],
+            "status": ["도착"],
+        })
+
+        as_of = date(2026, 8, 10)
+        anomalies = detect_receipt_delay(receipts, as_of, default_params)
+
+        assert len(anomalies) == 0
+
+    def test_receipt_arriving_after_as_of_is_overdue_at_as_of(self, default_params):
+        """**의미론 정정(Task S-17d)**: 도착 스탬프가 as_of보다 뒤면 as_of 시점엔 미도착이다.
+
+        예정 07-25 건이 08-20에 도착했다면, as_of 08-10 시점에서는 16일 연체 상태였다.
+        구 구현은 미도착을 ``actual_date IS NULL``로만 봐서 이 건을 놓쳤다 — 나중에 도착했다는
+        **미래 정보**로 과거 시점의 연체를 지운 셈이다.
+        """
+        receipts = pd.DataFrame({
+            "shipment_id": ["S001"],
+            "expected_date": ["2026-07-25"],
+            "expected_qty": [300.0],
+            "actual_date": ["2026-08-20"],  # as_of 시점엔 아직 미래 = 미도착
+            "status": ["도착"],
+        })
+
+        as_of = date(2026, 8, 10)
+        anomalies = detect_receipt_delay(receipts, as_of, default_params)
+
+        assert len(anomalies) == 1
+        assert anomalies[0].kind == "receipt_delay"
+        assert anomalies[0].metric == 16.0
+
+    def test_arrival_stamp_does_not_change_as_of_judgment(self, default_params):
+        """룩어헤드 차단: as_of 이후 도착 스탬프의 유무가 as_of 판정을 바꾸면 안 된다."""
+        base = {
+            "shipment_id": ["S001"],
+            "expected_date": ["2026-07-25"],
+            "expected_qty": [300.0],
+            "status": ["예정"],
+        }
+        as_of = date(2026, 8, 10)
+
+        without_stamp = detect_receipt_delay(
+            pd.DataFrame({**base, "actual_date": [None]}), as_of, default_params
+        )
+        with_future_stamp = detect_receipt_delay(
+            pd.DataFrame({**base, "actual_date": ["2026-08-20"]}), as_of, default_params
+        )
+
+        assert len(without_stamp) == len(with_future_stamp) == 1
+        assert without_stamp[0].metric == with_future_stamp[0].metric
+        assert without_stamp[0].detail == with_future_stamp[0].detail
+
+    def test_arrival_exactly_on_as_of_counts_as_arrived(self, default_params):
+        """경계: actual_date == as_of는 '도착'이다(연체 아님)."""
+        receipts = pd.DataFrame({
+            "shipment_id": ["S001"],
+            "expected_date": ["2026-07-25"],
+            "expected_qty": [300.0],
+            "actual_date": ["2026-08-10"],  # as_of와 동일 → 도착
             "status": ["도착"],
         })
 

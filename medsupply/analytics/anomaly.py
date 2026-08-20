@@ -6,6 +6,7 @@ from datetime import date
 
 import pandas as pd
 
+from medsupply.analytics.asof import is_overdue_at
 from medsupply.analytics.params import AnomalyParams
 from medsupply.analytics.types import AnomalyFlag
 
@@ -106,9 +107,20 @@ def detect_receipt_delay(receipts: pd.DataFrame, as_of: date, params: AnomalyPar
         Empty list if no delays detected or DataFrame is empty.
 
     Notes:
-        - Only processes shipments with actual_date == NULL.
-        - Only detects if expected_date < as_of and delay_days >= receipt_delay_days.
-        - Already received shipments (actual_date exists) are not checked.
+        - 연체 판정은 **as_of 시점 기준으로 재구성**한다(Task S-17d, medsupply.analytics.asof):
+
+              expected_date <= as_of AND (actual_date IS NULL OR actual_date > as_of)
+
+          구 구현은 미도착을 ``actual_date IS NULL``로만 봐서, as_of 시점엔 분명 연체였지만
+          **나중에** 도착한 건을 놓쳤다 — 도착 스탬프라는 미래 정보로 과거 시점의 상태를
+          소급 왜곡한 것이다(depletion.estimate_depletion이 S-17c에서 같은 이유로 고쳐졌다).
+        - as_of 시점에 이미 도착한 건(actual_date <= as_of)은 검사하지 않는다.
+        - delay_days = (as_of - expected_date).days 이고 receipt_delay_days 이상일 때만 신호가
+          된다. 그래서 expected_date == as_of(delay_days=0)는 임계값이 1 이상인 한 자연히
+          걸러진다 — 술어를 ``<=``로 적어도 실질 동작은 종전과 같다.
+        - 이 함수는 **등급 판정에 관여하지 않는다**. 산출된 AnomalyFlag는 risk_type 유도와
+          점수 가점에만 쓰이므로(grade_risk는 days_to_stockout·공고만 본다), 이 수정은
+          감지율·오탐률·선행일수를 바꾸지 않아야 한다.
     """
     if receipts.empty:
         return []
@@ -119,10 +131,15 @@ def detect_receipt_delay(receipts: pd.DataFrame, as_of: date, params: AnomalyPar
         if col in receipts.columns:
             receipts[col] = pd.to_datetime(receipts[col], errors="coerce").dt.date
 
-    # Filter for undelivered shipments with expected_date < as_of
-    delayed_receipts = receipts[
-        (receipts["actual_date"].isna()) & (receipts["expected_date"] < as_of)
-    ].copy()
+    # as_of 시점 연체 건만 남긴다(asof 모듈이 규칙의 단일 소스).
+    overdue_mask = pd.Series(
+        [
+            is_overdue_at(expected, actual, as_of)
+            for expected, actual in zip(receipts["expected_date"], receipts["actual_date"])
+        ],
+        index=receipts.index,
+    )
+    delayed_receipts = receipts[overdue_mask].copy()
 
     if delayed_receipts.empty:
         return []
