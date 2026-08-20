@@ -184,7 +184,7 @@ def render() -> None:
         if filtered.empty:
             st.info("해당 상태의 품목이 없습니다.")
         st.markdown('</div>', unsafe_allow_html=True)
-        if st.button("검토 대기 4건 확인 →", type="primary", use_container_width=True):
+        if st.button(f"검토 대기 {pending_notices}건 확인 →", type="primary", use_container_width=True):
             if not overview_all.empty:
                 st.session_state["selected_drug"] = overview_all.iloc[0]["item_name"]
             target = PAGE_REGISTRY.get("review")
