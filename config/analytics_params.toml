@@ -21,6 +21,7 @@ receipt_delay_days = 3   # 예정일 대비 지연 임계(초과 시 receipt_del
 
 [depletion]
 reflect_receipts = false # 입고예정 반영 기본 미반영(보수적)
+overdue_cutoff = false   # 연체 건이 있으면 미래 예정 입고도 전부 미반영(공급 신뢰 붕괴 시 보수 전환)
 
 [score]
 # 0~100 점수 = 등급 구간 기본점 + 요인 가점(상한 100)

@@ -11,6 +11,24 @@ from medsupply.analytics.params import DepletionParams
 from medsupply.analytics.types import DepletionEstimate
 
 
+def _on_or_before(value, as_of: date) -> bool:
+    """value가 실제 날짜이고 as_of 이하인가. 결측(NaT·None·NaN)은 False.
+
+    NaT를 date와 직접 비교하면 pandas 버전에 따라 조용히 False가 되거나 예외가 날 수 있어,
+    결측 판정을 먼저 하고 비교한다(백테스트 판정의 결정성을 위해 명시적으로 처리한다).
+    """
+    if value is None or pd.isna(value):
+        return False
+    return value <= as_of
+
+
+def _strictly_after(value, as_of: date) -> bool:
+    """value가 실제 날짜이고 as_of보다 뒤인가. 결측(NaT·None·NaN)은 False."""
+    if value is None or pd.isna(value):
+        return False
+    return value > as_of
+
+
 def estimate_depletion(
     stock_on_hand: float,
     daily_forecast: Sequence[float],
@@ -41,12 +59,28 @@ def estimate_depletion(
         - If horizon not sufficient, extends with average demand up to 365 days.
         - If average demand is 0 or no depletion within 365 days: days_to_stockout=None.
         - If stock_on_hand <= 0: days_to_stockout=0, depletion_date=as_of (already depleted).
-        - Receipts: if reflect_receipts=True, includes undelivered (actual_date NULL)
-          shipments with expected_date > as_of at their scheduled date.
-          already received (actual_date != NULL) or delayed (expected_date <= as_of)
-          shipments are not reflected.
-          지연 입고(expected_date <= as_of)를 소진일 추정에 반영하지 않는 것은 의도된
-          설계다 — 지연 자체의 감지·판단은 anomaly.detect_receipt_delay의 소관이다.
+        - Receipts (reflect_receipts=True일 때만): **as_of 시점 기준으로 pending을 재구성해서**
+          반영한다(Task S-17c 정합성 수정).
+
+              expected_date > as_of AND (actual_date IS NULL OR actual_date > as_of)
+
+          `actual_date > as_of`를 pending으로 되살리는 것이 핵심이다. actual_date(도착 스탬프)는
+          as_of 시점에는 **아직 존재하지 않는 미래 정보**인데, 예전 구현은 `actual_date IS NULL`만
+          pending으로 쳐서 "나중에 도착했다"는 사실로 과거 시점의 입고 예정을 소급 제외했다.
+          표준 스냅샷처럼 도착분에 actual_date가 채워진 데이터에서는 백테스트 시 임박한 정상
+          입고가 통째로 무시돼, 정상 품목이 재발주 저점마다 허위 '경고'로 잡혔다.
+
+          반영하지 않는 것(의도된 설계):
+            * as_of 이전 도착분(actual_date <= as_of) — 이미 closing_stock에 반영돼 있어
+              다시 더하면 이중 계상이 된다.
+            * 연체 건(expected_date <= as_of이고 as_of 시점 미도착) — 지연 자체의 감지·판단은
+              anomaly.detect_receipt_delay의 소관이다.
+
+        - overdue_cutoff=True(선택 스위치)이면 위 pending을 계산하기 전에 **연체 건이 1건이라도
+          있는지** 보고, 있으면 그 품목의 미래 예정 입고를 **전부** 반영하지 않는다. 공급 신뢰가
+          무너진 품목에서 "예정일은 잡혀 있으나 실제로 올지 알 수 없는" 입고를 낙관적으로 세지
+          않기 위한 보수적 전환이다. reflect_receipts=False이면 이 스위치는 무의미하다
+          (애초에 아무 입고도 반영하지 않는다).
     """
     # Validate daily_forecast
     if len(daily_forecast) == 0:
@@ -74,10 +108,30 @@ def estimate_depletion(
                 if col in receipts_copy.columns:
                     receipts_copy[col] = pd.to_datetime(receipts_copy[col], errors="coerce").dt.date
 
-            # Filter for undelivered (actual_date NULL) with expected_date > as_of
-            undelivered = receipts_copy[
-                (receipts_copy["actual_date"].isna()) & (receipts_copy["expected_date"] > as_of)
-            ]
+            # as_of 시점에 이미 도착한 건(도착 스탬프가 as_of 이하). 이 건들은 closing_stock에
+            # 이미 반영돼 있으므로 어떤 경우에도 다시 더하지 않는다(이중 계상 금지).
+            arrived_by_as_of = receipts_copy["actual_date"].apply(
+                lambda value: _on_or_before(value, as_of)
+            )
+            # 연체 = 예정일이 지났는데 as_of 시점에 아직 도착하지 않은 건.
+            overdue = (
+                receipts_copy["expected_date"].apply(lambda value: _on_or_before(value, as_of))
+                & ~arrived_by_as_of
+            )
+
+            if params.overdue_cutoff and bool(overdue.any()):
+                # 연체가 1건이라도 있으면 이 품목의 미래 예정 입고를 전부 미반영한다.
+                pending = pd.Series(False, index=receipts_copy.index)
+            else:
+                # as_of 시점의 pending: 예정일이 아직 오지 않았고, as_of 시점에 미도착.
+                pending = (
+                    receipts_copy["expected_date"].apply(
+                        lambda value: _strictly_after(value, as_of)
+                    )
+                    & ~arrived_by_as_of
+                )
+
+            undelivered = receipts_copy[pending]
 
             if not undelivered.empty:
                 # Build a map: expected_date -> sum of expected_qty

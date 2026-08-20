@@ -42,9 +42,15 @@ class AnomalyParams:
 
 @dataclass(frozen=True)
 class DepletionParams:
-    """Depletion parameters."""
+    """Depletion parameters.
+
+    overdue_cutoff는 기본값 False를 갖는다 — 이 스위치를 모르는 기존 호출부(테스트 픽스처
+    포함)가 DepletionParams(reflect_receipts=...)만으로 계속 동작하게 하기 위해서다.
+    TOML에서는 다른 키와 동일하게 명시 필수다(누락 시 load_params가 ValueError).
+    """
 
     reflect_receipts: bool
+    overdue_cutoff: bool = False
 
 
 @dataclass(frozen=True)
@@ -101,7 +107,7 @@ def load_params(path: str | Path = Path("config/analytics_params.toml")) -> Anal
         "grade": {"danger_days", "warning_days", "watch_days", "escalate_on_notice", "escalate_needs_review"},
         "forecast": {"method", "sma_window", "ses_alpha", "horizon_days"},
         "anomaly": {"surge_ratio", "drop_ratio", "recent_window", "baseline_window", "receipt_delay_days"},
-        "depletion": {"reflect_receipts"},
+        "depletion": {"reflect_receipts", "overdue_cutoff"},
         "score": {"base_danger", "base_warning", "base_watch", "base_normal", "per_anomaly", "notice_bonus"},
     }
 
@@ -200,6 +206,7 @@ def load_params(path: str | Path = Path("config/analytics_params.toml")) -> Anal
 
     depletion_params = DepletionParams(
         reflect_receipts=depletion_data["reflect_receipts"],
+        overdue_cutoff=depletion_data["overdue_cutoff"],
     )
 
     score_params = ScoreParams(
@@ -236,6 +243,7 @@ def load_params(path: str | Path = Path("config/analytics_params.toml")) -> Anal
         },
         "depletion": {
             "reflect_receipts": depletion_params.reflect_receipts,
+            "overdue_cutoff": depletion_params.overdue_cutoff,
         },
         "score": {
             "base_danger": score_params.base_danger,

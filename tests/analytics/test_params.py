@@ -61,6 +61,36 @@ class TestLoadParams:
         """Test depletion parameter defaults."""
         params = load_params()
         assert params.depletion.reflect_receipts is False
+        assert params.depletion.overdue_cutoff is False
+
+    def test_depletion_overdue_cutoff_is_required_in_toml(self, tmp_path):
+        """[depletion].overdue_cutoff는 다른 키와 동일하게 TOML에 명시 필수다.
+
+        dataclass 기본값(False)은 기존 호출부 호환용이지 TOML 생략 허용이 아니다.
+        """
+        content = Path("config/analytics_params.toml").read_text(encoding="utf-8")
+        bad_content = content.replace(
+            "overdue_cutoff = false   # 연체 건이 있으면 미래 예정 입고도 전부 미반영(공급 신뢰 붕괴 시 보수 전환)\n",
+            "",
+        )
+        tmp_config = tmp_path / "analytics_params.toml"
+        tmp_config.write_text(bad_content)
+
+        with pytest.raises(ValueError) as exc_info:
+            load_params(tmp_config)
+
+        assert "overdue_cutoff" in str(exc_info.value)
+
+    def test_depletion_overdue_cutoff_round_trips(self, tmp_path):
+        """TOML의 overdue_cutoff=true가 그대로 로드되고 params_hash를 바꾼다."""
+        content = Path("config/analytics_params.toml").read_text(encoding="utf-8")
+        tmp_config = tmp_path / "analytics_params.toml"
+        tmp_config.write_text(content.replace("overdue_cutoff = false", "overdue_cutoff = true"))
+
+        params = load_params(tmp_config)
+
+        assert params.depletion.overdue_cutoff is True
+        assert params.params_hash != load_params().params_hash
 
     def test_score_params_defaults(self):
         """Test score parameter defaults."""
