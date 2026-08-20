@@ -277,6 +277,49 @@ def test_get_notices_item_with_no_mapping_returns_empty(fixture_conn) -> None:
     assert df.empty
 
 
+def test_get_notices_includes_confidence_from_extraction(fixture_conn) -> None:
+    df = queries.get_notices(fixture_conn)
+    by_id = {row["notice_id"]: row for _, row in df.iterrows()}
+    assert by_id[NOTICE_HALT]["confidence"] == pytest.approx(0.6)
+    assert by_id[NOTICE_NORMALIZED]["confidence"] == pytest.approx(0.95)
+
+
+# --- get_notice_detail -----------------------------------------------------
+
+
+def test_get_notice_detail_returns_notice_with_payload_and_mapped_items(fixture_conn) -> None:
+    detail = queries.get_notice_detail(fixture_conn, NOTICE_HALT)
+
+    assert detail is not None
+    assert detail["title"] == "세프트리악손주 공급중단 안내"
+    assert detail["raw_text"] == "제조소 사정으로 2026년 7월 15일부터 공급이 중단됩니다."
+    assert detail["status"] == "확인 필요"
+    assert detail["confidence"] == pytest.approx(0.6)
+    assert detail["payload"]["reason"] == "제조소 설비 점검"
+    assert [m["item_id"] for m in detail["mapped"]] == [ITEM_1, ITEM_2]
+    assert detail["mapped"][1]["needs_review"] == 1
+
+
+def test_get_notice_detail_notice_without_extraction_has_none_payload(fixture_conn) -> None:
+    fixture_conn.execute(
+        "INSERT INTO notices(notice_id, published_date, title, notice_type)"
+        " VALUES ('NTC-0003', '2026-07-20', '미추출 공고', '기타')"
+    )
+    fixture_conn.commit()
+
+    detail = queries.get_notice_detail(fixture_conn, "NTC-0003")
+
+    assert detail is not None
+    assert detail["payload"] is None
+    assert detail["status"] is None
+    assert detail["confidence"] is None
+    assert detail["mapped"] == []
+
+
+def test_get_notice_detail_unknown_notice_id_returns_none(fixture_conn) -> None:
+    assert queries.get_notice_detail(fixture_conn, "NO-SUCH-NOTICE") is None
+
+
 # --- get_active_notice_map -----------------------------------------------------
 
 

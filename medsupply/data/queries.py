@@ -216,10 +216,12 @@ def get_incoming_shipments(
 def get_notices(
     conn: sqlite3.Connection, *, item_id: str | None = None, status: str | None = None
 ) -> pd.DataFrame:
-    """공고 목록. extraction 상태(status)와 매핑 품목 수(mapped_count)를 조인한다.
+    """공고 목록. extraction 상태(status)·신뢰도(confidence)와 매핑 품목 수(mapped_count)를
+    조인한다.
 
-    status는 notice_extractions.status 필터(추출이 없는 공고는 status가 NULL). item_id는
-    해당 품목에 매핑된 공고만 남긴다(mapped_count는 필터와 무관하게 공고의 전체 매핑 수).
+    status는 notice_extractions.status 필터(추출이 없는 공고는 status·confidence가 모두
+    NULL). item_id는 해당 품목에 매핑된 공고만 남긴다(mapped_count는 필터와 무관하게 공고의
+    전체 매핑 수).
     """
     query = """
         SELECT
@@ -231,6 +233,7 @@ def get_notices(
             n.notice_type,
             n.collected_at,
             e.status,
+            e.confidence,
             COUNT(DISTINCT m.item_id) AS mapped_count
         FROM notices AS n
         LEFT JOIN notice_extractions AS e ON e.notice_id = n.notice_id
@@ -252,6 +255,52 @@ def get_notices(
 
     query += " GROUP BY n.notice_id ORDER BY n.published_date DESC, n.notice_id"
     return pd.read_sql_query(query, conn, params=params)
+
+
+def get_notice_detail(conn: sqlite3.Connection, notice_id: str) -> dict | None:
+    """공고 1건 상세 — notices 1행(raw_text 포함) + notice_extractions LEFT JOIN + 매핑 목록.
+
+    payload_json은 json.loads 해 payload 키로 반환한다. 추출이 없으면 payload는 None이고
+    confidence·status·prompt_version·provider·model·created_at도 전부 None이다(LEFT JOIN
+    미매치를 그대로 표현). mapped: notice_item_map × items 조인 리스트
+    [{item_id, item_name, substitute_group_id, match_basis, needs_review}]를 item_id
+    오름차순으로 담는다. notice_id가 존재하지 않으면 None.
+    """
+    notice_row = conn.execute(
+        "SELECT * FROM notices WHERE notice_id = ?", (notice_id,)
+    ).fetchone()
+    if notice_row is None:
+        return None
+    detail = dict(notice_row)
+
+    extraction_row = conn.execute(
+        "SELECT payload_json, confidence, status, prompt_version, provider, model, created_at"
+        " FROM notice_extractions WHERE notice_id = ?",
+        (notice_id,),
+    ).fetchone()
+    if extraction_row is None:
+        detail.update(
+            payload=None, confidence=None, status=None,
+            prompt_version=None, provider=None, model=None, created_at=None,
+        )
+    else:
+        extraction = dict(extraction_row)
+        extraction["payload"] = json.loads(extraction.pop("payload_json"))
+        detail.update(extraction)
+
+    mapped_rows = conn.execute(
+        """
+        SELECT m.item_id, i.item_name, m.substitute_group_id, m.match_basis, m.needs_review
+        FROM notice_item_map AS m
+        JOIN items AS i ON i.item_id = m.item_id
+        WHERE m.notice_id = ?
+        ORDER BY m.item_id
+        """,
+        (notice_id,),
+    ).fetchall()
+    detail["mapped"] = [dict(row) for row in mapped_rows]
+
+    return detail
 
 
 def get_active_notice_map(conn: sqlite3.Connection, as_of: date) -> pd.DataFrame:
