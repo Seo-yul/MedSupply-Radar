@@ -65,7 +65,11 @@ VALID_RISK_TYPES: frozenset[str] = frozenset(
 )
 
 #: 배치·LLM 적재 이전 스냅샷에서는 비어 있어야 정상인 테이블(브리프 검사 항목 8).
-PRE_BATCH_EMPTY_TABLES: tuple[str, ...] = ("risk_results", "forecasts", "notices", "alerts")
+#: notices는 여기 포함하지 않는다 — M-11(scripts/load_notices.py)부터 "표준 스냅샷"의
+#: 정의 자체가 "데이터셋 생성 + 공고 적재 완료" 상태로 확장되어, 위험 평가 배치가 실행되기
+#: 전에도 20건이 적재돼 있는 것이 정상(부트스트랩 계층)이다 — risk_results·forecasts·
+#: alerts처럼 "배치가 이미 돌았다"를 뜻하는 신호가 아니다(2주차 브랜치 리뷰 F8).
+PRE_BATCH_EMPTY_TABLES: tuple[str, ...] = ("risk_results", "forecasts", "alerts")
 
 #: action_history_seed.csv 시드 건수(S-12 산출물 고정값, 브리프 검사 항목 9).
 EXPECTED_ACTION_HISTORY_SEED_COUNT = 8

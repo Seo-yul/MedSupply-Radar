@@ -374,6 +374,55 @@ def test_get_active_notice_map_empty_when_no_notices(empty_conn) -> None:
     assert df.empty
 
 
+def test_get_active_notice_map_excludes_notice_published_after_as_of(empty_conn) -> None:
+    """룩어헤드 차단(F4): as_of보다 뒤에 게시될 공고는 그 as_of 시점에는 아직 존재하지
+    않았던 정보이므로, 다른 조건을 전부 만족해도(공급중단·재개예정일 NULL) 비활성으로
+    본다."""
+    conn = empty_conn
+    conn.execute("INSERT INTO items(item_id, item_name) VALUES ('ITEM-X', '테스트품목')")
+    conn.execute(
+        "INSERT INTO notices(notice_id, published_date, title, notice_type)"
+        " VALUES ('NTC-FUTURE', '2026-08-15', '미래 게시 공급중단', '공급중단')"
+    )
+    conn.execute(
+        "INSERT INTO notice_extractions(notice_id, payload_json, status)"
+        " VALUES ('NTC-FUTURE', ?, '자동확정')",
+        ('{"expected_restart_date": null}',),
+    )
+    conn.execute(
+        "INSERT INTO notice_item_map(notice_id, item_id) VALUES ('NTC-FUTURE', 'ITEM-X')"
+    )
+    conn.commit()
+
+    df = queries.get_active_notice_map(conn, date(2026, 8, 1))
+
+    assert df.empty
+
+
+def test_get_active_notice_map_includes_notice_published_on_as_of(empty_conn) -> None:
+    """게시일이 as_of와 같은 날이면(<=) 포함한다 — 경계값이 배제 방향으로 치우치지 않는지
+    확인."""
+    conn = empty_conn
+    conn.execute("INSERT INTO items(item_id, item_name) VALUES ('ITEM-X', '테스트품목')")
+    conn.execute(
+        "INSERT INTO notices(notice_id, published_date, title, notice_type)"
+        " VALUES ('NTC-SAMEDAY', '2026-08-01', '당일 게시 공급중단', '공급중단')"
+    )
+    conn.execute(
+        "INSERT INTO notice_extractions(notice_id, payload_json, status)"
+        " VALUES ('NTC-SAMEDAY', ?, '자동확정')",
+        ('{"expected_restart_date": null}',),
+    )
+    conn.execute(
+        "INSERT INTO notice_item_map(notice_id, item_id) VALUES ('NTC-SAMEDAY', 'ITEM-X')"
+    )
+    conn.commit()
+
+    df = queries.get_active_notice_map(conn, date(2026, 8, 1))
+
+    assert set(df["notice_id"]) == {"NTC-SAMEDAY"}
+
+
 # --- get_latest_runs ------------------------------------------------------------
 
 

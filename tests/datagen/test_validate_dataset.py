@@ -335,6 +335,30 @@ class TestCorruptionDetection:
 
 
 class TestPreBatchWarnPath:
+    def test_notices_excluded_from_pre_batch_empty_tables(self) -> None:
+        """F8: notices는 M-11 이후 표준 빌드 시퀀스(generate_dataset → load_notices)의
+        부트스트랩 계층이라, 배치 실행 전에도 20건이 정상이다 — "배치 전 공백" 검사
+        대상에서 제외한다(검사 대상 목록 변경 자체를 명시 단언 — 단언 약화 금지)."""
+        assert "notices" not in vd.PRE_BATCH_EMPTY_TABLES
+        assert vd.PRE_BATCH_EMPTY_TABLES == ("risk_results", "forecasts", "alerts")
+
+    def test_notices_non_empty_does_not_trigger_warn(self, valid_db_path: Path) -> None:
+        """notices만 채워져 있고(부트스트랩 적재 상황 재현) risk_results/forecasts/alerts는
+        비어 있는(배치 전) 표준 스냅샷 상태에서 check 8이 WARN 없이 PASS해야 한다."""
+        conn = sqlite3.connect(valid_db_path)
+        conn.executemany(
+            "INSERT INTO notices(notice_id, published_date, title, notice_type)"
+            " VALUES (?, '2026-07-01', ?, '공급중단')",
+            [(f"NTC-{i:03d}", f"부트스트랩 공고 {i}") for i in range(20)],
+        )
+        new_hash = compute_content_hash(conn)
+        conn.execute("UPDATE meta SET value = ? WHERE key = 'content_hash'", (new_hash,))
+        conn.commit()
+
+        result = vd.check_pre_batch_tables_empty(conn)
+        conn.close()
+        assert result.status == "PASS"
+
     def test_risk_results_non_empty_is_warn_not_fail(self, valid_db_path: Path) -> None:
         conn = sqlite3.connect(valid_db_path)
         conn.execute(

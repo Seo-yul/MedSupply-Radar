@@ -306,10 +306,14 @@ def get_notice_detail(conn: sqlite3.Connection, notice_id: str) -> dict | None:
 def get_active_notice_map(conn: sqlite3.Connection, as_of: date) -> pd.DataFrame:
     """활성 공고 매핑(docs/data-model.md §2.4).
 
-    활성 = notices.notice_type가 '공급중단'/'공급부족'이고, payload_json의
-    expected_restart_date가 NULL이거나 as_of 이상. payload_json 파싱은 SQLite json_extract를
-    쓴다. notice_item_map은 notices·notice_extractions와 내부 조인한다 — 활성 여부 판정에
-    반드시 필요한 추출 데이터가 없는 매핑은 판정 불가로 보고 제외한다.
+    활성 = notices.notice_type가 '공급중단'/'공급부족'이고, **published_date가 as_of
+    이하**이며(as_of 시점에는 아직 게시되지 않았을 미래 공고가 활성 목록에 끌려 들어오는
+    룩어헤드를 차단한다 — 2주차 브랜치 리뷰 F4, 표준 스냅샷은 전 공고가 스윕 이전에 게시돼
+    현재 데이터로는 무영향이지만 as_of를 과거로 돌리는 재측정에서 의미가 생긴다),
+    payload_json의 expected_restart_date가 NULL이거나 as_of 이상. payload_json 파싱은
+    SQLite json_extract를 쓴다. notice_item_map은 notices·notice_extractions와 내부
+    조인한다 — 활성 여부 판정에 반드시 필요한 추출 데이터가 없는 매핑은 판정 불가로 보고
+    제외한다.
     """
     query = """
         SELECT
@@ -323,6 +327,7 @@ def get_active_notice_map(conn: sqlite3.Connection, as_of: date) -> pd.DataFrame
         JOIN notices AS n ON n.notice_id = m.notice_id
         JOIN notice_extractions AS e ON e.notice_id = m.notice_id
         WHERE n.notice_type IN ('공급중단', '공급부족')
+          AND n.published_date <= :as_of
           AND (
               json_extract(e.payload_json, '$.expected_restart_date') IS NULL
               OR json_extract(e.payload_json, '$.expected_restart_date') >= :as_of
