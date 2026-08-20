@@ -1,8 +1,9 @@
 """Anthropic(기본)·OpenAI(폴백) 이중화 JSON 구조화 호출 계층.
 
 공급자 선택 정책은 medsupply.llm.config.load_llm_config()가 결정한다(환경변수
-LLM_PROVIDER/LLM_MODE). 캐시·프롬프트 레지스트리·tracing은 후속 태스크이며,
-여기서는 계약(cache_key, trace_id, cache_hit)만 자리를 남겨둔다.
+LLM_PROVIDER/LLM_MODE). 결과 캐시(medsupply.llm.cache)는 cache_key가 주어질 때만
+관여한다 — offline 모드에서는 캐시 히트가 우선이다(M-12). 프롬프트 레지스트리·
+tracing은 여전히 후속 태스크이며, trace_id는 계약만 남겨둔다.
 
 SDK 호출 패턴은 태스크 브리프에 명시된 형태를 그대로 따른다 — 특히 Anthropic
 호출에는 temperature 등 샘플링 파라미터를 넣지 않는다(claude-opus-5에서 제거되어
@@ -19,6 +20,8 @@ import anthropic
 import openai
 from pydantic import BaseModel
 
+from medsupply import settings
+from medsupply.llm.cache import cache_get, cache_put
 from medsupply.llm.config import LLMConfig, load_llm_config
 
 T = TypeVar("T", bound=BaseModel)
@@ -57,7 +60,7 @@ class LLMUnavailableError(RuntimeError):
 
 
 class LLMOfflineError(RuntimeError):
-    """offline 모드인데 캐시가 아직 구현되지 않은 경우(캐시는 후속 태스크)."""
+    """offline 모드인데 캐시로 서빙할 수 없는 경우(cache_key 없음, 또는 캐시 미스)."""
 
 
 def _get_anthropic_client() -> anthropic.Anthropic:
@@ -132,29 +135,49 @@ def complete_json(
     provider: Literal["anthropic", "openai"] | None = None,
     max_tokens: int = 8192,
     cache_key: str | None = None,
+    force_refresh: bool = False,
 ) -> LLMResult[T]:
     """Anthropic 우선·OpenAI 폴백으로 JSON 구조화 호출을 수행한다.
 
     Args:
-        task: 로깅·(후속) tracing 라벨. 이 태스크에서는 저장하지 않는다.
-        prompt: 렌더링된 system/user 프롬프트 + 버전.
+        task: 로깅·(후속) tracing 라벨이자 캐시 항목의 task 컬럼.
+        prompt: 렌더링된 system/user 프롬프트 + 버전(prompt.version이 캐시의
+            prompt_version으로 저장된다).
         schema: 응답을 검증할 pydantic BaseModel 서브클래스.
         provider: 명시하면 해당 공급자만 시도하고 폴백하지 않는다. None이면
             LLMConfig.provider(환경변수 LLM_PROVIDER)를 따른다.
         max_tokens: Anthropic 호출의 max_tokens(OpenAI 쪽은 SDK 기본값을 따른다).
-        cache_key: v1에서는 사용하지 않는다(받기만 함) — 캐시 계층(및 이를 통한
-            cache_hit=True 반환)은 후속 태스크에서 지원한다.
+        cache_key: None이면 캐시에 전혀 관여하지 않는다(기존 동작 그대로). 값이
+            있으면 force_refresh=False일 때 우선 cache_get을 시도해 히트 시
+            즉시 반환한다(cache_hit=True) — offline 모드에서도 이 히트 검사가
+            먼저 일어난다("offline에서 캐시 히트 우선"). 미스 상태에서 호출이
+            성공하면 cache_put으로 저장한다.
+        force_refresh: True면 cache_get을 건너뛰고 항상 공급자를 호출한 뒤
+            cache_put으로 기존 캐시 항목을 덮어쓴다. cache_key가 None이면
+            캐시에 관여하지 않으므로 아무 효과가 없다.
 
     Raises:
-        LLMOfflineError: LLM_MODE=offline인데 캐시가 아직 없는 경우.
+        LLMOfflineError: LLM_MODE=offline이고, (a) cache_key가 없거나
+            (b) cache_key는 있지만 캐시 미스이거나 force_refresh=True인 경우.
+            (b)의 메시지에는 워밍 누락 진단을 위해 task와 cache_key 앞 12자가
+            포함된다.
         LLMUnavailableError: 두 공급자 모두 실패했거나, 폴백 대상 공급자의 키가
             설정되지 않아 폴백을 시도할 수 없는 경우.
         anthropic.BadRequestError 등: 폴백 대상이 아닌 예외는 그대로 전파된다.
     """
     cfg = load_llm_config()
 
+    if cache_key is not None and not force_refresh:
+        cached = cache_get(cache_key, schema, path=settings.LLM_CACHE_PATH)
+        if cached is not None:
+            return cached
+
     if cfg.mode == "offline":
-        raise LLMOfflineError(_OFFLINE_MESSAGE)
+        if cache_key is None:
+            raise LLMOfflineError(_OFFLINE_MESSAGE)
+        raise LLMOfflineError(
+            f"{_OFFLINE_MESSAGE} (task={task}, cache_key={cache_key[:12]}...)"
+        )
 
     resolved_provider = provider if provider is not None else cfg.provider
 
@@ -177,7 +200,7 @@ def complete_json(
 
     latency_ms = int((time.monotonic() - start) * 1000)
 
-    return LLMResult(
+    result = LLMResult(
         data=data,
         provider=used_provider,
         model=model,
@@ -186,6 +209,11 @@ def complete_json(
         trace_id=None,
         usage=usage,
     )
+
+    if cache_key is not None:
+        cache_put(cache_key, task, prompt.version, result, path=settings.LLM_CACHE_PATH)
+
+    return result
 
 
 def _complete_json_auto(
