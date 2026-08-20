@@ -118,9 +118,11 @@ class TestVerify:
         confidence, status, verification = _verify(extraction, RAW_TEXT)
 
         assert verification["date_parse_ok"] is False
-        # 나머지는 전부 정합 -> 날짜 감점 0.1만 적용
+        # 나머지는 전부 정합 -> 날짜 감점 0.1만 적용. confidence 0.9는 임계값(0.8)을
+        # 넘지만, date_parse_ok=False 자체가 발췌 불일치와 동급의 결정적 실패 신호라
+        # 자동확정하지 않는다(픽스 라운드 1 — 컨트롤러 판정).
         assert confidence == 0.9
-        assert status == "자동확정"
+        assert status == "확인 필요"
 
     def test_both_invalid_dates_still_deduct_only_once(self):
         extraction = _make_extraction(
@@ -132,6 +134,7 @@ class TestVerify:
         assert verification["date_parse_ok"] is False
         # 날짜 필드 2개가 모두 실패해도 감점은 0.1 한 번뿐이다.
         assert confidence == 0.9
+        assert status == "확인 필요"
 
     def test_null_dates_do_not_fail_parsing(self):
         extraction = _make_extraction(halt_start_date=None, expected_restart_date=None)
@@ -208,6 +211,45 @@ class TestVerify:
         assert status_high != "확인 완료"
         assert status_low != "확인 완료"
         assert {status_high, status_low} <= {"자동확정", "확인 필요"}
+
+
+# --------------------------------------------------------------------------
+# TestAutoConfirmGateRequiresAllDeterministicSignals — 픽스 라운드 1 회귀 테스트
+#
+# 태스크 리뷰 컨트롤러 판정: 필수 필드 결손·날짜 파싱 실패는 confidence 감점으로
+# 희석될 신호가 아니라 발췌 불일치와 동급의 결정적 실패 신호다(보수적 기본값
+# 철학). confidence 산식 자체는 불변이며, 자동확정 게이트에
+# `not missing_fields and date_parse_ok`가 추가됐다.
+# --------------------------------------------------------------------------
+
+
+class TestAutoConfirmGateRequiresAllDeterministicSignals:
+    def test_single_missing_field_with_full_quotes_is_not_auto_confirmed(self):
+        """필드 결손 1건 + 발췌 전부 매칭이면 confidence가 정확히 임계값(0.8)에
+        도달하지만, missing_fields가 비어있지 않으므로 자동확정하지 않는다 —
+        게이트 수정 전에는 이 경계에서 잘못 자동확정됐다(원 리포트에서 플래그한
+        경계 케이스)."""
+        extraction = _make_extraction(product_names=[])  # QUOTES 3개는 그대로 전부 매칭
+
+        confidence, status, verification = _verify(extraction, RAW_TEXT)
+
+        assert confidence == 0.8
+        assert verification["missing_fields"] == ["product_names"]
+        assert verification["quotes_found"] == verification["quotes_total"]
+        assert status == "확인 필요"
+
+    def test_date_parse_failure_alone_is_not_auto_confirmed(self):
+        """날짜 파싱 실패 하나만 있어도(그 외 전부 완전, confidence 0.9) 자동확정하지
+        않는다 — confidence가 임계값을 넘어도 date_parse_ok=False면 결정적으로
+        확인 필요로 강등된다."""
+        extraction = _make_extraction(expected_restart_date="내년 봄")
+
+        confidence, status, verification = _verify(extraction, RAW_TEXT)
+
+        assert confidence == 0.9
+        assert verification["date_parse_ok"] is False
+        assert verification["missing_fields"] == []
+        assert status == "확인 필요"
 
 
 # --------------------------------------------------------------------------

@@ -22,8 +22,9 @@ from medsupply.llm.config import load_llm_config
 from medsupply.llm.prompts.loader import load_prompt
 from medsupply.llm.schemas import ALLOWED_NOTICE_TYPES, NoticeExtraction
 
-#: status 판정 임계값(브리프 고정값). confidence가 이 값 이상이고 미발견 quote가
-#: 0건이어야 '자동확정'이다 — 하나라도 어긋나면 '확인 필요'.
+#: status 판정 임계값(브리프 고정값 + 픽스 라운드 1 컨트롤러 판정). confidence가 이
+#: 값 이상이고, 미발견 quote 0건·필수 필드 결손 0건·날짜 파싱 성공까지 넷 다
+#: 만족해야 '자동확정'이다 — 하나라도 어긋나면 '확인 필요'.
 CONFIDENCE_THRESHOLD = 0.8
 
 #: 프롬프트 레지스트리 task명이자 complete_json/cache의 task 라벨(고정 문자열).
@@ -82,9 +83,13 @@ def _verify(extraction: NoticeExtraction, raw_text: str) -> tuple[float, str, di
     confidence = 1.0 − 0.5×(미발견 quote 비율) − 0.2×(필수 필드 결손 수) −
     (날짜 파싱 실패 시 0.1). 하한 0.0으로 클램프한 뒤 소수 3자리로 반올림한다.
 
-    status는 confidence >= CONFIDENCE_THRESHOLD이고 미발견 quote가 0건일 때만
-    '자동확정'이며, 그 외에는 전부 '확인 필요'다. '확인 완료'는 이 함수가 절대
-    반환하지 않는다 — 사람이 검토를 마쳤을 때만 상위 계층(사람 액션)이 붙이는 상태다.
+    status는 다음 네 조건을 전부 만족할 때만 '자동확정'이다: confidence >=
+    CONFIDENCE_THRESHOLD, 미발견 quote 0건, missing_fields 0건, date_parse_ok=True.
+    하나라도 어긋나면 '확인 필요'다(픽스 라운드 1 — 컨트롤러 판정: 필수 필드 결손·
+    날짜 파싱 실패는 confidence 감점으로 희석될 신호가 아니라 발췌 불일치와 동급의
+    결정적 실패 신호이며, 보수적 기본값 철학을 따른다 — confidence 산식 자체는
+    이 판정으로 바뀌지 않는다). '확인 완료'는 이 함수가 절대 반환하지 않는다 —
+    사람이 검토를 마쳤을 때만 상위 계층(사람 액션)이 붙이는 상태다.
 
     Args:
         extraction: LLM이 채운 NoticeExtraction(구조만 유효, 내용은 아직 미검증).
@@ -142,7 +147,7 @@ def _verify(extraction: NoticeExtraction, raw_text: str) -> tuple[float, str, di
     confidence = round(max(0.0, confidence), 3)
 
     quotes_all_found = quotes_found == quotes_total
-    if confidence >= CONFIDENCE_THRESHOLD and quotes_all_found:
+    if confidence >= CONFIDENCE_THRESHOLD and quotes_all_found and not missing_fields and date_parse_ok:
         status = "자동확정"
     else:
         status = "확인 필요"
