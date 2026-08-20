@@ -64,17 +64,23 @@ def _generate_snapshot(db_path: Path) -> None:
 
 
 def _seed_notice_with_extraction(db_path: Path) -> tuple[str, str]:
-    """공고 1건 + 추출(확인 필요) + 매핑 1건을 raw SQL로 직접 주입한다.
+    """공고 1건 + 추출(확인 필요) + 매핑 2건을 raw SQL로 직접 주입한다.
 
     --baseline-only 스냅샷은 공고를 적재하지 않으므로(scripts/load_notices.py는 별도
-    단계) 정상 경로 테스트는 브리프 지시대로 픽스처 DB에 직접 INSERT한다.
-    Returns (notice_id, item_id).
+    단계) 정상 경로 테스트는 브리프 지시대로 픽스처 DB에 직접 INSERT한다. 매핑 2건은
+    item_id 오름차순으로 (match_basis='ingredient', needs_review=0)과
+    (match_basis='standard_code'(M-14가 실제로 쓰지 않는 미지 값 — 라벨 폴백 경로 검증용),
+    needs_review=1) — 픽스 라운드 1(매핑 표 한글화) 검증에 쓰인다.
+    Returns (notice_id, item_id) — item_id는 match_basis='ingredient' 행의 품목.
     """
     conn = sqlite3.connect(db_path)
     try:
-        item_id = conn.execute(
-            "SELECT item_id FROM items ORDER BY item_id LIMIT 1"
-        ).fetchone()[0]
+        item_id, other_item_id = (
+            row[0]
+            for row in conn.execute(
+                "SELECT item_id FROM items ORDER BY item_id LIMIT 2"
+            ).fetchall()
+        )
         conn.execute(
             "INSERT INTO notices(notice_id, published_date, title, source, source_url,"
             " raw_text, notice_type, collected_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
@@ -101,10 +107,13 @@ def _seed_notice_with_extraction(db_path: Path) -> tuple[str, str]:
                 "notice_extract@v1", "anthropic", "claude-opus-5",
             ),
         )
-        conn.execute(
+        conn.executemany(
             "INSERT INTO notice_item_map(notice_id, item_id, substitute_group_id,"
             " match_basis, needs_review) VALUES (?, ?, ?, ?, ?)",
-            (_TEST_NOTICE_ID, item_id, None, "standard_code", 0),
+            [
+                (_TEST_NOTICE_ID, item_id, None, "ingredient", 0),
+                (_TEST_NOTICE_ID, other_item_id, None, "standard_code", 1),
+            ],
         )
         conn.commit()
     finally:
@@ -155,6 +164,30 @@ def test_notices_renders_real_snapshot_without_exception(
     assert _TEST_NOTICE_TITLE in set(table["제목"])
     assert any(_TEST_NOTICE_TITLE in exp.label for exp in at.expander)
     assert len(at.button) >= 1  # 상태가 '확인 필요'라 "확인 완료로 저장" 버튼이 노출된다.
+
+
+def test_notices_mapped_table_localizes_headers_and_match_basis_labels(
+    live_db: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """픽스 라운드 1: 매핑 품목 표 컬럼 헤더 한글화 + match_basis 값 라벨링(미지 값은
+    원문 폴백) 회귀 테스트."""
+    _seed_notice_with_extraction(live_db)
+
+    monkeypatch.setattr(settings, "DB_PATH", live_db)
+    st.cache_data.clear()
+    st.cache_resource.clear()
+
+    at = AppTest.from_function(_run_notices)
+    at.run()
+
+    assert not at.exception
+    mapped_table = at.dataframe[1].value  # dataframe[0]은 공고 목록, [1]이 매핑 품목 표.
+    assert list(mapped_table.columns) == ["품목코드", "품목명", "매칭 근거", "검토 필요"]
+
+    by_basis = {row["매칭 근거"]: row for _, row in mapped_table.iterrows()}
+    assert by_basis["성분 일치"]["검토 필요"] == "-"  # match_basis='ingredient', needs_review=0
+    # match_basis='standard_code'는 M-14의 실제 값 집합 밖 — 라벨 미지정 시 원문 그대로 폴백.
+    assert by_basis["standard_code"]["검토 필요"] == "검토 필요"
 
 
 # ---------------------------------------------------------------------------

@@ -18,8 +18,22 @@ from medsupply.ui.components import header
 _STATUS_FILTER_OPTIONS = ["전체", "자동확정", "확인 필요", "확인 완료"]
 
 
+#: notice_item_map.match_basis → 한글 표기(medsupply/llm/mapping.py가 실제로 쓰는 값
+#: 집합 'ingredient'|'ingredient_partial'|'product'만 안다 — 그 밖의 값(예: 레거시
+#: 'standard_code')은 원문을 그대로 폴백해 보여준다).
+_MATCH_BASIS_LABELS = {
+    "ingredient": "성분 일치",
+    "ingredient_partial": "성분 부분 일치",
+    "product": "제품명 일치",
+}
+
+
 def _needs_review_label(value: int) -> str:
     return "검토 필요" if value == 1 else "-"
+
+
+def _match_basis_label(value: str) -> str:
+    return _MATCH_BASIS_LABELS.get(value, value)
 
 
 def render() -> None:
@@ -110,7 +124,16 @@ def render() -> None:
     mapped = detail["mapped"]
     if mapped:
         mapped_df = pd.DataFrame(mapped)[["item_id", "item_name", "match_basis", "needs_review"]]
+        mapped_df["match_basis"] = mapped_df["match_basis"].map(_match_basis_label)
         mapped_df["needs_review"] = mapped_df["needs_review"].map(_needs_review_label)
+        mapped_df = mapped_df.rename(
+            columns={
+                "item_id": "품목코드",
+                "item_name": "품목명",
+                "match_basis": "매칭 근거",
+                "needs_review": "검토 필요",
+            }
+        )
         st.dataframe(mapped_df, hide_index=True, use_container_width=True)
     else:
         st.caption("기관 보유 품목과 매핑되지 않았습니다(정상 — 미보유 품목 공고).")
