@@ -1,0 +1,45 @@
+{
+  "measured_at": "2026-08-21T04:46:57",
+  "db": "data/medsupply.db",
+  "params_hash": "6ec9bf05",
+  "as_of_list": [
+    "2026-07-01",
+    "2026-07-15"
+  ],
+  "horizon_days": 14,
+  "per_as_of": {
+    "2026-07-01": {
+      "ses_mape_mean": 0.3188,
+      "ses_mape_median": 0.3128,
+      "sma_mape_mean": 0.3118,
+      "sma_mape_median": 0.3061,
+      "baseline_improved": -0.0225,
+      "ses_win_rate": 0.3870967741935484,
+      "items_evaluated": 124,
+      "items_excluded": 0,
+      "zero_actual_days": 0
+    },
+    "2026-07-15": {
+      "ses_mape_mean": 0.3221,
+      "ses_mape_median": 0.3113,
+      "sma_mape_mean": 0.3131,
+      "sma_mape_median": 0.3076,
+      "baseline_improved": -0.0287,
+      "ses_win_rate": 0.27419354838709675,
+      "items_evaluated": 124,
+      "items_excluded": 0,
+      "zero_actual_days": 30
+    }
+  },
+  "overall": {
+    "ses_mape_mean": 0.3205,
+    "ses_mape_median": 0.3125,
+    "sma_mape_mean": 0.3125,
+    "sma_mape_median": 0.3061,
+    "baseline_improved": -0.0256,
+    "ses_win_rate": 0.33064516129032256,
+    "items_evaluated": 248,
+    "items_excluded": 0,
+    "zero_actual_days": 30
+  }
+}

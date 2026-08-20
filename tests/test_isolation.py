@@ -184,6 +184,12 @@ SCRIPTS_PATH_TARGETS: dict[Path, tuple[str, ...]] = {
     # 공고 추출·매핑 처리기 — medsupply를 import하는 애플리케이션 계층이지만, 정답 경로는
     # 전면 금지.
     REPO_ROOT / "scripts" / "process_notices.py": (),
+    # 수요예측 MAPE 백테스트 CLI(Task S-19) — stock_usage_daily 실측 사용량만 대조하며
+    # ground truth 라벨·시나리오 설정은 전혀 참조하지 않는다(브리프: "ground truth 라벨은
+    # 전혀 읽지 않는다" — 실사용량 대조 백테스트라 라벨 접근이 애초에 불필요). data/scenarios
+    # 예외도 두지 않는다(generate_dataset.py·validate_dataset.py와 달리 시나리오 설정을
+    # 로딩할 이유가 없다).
+    REPO_ROOT / "scripts" / "measure_mape.py": (),
 }
 
 FORWARD_PATH_TARGETS = [*FORWARD_TARGETS, *SCRIPTS_PATH_TARGETS]
