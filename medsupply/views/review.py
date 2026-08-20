@@ -144,10 +144,7 @@ def _substitutes_html(detail: dict) -> str:
 
 #: info_tab(AI 근거 설명) 고정 문구(task-M23-brief.md 치환 규칙 §3·§5).
 _EXPLANATION_PENDING_NOTICE = "AI 원인 설명이 아직 생성되지 않았습니다."
-_EXPLANATION_PENDING_HINT = (
-    "API 키 설정 후: python scripts/warm_explanations.py --db data/medsupply.db"
-    " (M-27에서 제공 예정)"
-)
+_EXPLANATION_PENDING_HINT = "API 키 설정 후: python scripts/warm_cache.py --db data/medsupply.db"
 _EXPLANATION_SCOPE_NOTE = "AI는 위험등급 판정에 관여하지 않습니다."
 _EXPLANATION_GENERATE_LABEL = "설명 생성"
 

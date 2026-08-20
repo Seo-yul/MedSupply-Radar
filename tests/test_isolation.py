@@ -190,6 +190,10 @@ SCRIPTS_PATH_TARGETS: dict[Path, tuple[str, ...]] = {
     # 예외도 두지 않는다(generate_dataset.py·validate_dataset.py와 달리 시나리오 설정을
     # 로딩할 이유가 없다).
     REPO_ROOT / "scripts" / "measure_mape.py": (),
+    # LLM 캐시 선워밍 CLI(Task M-27) — process_notice·explain_item 호출을 오케스트레이션하는
+    # 애플리케이션 계층이지만, 시연용 캐시 채우기 목적과 정답 경로는 무관하므로 data/scenarios·
+    # ground_truth 둘 다 전면 금지(예외 없음).
+    REPO_ROOT / "scripts" / "warm_cache.py": (),
 }
 
 FORWARD_PATH_TARGETS = [*FORWARD_TARGETS, *SCRIPTS_PATH_TARGETS]

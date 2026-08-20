@@ -181,7 +181,7 @@ def test_no_stored_explanation_renders_pending_notice_without_exception(
     assert not at.exception
     rendered = "\n".join(md.value for md in at.markdown)
     assert _PENDING_NOTICE in rendered
-    assert "scripts/warm_explanations.py" in rendered
+    assert "scripts/warm_cache.py" in rendered
     assert _SCOPE_NOTE in rendered
     # 키가 설정되지 않은 기본 환경이므로 생성 버튼 자체가 노출되지 않는다(disabled 아님).
     assert not any(b.label == _GENERATE_LABEL for b in at.button)
