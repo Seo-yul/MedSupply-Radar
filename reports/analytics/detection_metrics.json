@@ -1,10 +1,10 @@
 {
   "meta": {
     "dataset_content_hash": "31937ef068052afede0e72739e28f76d7248c231b0f91a3eea095f8d9c23bdc9",
-    "config_hash": "2259bbf9",
+    "config_hash": "f9b969b6",
     "labels_version": "standard_v1.json",
     "params_ref": "config/analytics_params.toml",
-    "generated_at": "2026-08-21T02:54:33",
+    "generated_at": "2026-08-21T03:09:04",
     "measured_by": "scripts/measure_detection.py"
   },
   "results": {
@@ -803,6 +803,173 @@
         },
         "implication": "오탐률 100%는 판정 문턱이나 파라미터의 문제가 아니라 **스냅샷의 입고 표현 방식과 백테스트의 상호작용** 때문이다. 경고+ 오탐 91품목 중 86품목은 미입고(pending) 입고 행이 아예 없어 reflect_receipts 스위치가 작동할 여지 자체가 없다 — S-17 cand-A가 오탐을 104 → 97로만 줄인 이유가 이것으로 설명된다. 문턱 조정·파라미터 보정 어느 쪽도 이 원인을 건드리지 못한다."
       }
+    },
+    "followup_S17c": {
+      "task": "S-17c",
+      "status": "BLOCKED",
+      "recorded_at": "2026-08-21T03:09:48",
+      "ruling_applied": "S-17b 진단(pending 필터의 미래 정보 사용)을 백테스트 as_of 재구성 버그로 판정하고 정합성 수정을 무조건 적용했다: expected_date > as_of AND (actual_date IS NULL OR actual_date > as_of). 이 수정은 후보가 아니다.",
+      "judged_on": "주의+ 기준(경고+ 병기)",
+      "configs": {
+        "기준선(수정후 v1)": {
+          "note": "정합성 수정만 적용, reflect_receipts=false — 수정 자체의 영향 분리용",
+          "changes_from_fixed_v1": {},
+          "config_hash": "f9b969b6",
+          "watch_plus": {
+            "detected": "20/20",
+            "detection_rate": 1.0,
+            "false_positives": "104/104",
+            "false_positive_rate": 1.0,
+            "lead_days_median": 47.5,
+            "lead_days_min": 16
+          },
+          "warning_plus": {
+            "detected": "20/20",
+            "detection_rate": 1.0,
+            "false_positives": "91/104",
+            "false_positive_rate": 0.875,
+            "lead_days_median": 43.0
+          },
+          "by_type_watch_plus": {
+            "composite": {
+              "detected": "5/5",
+              "lead_days_median": 23
+            },
+            "delivery_delay": {
+              "detected": "5/5",
+              "lead_days_median": 71
+            },
+            "demand_surge": {
+              "detected": "5/5",
+              "lead_days_median": 58
+            },
+            "supply_halt": {
+              "detected": "5/5",
+              "lead_days_median": 29
+            }
+          },
+          "undetected_items": [],
+          "eliminated_by": null
+        },
+        "cand-E": {
+          "note": "수정 + reflect_receipts=true",
+          "changes_from_fixed_v1": {
+            "depletion.reflect_receipts": true
+          },
+          "config_hash": "e600bb3d",
+          "watch_plus": {
+            "detected": "13/20",
+            "detection_rate": 0.65,
+            "false_positives": "47/104",
+            "false_positive_rate": 0.4519230769230769,
+            "lead_days_median": 24,
+            "lead_days_min": 0
+          },
+          "warning_plus": {
+            "detected": "8/20",
+            "detection_rate": 0.4,
+            "false_positives": "4/104",
+            "false_positive_rate": 0.038461538461538464,
+            "lead_days_median": 2.5
+          },
+          "by_type_watch_plus": {
+            "composite": {
+              "detected": "4/5",
+              "lead_days_median": 5.5
+            },
+            "delivery_delay": {
+              "detected": "2/5",
+              "lead_days_median": 30.5
+            },
+            "demand_surge": {
+              "detected": "4/5",
+              "lead_days_median": 36.0
+            },
+            "supply_halt": {
+              "detected": "3/5",
+              "lead_days_median": 1
+            }
+          },
+          "undetected_items": [
+            "ITM-0011",
+            "ITM-0017",
+            "ITM-0026",
+            "ITM-0035",
+            "ITM-0036",
+            "ITM-0058",
+            "ITM-0087"
+          ],
+          "eliminated_by": "기준 ① 미달(주의+ 감지율 100% 아님)"
+        },
+        "cand-F": {
+          "note": "E + 연체 차단 규칙(연체 1건이라도 있으면 미래 예정 입고 전부 미반영)",
+          "changes_from_fixed_v1": {
+            "depletion.reflect_receipts": true,
+            "depletion.overdue_cutoff": true
+          },
+          "config_hash": "6ec9bf05",
+          "watch_plus": {
+            "detected": "18/20",
+            "detection_rate": 0.9,
+            "false_positives": "47/104",
+            "false_positive_rate": 0.4519230769230769,
+            "lead_days_median": 26.5,
+            "lead_days_min": 3
+          },
+          "warning_plus": {
+            "detected": "13/20",
+            "detection_rate": 0.65,
+            "false_positives": "4/104",
+            "false_positive_rate": 0.038461538461538464,
+            "lead_days_median": 10
+          },
+          "by_type_watch_plus": {
+            "composite": {
+              "detected": "5/5",
+              "lead_days_median": 8
+            },
+            "delivery_delay": {
+              "detected": "5/5",
+              "lead_days_median": 52
+            },
+            "demand_surge": {
+              "detected": "4/5",
+              "lead_days_median": 36.0
+            },
+            "supply_halt": {
+              "detected": "4/5",
+              "lead_days_median": 9.0
+            }
+          },
+          "undetected_items": [
+            "ITM-0011",
+            "ITM-0087"
+          ],
+          "eliminated_by": "기준 ① 미달(주의+ 감지율 100% 아님)"
+        }
+      },
+      "fix_isolation_finding": "정합성 수정만으로는 지표가 한 자리도 변하지 않는다 — 기준선(수정후)이 S-17 v1과 완전히 동일하다(감지 20/20, 오탐 104/104, 선행 중앙값 47.5). reflect_receipts=false에서는 애초에 어떤 입고도 반영하지 않으므로 수정이 무동작(inert)인 것이 정상이다. config_hash만 2259bbf9 → f9b969b6으로 바뀌는데, 이는 [depletion]에 overdue_cutoff 키가 추가돼 정규화 dict가 달라졌기 때문이지 값이 바뀐 것이 아니다.",
+      "blocked_reason": "기준 ①(주의+ 감지율 100% 유지)을 통과한 후보가 없다 — cand-E 13/20(65%), cand-F 18/20(90%). BLOCKED 조건은 '전 후보 감지율 미달 또는 오탐 ≥50% 잔존'이고 앞 조건이 성립하므로 채택하지 않는다. 다만 뒤 조건은 처음으로 해소됐다 — 오탐이 104/104(100%)에서 47/104(45.2%)로 -54.8%p 떨어져 50% 밑으로 내려왔다.",
+      "candidate_F_dominates_E": "cand-F는 동일한 오탐률(47/104)에서 감지가 13/20 → 18/20으로 높다 — 연체 차단 규칙이 '유령 예정 입고'(예정만 잡혀 있고 실제로 오지 않는 입고)를 걷어낸 효과다. delivery_delay는 2/5 → 5/5로 완전 회복하고 composite도 4/5 → 5/5가 된다. supply_halt는 3/5 → 4/5로 개선되나 완전 회복은 아니다.",
+      "residual_misses_in_F": {
+        "ITM-0011": {
+          "scenario_type": "supply_halt",
+          "days_to_stockout_range_in_sweep": "33~97 (전 구간 '정상')",
+          "receipts": "exp 2026-07-09 정시 도착 / exp 2026-08-07 qty 280 미도착('입고 예정')",
+          "why": "봉쇄된 발주의 예정일(2026-08-07)이 스윕 종료일(2026-08-01) **밖**이다. 스윕 내내 이 건은 '아직 예정일이 오지 않은 정상 pending'이라 반영되고, 연체도 아니라서 overdue_cutoff가 발동하지 않는다. 예정일이 지나야 연체로 드러나는 구조라 파라미터로는 닿지 않는다."
+        },
+        "ITM-0087": {
+          "scenario_type": "demand_surge",
+          "days_to_stockout_range_in_sweep": "40~84 (전 구간 '정상')",
+          "receipts": "exp 2026-06-28·2026-08-01 모두 정시 도착, 미도착 건 0",
+          "why": "입고가 전부 정상이고 라벨 stockout(2026-09-11)이 스윕 종료일보다 41일 뒤다. 스윕 구간 안에서는 소진 계산상 실제로 위험하지 않다 — 미감지가 오히려 산식대로의 결과다."
+        }
+      },
+      "interpretation_for_ruling": "기준선의 감지 20/20은 좋은 탐지력의 증거가 아니라 **오탐 104/104를 만드는 것과 같은 결함의 이면**이다 — 모든 입고를 무시하면 모든 품목이 위험해 보이므로 라벨 품목도 전부 걸린다. 입고를 정확히 반영하자마자(cand-E/F) 오탐이 절반 이하로 떨어지는 동시에 감지도 떨어지는 것이 그 방증이다. 따라서 '감지율 100% 유지'를 절대 조건으로 두면 퇴행적 구성이 고정된다. 남은 미감지 2건은 모두 스윕 창·시나리오 일정 설계 문제(봉쇄 결과가 창 밖에서 발현 / stockout이 창 종료 41일 뒤)로, 파라미터 층위가 아니라 데이터 설계 층위 사안이다.",
+      "params_unchanged": true,
+      "params_ref_in_effect": "config/analytics_params.toml (수정후 v1 값, config_hash f9b969b6)",
+      "run_risk_batch_rerun": false,
+      "freeze": null
     }
   }
 }
