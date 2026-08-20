@@ -21,6 +21,7 @@ from medsupply.llm.client import complete_json
 from medsupply.llm.config import load_llm_config
 from medsupply.llm.prompts.loader import load_prompt
 from medsupply.llm.schemas import ALLOWED_NOTICE_TYPES, NoticeExtraction
+from medsupply.llm.tracing import observed
 
 #: status 판정 임계값(브리프 고정값 + 픽스 라운드 1 컨트롤러 판정). confidence가 이
 #: 값 이상이고, 미발견 quote 0건·필수 필드 결손 0건·날짜 파싱 성공까지 넷 다
@@ -163,6 +164,7 @@ def _verify(extraction: NoticeExtraction, raw_text: str) -> tuple[float, str, di
     return confidence, status, verification
 
 
+@observed("notice_extract")
 def extract_notice(
     raw_text: str,
     *,

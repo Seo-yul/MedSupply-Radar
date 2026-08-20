@@ -27,6 +27,7 @@ from medsupply.llm.config import load_llm_config
 from medsupply.llm.grounding import collect_risk_evidence, verify_explanation_grounding
 from medsupply.llm.prompts.loader import load_prompt
 from medsupply.llm.schemas import RiskEvidence, RiskExplanation
+from medsupply.llm.tracing import observed
 
 #: 프롬프트 레지스트리 task명이자 complete_json/cache의 task 라벨(고정 문자열).
 _TASK = "risk_explain"
@@ -63,6 +64,7 @@ def _trim_history(history: Sequence[dict]) -> list[dict]:
     return [{field: record.get(field) for field in _HISTORY_FIELDS} for record in trimmed]
 
 
+@observed("risk_explain")
 def generate_risk_explanation(
     evidence: RiskEvidence,
     *,
