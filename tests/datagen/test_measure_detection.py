@@ -361,6 +361,69 @@ class TestResultMeta:
         assert results["sweep"] == {"start": START, "end": END, "days": 3}
 
 
+class TestPreservesForeignSections:
+    """재측정이 결과 파일의 {meta, results} 밖 최상위 키를 지우지 않는다(S-17 리뷰 F5).
+
+    calibration(캘리브레이션 후보 비교표·채택 사유·동결 선언)처럼 사람이 덧붙인 기록이
+    측정 한 번에 사라지면 안 된다.
+    """
+
+    def _measure(self, snapshot: Path, labels: Path, out_path: Path) -> int:
+        return md.main(
+            [
+                "--db", str(snapshot),
+                "--labels", str(labels),
+                "--start", START, "--end", END,
+                "--out", str(out_path),
+            ]
+        )
+
+    def test_extra_top_level_keys_survive_rerun(
+        self, tiny_snapshot: Path, tiny_labels: Path, tmp_path: Path
+    ) -> None:
+        out_path = tmp_path / "out.json"
+
+        assert self._measure(tiny_snapshot, tiny_labels, out_path) == 0
+        first = json.loads(out_path.read_text(encoding="utf-8"))
+
+        # 사람이 덧붙인 기록을 모사한다.
+        first["calibration"] = {"adopted": "cand-F", "freeze": {"params_hash": "6ec9bf05"}}
+        first["hand_note"] = "보존되어야 한다"
+        out_path.write_text(json.dumps(first, ensure_ascii=False, indent=2), encoding="utf-8")
+
+        assert self._measure(tiny_snapshot, tiny_labels, out_path) == 0
+        second = json.loads(out_path.read_text(encoding="utf-8"))
+
+        assert second["calibration"] == {
+            "adopted": "cand-F", "freeze": {"params_hash": "6ec9bf05"}
+        }
+        assert second["hand_note"] == "보존되어야 한다"
+        # meta·results는 새 측정값으로 갱신된다(보존 대상이 아니다).
+        assert set(second) == {"meta", "results", "calibration", "hand_note"}
+        assert second["results"]["counts"] == first["results"]["counts"]
+
+    def test_fresh_file_has_only_meta_and_results(
+        self, tiny_snapshot: Path, tiny_labels: Path, tmp_path: Path
+    ) -> None:
+        """기존 파일이 없으면 보존할 것도 없다 — 스키마는 종전 그대로."""
+        out_path = tmp_path / "fresh.json"
+
+        assert self._measure(tiny_snapshot, tiny_labels, out_path) == 0
+
+        assert set(json.loads(out_path.read_text(encoding="utf-8"))) == {"meta", "results"}
+
+    def test_corrupt_existing_file_does_not_fail_measurement(
+        self, tiny_snapshot: Path, tiny_labels: Path, tmp_path: Path
+    ) -> None:
+        """기존 파일이 깨져 있어도 측정은 성공한다(보존만 건너뛴다)."""
+        out_path = tmp_path / "corrupt.json"
+        out_path.write_text("{ not valid json", encoding="utf-8")
+
+        assert self._measure(tiny_snapshot, tiny_labels, out_path) == 0
+
+        assert set(json.loads(out_path.read_text(encoding="utf-8"))) == {"meta", "results"}
+
+
 class TestArgValidation:
     def test_predict_only_and_score_together_rejected(self, tmp_path: Path) -> None:
         with pytest.raises(SystemExit) as exc_info:

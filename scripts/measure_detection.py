@@ -611,9 +611,37 @@ def _human_summary(results: dict) -> str:
 # ---------------------------------------------------------------------------
 
 
+def _preserved_sections(out_path: str | Path) -> dict:
+    """기존 결과 파일에서 ``meta``·``results`` **밖의 최상위 키**를 읽어 온다.
+
+    이 CLI가 쓰는 것은 meta·results뿐이지만, 결과 파일에는 사람이 덧붙인 기록이 함께 산다
+    (예: ``calibration`` — S-17 캘리브레이션 후보 비교표·채택 사유·동결 선언). 재측정할 때마다
+    파일을 통째로 덮어쓰면 그 기록이 조용히 사라진다(S-17 리뷰 F5). 그래서 덮어쓰기 전에
+    남의 키를 먼저 건져 낸 뒤 함께 다시 쓴다.
+
+    파일이 없거나 JSON이 깨졌으면 보존할 것이 없으므로 빈 dict를 반환한다 — 측정 자체를
+    실패시키지는 않되, 깨진 파일은 조용히 넘기지 않고 stderr에 알린다.
+    """
+    path = Path(out_path)
+    if not path.exists():
+        return {}
+    try:
+        existing = _load_json(path)
+    except (OSError, json.JSONDecodeError) as exc:
+        print(f"경고: 기존 결과 파일을 읽지 못해 보존을 건너뛴다({path}): {exc}", file=sys.stderr)
+        return {}
+    if not isinstance(existing, dict):
+        print(f"경고: 기존 결과 파일이 객체가 아니라 보존을 건너뛴다({path})", file=sys.stderr)
+        return {}
+    return {key: value for key, value in existing.items() if key not in ("meta", "results")}
+
+
 def _finalize(results: dict, meta: dict, out_path: str) -> int:
-    _write_json(out_path, {"meta": meta, "results": results})
+    preserved = _preserved_sections(out_path)
+    _write_json(out_path, {"meta": meta, "results": results, **preserved})
     print(_human_summary(results))
+    if preserved:
+        print(f"보존된 기존 섹션: {', '.join(sorted(preserved))}")
     return 0
 
 

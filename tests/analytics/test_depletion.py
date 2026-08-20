@@ -268,6 +268,46 @@ class TestEstimateDepletionReceipts:
         assert result.depletion_date == date(2026, 1, 6)
         assert result.reflected_receipts == True
 
+    def test_arrival_exactly_on_as_of_counts_as_arrived(self):
+        """경계: actual_date == as_of는 '도착'이므로 반영하지 않는다(이중 계상 금지).
+
+        S-17 리뷰 F7-1 — anomaly.detect_receipt_delay가 같은 경계를 쓰므로
+        (medsupply.analytics.asof.arrived_by 공유), depletion 쪽에서도 동일 경계를 고정한다.
+
+        Stock=50, forecast=[25]*14, 입고 60이 as_of 당일 도착 기록
+        Expected: days=2 (미반영 — 이미 closing_stock에 들어 있다)
+        """
+        as_of = date(2026, 1, 1)
+        receipts = pd.DataFrame({
+            'shipment_id': ['S1'],
+            'expected_date': [date(2026, 1, 3)],
+            'expected_qty': [60.0],
+            'actual_date': [as_of],  # 경계: as_of와 동일 → 도착
+            'status': ['received'],
+        })
+        params = DepletionParams(reflect_receipts=True)
+
+        result = estimate_depletion(50.0, [25.0] * 14, receipts, as_of, params)
+
+        assert result.days_to_stockout == 2
+        assert result.depletion_date == date(2026, 1, 3)
+
+    def test_arrival_one_day_after_as_of_counts_as_pending(self):
+        """경계 +1일: actual_date == as_of + 1은 as_of 시점엔 미도착 → pending으로 반영."""
+        as_of = date(2026, 1, 1)
+        receipts = pd.DataFrame({
+            'shipment_id': ['S1'],
+            'expected_date': [date(2026, 1, 3)],
+            'expected_qty': [60.0],
+            'actual_date': [date(2026, 1, 2)],  # 경계 하루 뒤 → 미도착
+            'status': ['received'],
+        })
+        params = DepletionParams(reflect_receipts=True)
+
+        result = estimate_depletion(50.0, [25.0] * 14, receipts, as_of, params)
+
+        assert result.days_to_stockout == 5
+
     def test_arrival_stamp_does_not_change_result_versus_null(self):
         """as_of 이후 도착 스탬프의 유무가 as_of 시점 판정을 바꾸면 안 된다(룩어헤드 차단).
 
