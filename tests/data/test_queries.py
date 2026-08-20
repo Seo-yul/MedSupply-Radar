@@ -11,11 +11,12 @@ from __future__ import annotations
 
 import math
 from datetime import date
+from pathlib import Path
 
 import pandas as pd
 import pytest
 
-from medsupply.data import queries
+from medsupply.data import db, queries
 from tests.conftest import (
     AS_OF_TODAY,
     INGREDIENT_1,
@@ -29,6 +30,8 @@ from tests.conftest import (
     RUN_YESTERDAY,
     SUBSTITUTE_GROUP_1,
 )
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 def _is_null(value: object) -> bool:
@@ -384,6 +387,49 @@ def test_get_latest_runs_respects_n(fixture_conn) -> None:
 
 def test_get_latest_runs_empty_when_no_runs(empty_conn) -> None:
     assert queries.get_latest_runs(empty_conn) == []
+
+
+def test_get_latest_runs_excludes_different_params_family_same_date(empty_conn) -> None:
+    """혼합 run 픽스처(F1): 같은 as_of(2026-08-01)에 신·구 파라미터 run이 공존해도, 최신
+    run의 패밀리(6ec9bf05)와 다른 동일 날짜 run(2259bbf9)은 "전일 대비"가 아니라 "파라미터
+    변경 대비"이므로 제외하고, 다른 날짜(2026-07-31)의 같은 패밀리 run을 대신 반환한다.
+    옛 패밀리 run은 DB에서 지우지 않는다(조회만 좁힌다) — 그래서 3건 모두 미리 심어 둔다."""
+    conn = empty_conn
+    conn.execute("INSERT INTO items(item_id, item_name) VALUES ('ITEM-X', '테스트품목')")
+    conn.executemany(
+        "INSERT INTO risk_results(run_id, item_id, as_of, grade, base_grade, risk_type,"
+        " factors_json) VALUES (?, 'ITEM-X', ?, '정상', '정상', 'general', '{}')",
+        [
+            ("2026-08-01#6ec9bf05", "2026-08-01"),  # 최신 패밀리·최신 날짜
+            ("2026-08-01#2259bbf9", "2026-08-01"),  # 같은 날짜, 구 패밀리(제외 대상)
+            ("2026-07-31#6ec9bf05", "2026-07-31"),  # 이전 날짜, 최신 패밀리(포함 대상)
+        ],
+    )
+    conn.commit()
+
+    assert queries.get_latest_runs(conn, n=2) == [
+        "2026-08-01#6ec9bf05",
+        "2026-07-31#6ec9bf05",
+    ]
+
+
+def test_get_latest_runs_on_standard_snapshot_filters_to_current_family() -> None:
+    """표준 스냅샷(data/medsupply.db)에는 S-17 계산 스윕이 남긴 구 패밀리(2259bbf9)
+    run이 실제로 남아 있다(F1 룰링: 구 run은 DB에서 지우지 않는다) — 그 상태에서도
+    get_latest_runs(2)는 최신 패밀리(6ec9bf05)의 최근 2개 run만 반환해야 한다. 로컬에
+    표준 스냅샷이 없는 환경(예: CI)에서는 건너뛴다."""
+    db_path = REPO_ROOT / "data" / "medsupply.db"
+    if not db_path.exists():
+        pytest.skip("표준 스냅샷(data/medsupply.db)이 없다 — 로컬 전용 확인 테스트")
+
+    conn = db.get_connection(str(db_path))
+    try:
+        assert queries.get_latest_runs(conn, n=2) == [
+            "2026-08-01#6ec9bf05",
+            "2026-07-31#6ec9bf05",
+        ]
+    finally:
+        conn.close()
 
 
 # --- get_risk_results ------------------------------------------------------------

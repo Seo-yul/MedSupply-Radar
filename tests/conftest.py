@@ -16,7 +16,11 @@ medsupply/data/queries.py(읽기 전용 조회 계층)를 검증하는 tests/dat
   '2026-07-01') 1건. NOTICE_HALT만 활성 규칙을 만족해야 get_active_notice_map의
   "정상화 제외·null 포함" 경로를 동시에 검증할 수 있다.
 - notice_item_map: NOTICE_HALT → ITEM_1(needs_review=0), ITEM_2(needs_review=1).
-- risk_results: ITEM_1에 대해 RUN_YESTERDAY(경고) → RUN_TODAY(위험) 2개 run.
+- risk_results: ITEM_1에 대해 RUN_YESTERDAY(경고) → RUN_TODAY(위험) 2개 run. 둘은 같은
+  params_hash 패밀리(a1b2c3d4)다 — get_latest_runs가 "최신 run과 같은 패밀리만" 반환하므로
+  (F1), 이 픽스처로 "전일 대비" 기본 경로를 검증하려면 두 run이 같은 패밀리여야 한다.
+  패밀리가 다른 run 혼재 시나리오(필터가 실제로 배제해야 하는 경우)는 그 규칙 전용의
+  별도 최소 데이터로 tests/data/test_queries.py가 독립 검증한다.
 - forecasts: RUN_TODAY·ITEM_1 1건.
 - action_history: ITEM_1·ITEM_2 각 1건(시각 다름 → 정렬 검증 가능).
 - alerts: ITEM_1에 unread 1건 + read 1건.
@@ -44,7 +48,7 @@ SUBSTITUTE_GROUP_2 = "SG-2"
 NOTICE_HALT = "NTC-0001"
 NOTICE_NORMALIZED = "NTC-0002"
 RUN_TODAY = "2026-08-01#a1b2c3d4"
-RUN_YESTERDAY = "2026-07-31#e5f6a7b8"
+RUN_YESTERDAY = "2026-07-31#a1b2c3d4"
 AS_OF_TODAY = "2026-08-01"
 
 

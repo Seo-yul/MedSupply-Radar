@@ -28,6 +28,7 @@ import pandas as pd
 import streamlit as st
 
 from medsupply import settings
+from medsupply.analytics import asof
 from medsupply.data import queries
 from medsupply.services import inventory
 
@@ -92,16 +93,39 @@ def _usage_averages(series: pd.DataFrame) -> tuple[float | None, float | None]:
     return avg_daily_usage, avg_prev
 
 
-def _next_shipment(conn: sqlite3.Connection, item_id: str) -> dict | None:
-    """가장 가까운(expected_date 오름차순 1건) 미입고 건. 없으면 None.
+def _next_shipment(conn: sqlite3.Connection, item_id: str, as_of: date) -> dict | None:
+    """as_of(meta.base_date) 시점 기준 가장 가까운 미래 예정(pending) 입고 1건. 없으면 None.
 
-    get_incoming_shipments가 이미 expected_date 오름차순으로 정렬해 반환하므로, 첫 행이
-    곧 최근접 미입고 건이다.
+    get_incoming_shipments(pending_only=True)의 `actual_date IS NULL`만으로는 연체 건(예정일이
+    이미 지났는데 미입고, 예: ITM-0039의 7월 18일 예정)까지 "다음 입고"로 잘못 선정한다 —
+    동결 모델(analytics.depletion의 overdue_cutoff)은 그런 연체 품목의 미래 예정 입고를 소진
+    추정에서 아예 배제하는데, 화면은 그 연체 건 자체를 다음 입고 예정으로 보여주는 모순이
+    생긴다(2주차 브랜치 리뷰 F2). 그래서 pending_only=False로 전체(입고완료·연체 포함)를
+    가져와 as_of 시점 상태를 asof.is_pending_at(모듈 asof.py가 규칙의 단일 소스)으로
+    재구성한다 — is_pending_at은 expected_date > as_of AND as_of 시점 미도착만 pending으로
+    본다. get_incoming_shipments가 이미 expected_date 오름차순으로 정렬해 반환하므로, pending
+    필터를 통과한 첫 행이 곧 최근접 미래 예정 건이다.
     """
-    shipments = queries.get_incoming_shipments(conn, item_id=item_id, pending_only=True)
+    shipments = queries.get_incoming_shipments(conn, item_id=item_id, pending_only=False)
     if shipments.empty:
         return None
-    row = shipments.iloc[0]
+
+    parsed = shipments.copy()
+    for col in ("expected_date", "actual_date"):
+        parsed[col] = pd.to_datetime(parsed[col], errors="coerce").dt.date
+
+    pending_mask = pd.Series(
+        [
+            asof.is_pending_at(expected, actual, as_of)
+            for expected, actual in zip(parsed["expected_date"], parsed["actual_date"])
+        ],
+        index=parsed.index,
+    )
+    pending = shipments[pending_mask]
+    if pending.empty:
+        return None
+
+    row = pending.iloc[0]
     return {
         "expected_date": row["expected_date"],
         "qty": None if pd.isna(row["expected_qty"]) else int(row["expected_qty"]),
@@ -158,7 +182,7 @@ def load_item_detail(item_id: str, data_version: int = 0) -> dict:
         "current_stock": current_stock,
         "avg_daily_usage": avg_daily_usage,
         "avg_prev": avg_prev,
-        "next_shipment": _next_shipment(conn, item_id),
+        "next_shipment": _next_shipment(conn, item_id, base_date),
         "has_active_notice": has_active_notice,
         "substitutes": substitutes,
         "ingredient_name_kr": item.get("ingredient_name_kr") or "-",

@@ -333,16 +333,42 @@ def get_active_notice_map(conn: sqlite3.Connection, as_of: date) -> pd.DataFrame
 
 
 def get_latest_runs(conn: sqlite3.Connection, n: int = 2) -> list[str]:
-    """risk_results의 distinct run_id를 as_of 내림차순(동률 시 run_id 내림차순)으로 n개."""
+    """risk_results의 run_id 중, **최신 run과 같은 params_hash 패밀리**만 as_of 내림차순
+    (동률 시 run_id 내림차순)으로 최대 n개 반환한다.
+
+    규칙(2주차 브랜치 리뷰 F1): "최신"은 전체 run 중 as_of 내림차순(동률 시 run_id 내림차순)
+    1순위를 말한다. "패밀리"는 run_id의 '#' 뒤 부분(현재 형식은 8자 params_hash prefix —
+    run_id = f"{as_of}#{params_hash[:8]}", scripts/run_risk_batch.py). 최신 run과 패밀리가
+    다른 run(예: 같은 as_of에 파라미터를 바꿔 재실행해 남은 구 run)은 as_of가 아무리 최근이어도
+    제외한다 — 그렇지 않으면 이 함수를 소비하는 화면(상황실 KPI delta, 워크벤치 prev_risk)이
+    "전일 대비"가 아니라 "파라미터 변경 대비"를 보여주는 사고가 난다. 판정은 **자기 일관적**이다
+    — config 파일 값을 조회 조건으로 결합하지 않고, 오직 "이 조회 시점의 최신 run이 속한
+    패밀리"만 기준으로 삼는다. 패밀리가 다른 구 run은 DB에서 지우지 않는다(보존) — 이 함수의
+    반환 목록에서만 제외된다.
+    """
+    latest_row = conn.execute(
+        """
+        SELECT run_id
+        FROM risk_results
+        ORDER BY as_of DESC, run_id DESC
+        LIMIT 1
+        """
+    ).fetchone()
+    if latest_row is None:
+        return []
+
+    family = latest_row["run_id"].split("#", 1)[1]
+
     rows = conn.execute(
         """
         SELECT run_id, MAX(as_of) AS as_of
         FROM risk_results
+        WHERE substr(run_id, instr(run_id, '#') + 1) = ?
         GROUP BY run_id
         ORDER BY as_of DESC, run_id DESC
         LIMIT ?
         """,
-        (n,),
+        (family, n),
     ).fetchall()
     return [row["run_id"] for row in rows]
 

@@ -383,6 +383,46 @@ class TestNextShipment:
 
 
 # ---------------------------------------------------------------------------
+# next_shipment — as_of(meta.base_date) 인지(F2): 연체 건은 후보에서 제외
+# ---------------------------------------------------------------------------
+
+
+class TestNextShipmentAsOfAware:
+    """BASE_DATE = 2026-08-01. 연체 = expected_date <= BASE_DATE인데 미입고(동결 모델의
+    overdue_cutoff가 그런 건을 소진 추정에서 배제하는 것과 일관 — 화면도 그 건을 '다음
+    입고'로 보여주지 않아야 한다, F2)."""
+
+    def test_next_shipment_none_when_only_overdue_pending(
+        self, db_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        _activate(monkeypatch, db_path)
+        conn = _direct_conn(db_path)
+        item_id = _first_item_id(conn)
+        _clear_pending_shipments(conn, item_id)
+        _insert_pending_shipment(conn, item_id, "2026-07-18", 300)  # BASE_DATE보다 이전(연체)
+        conn.close()
+
+        detail = workbench.load_item_detail(item_id, data_version=inventory.current_data_version())
+        assert detail["next_shipment"] is None
+
+    def test_next_shipment_picks_future_pending_over_overdue(
+        self, db_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        _activate(monkeypatch, db_path)
+        conn = _direct_conn(db_path)
+        item_id = _first_item_id(conn)
+        _clear_pending_shipments(conn, item_id)
+        _insert_pending_shipment(conn, item_id, "2026-07-18", 300)  # 연체(제외 대상)
+        _insert_pending_shipment(conn, item_id, "2026-08-10", 120)  # 미래 예정(선정 대상)
+        conn.close()
+
+        detail = workbench.load_item_detail(item_id, data_version=inventory.current_data_version())
+        assert detail["next_shipment"] is not None
+        assert detail["next_shipment"]["expected_date"] == "2026-08-10"
+        assert detail["next_shipment"]["qty"] == 120
+
+
+# ---------------------------------------------------------------------------
 # has_active_notice
 # ---------------------------------------------------------------------------
 
