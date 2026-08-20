@@ -4,7 +4,7 @@
     "config_hash": "2259bbf9",
     "labels_version": "standard_v1.json",
     "params_ref": "config/analytics_params.toml",
-    "generated_at": "2026-08-21T02:43:07",
+    "generated_at": "2026-08-21T02:54:33",
     "measured_by": "scripts/measure_detection.py"
   },
   "results": {
@@ -239,6 +239,231 @@
           "first_alert": "2026-07-01"
         }
       }
+    },
+    "threshold_warning": {
+      "alert_grades": [
+        "위험",
+        "경고"
+      ],
+      "detection_rate": 1.0,
+      "lead_days": {
+        "min": 14,
+        "median": 43.0,
+        "mean": 36.55,
+        "max": 60
+      },
+      "false_positive_rate": 0.875,
+      "by_type": {
+        "composite": {
+          "labeled": 5,
+          "detected": 5,
+          "detection_rate": 1.0,
+          "lead_days": {
+            "min": 14,
+            "median": 16,
+            "mean": 18.6,
+            "max": 33
+          }
+        },
+        "delivery_delay": {
+          "labeled": 5,
+          "detected": 5,
+          "detection_rate": 1.0,
+          "lead_days": {
+            "min": 51,
+            "median": 56,
+            "mean": 55.2,
+            "max": 59
+          }
+        },
+        "demand_surge": {
+          "labeled": 5,
+          "detected": 5,
+          "detection_rate": 1.0,
+          "lead_days": {
+            "min": 45,
+            "median": 50,
+            "mean": 51.8,
+            "max": 60
+          }
+        },
+        "supply_halt": {
+          "labeled": 5,
+          "detected": 5,
+          "detection_rate": 1.0,
+          "lead_days": {
+            "min": 14,
+            "median": 16,
+            "mean": 20.6,
+            "max": 41
+          }
+        }
+      },
+      "counts": {
+        "labeled": 20,
+        "normal": 104,
+        "detected": 20,
+        "false_positives": 91
+      },
+      "false_positive_items": [
+        "ITM-0002",
+        "ITM-0006",
+        "ITM-0007",
+        "ITM-0008",
+        "ITM-0010",
+        "ITM-0012",
+        "ITM-0013",
+        "ITM-0014",
+        "ITM-0015",
+        "ITM-0016",
+        "ITM-0018",
+        "ITM-0020",
+        "ITM-0021",
+        "ITM-0022",
+        "ITM-0023",
+        "ITM-0024",
+        "ITM-0025",
+        "ITM-0027",
+        "ITM-0028",
+        "ITM-0029",
+        "ITM-0030",
+        "ITM-0031",
+        "ITM-0032",
+        "ITM-0033",
+        "ITM-0034",
+        "ITM-0038",
+        "ITM-0040",
+        "ITM-0041",
+        "ITM-0042",
+        "ITM-0043",
+        "ITM-0046",
+        "ITM-0047",
+        "ITM-0048",
+        "ITM-0049",
+        "ITM-0050",
+        "ITM-0051",
+        "ITM-0052",
+        "ITM-0053",
+        "ITM-0055",
+        "ITM-0056",
+        "ITM-0057",
+        "ITM-0060",
+        "ITM-0061",
+        "ITM-0062",
+        "ITM-0063",
+        "ITM-0066",
+        "ITM-0067",
+        "ITM-0069",
+        "ITM-0070",
+        "ITM-0071",
+        "ITM-0072",
+        "ITM-0073",
+        "ITM-0074",
+        "ITM-0076",
+        "ITM-0077",
+        "ITM-0078",
+        "ITM-0079",
+        "ITM-0080",
+        "ITM-0081",
+        "ITM-0082",
+        "ITM-0083",
+        "ITM-0085",
+        "ITM-0086",
+        "ITM-0090",
+        "ITM-0092",
+        "ITM-0094",
+        "ITM-0095",
+        "ITM-0097",
+        "ITM-0099",
+        "ITM-0100",
+        "ITM-0101",
+        "ITM-0102",
+        "ITM-0104",
+        "ITM-0105",
+        "ITM-0106",
+        "ITM-0108",
+        "ITM-0109",
+        "ITM-0110",
+        "ITM-0111",
+        "ITM-0112",
+        "ITM-0113",
+        "ITM-0114",
+        "ITM-0115",
+        "ITM-0116",
+        "ITM-0117",
+        "ITM-0118",
+        "ITM-0119",
+        "ITM-0120",
+        "ITM-0122",
+        "ITM-0123",
+        "ITM-0124"
+      ]
+    },
+    "threshold_danger": {
+      "alert_grades": [
+        "위험"
+      ],
+      "detection_rate": 0.6,
+      "lead_days": {
+        "min": 7,
+        "median": 8.0,
+        "mean": 21.67,
+        "max": 52
+      },
+      "false_positive_rate": 0.0,
+      "by_type": {
+        "composite": {
+          "labeled": 5,
+          "detected": 5,
+          "detection_rate": 1.0,
+          "lead_days": {
+            "min": 7,
+            "median": 8,
+            "mean": 12.2,
+            "max": 31
+          }
+        },
+        "delivery_delay": {
+          "labeled": 5,
+          "detected": 1,
+          "detection_rate": 0.2,
+          "lead_days": {
+            "min": 46,
+            "median": 46,
+            "mean": 46,
+            "max": 46
+          }
+        },
+        "demand_surge": {
+          "labeled": 5,
+          "detected": 3,
+          "detection_rate": 0.6,
+          "lead_days": {
+            "min": 34,
+            "median": 45,
+            "mean": 43.67,
+            "max": 52
+          }
+        },
+        "supply_halt": {
+          "labeled": 5,
+          "detected": 3,
+          "detection_rate": 0.6,
+          "lead_days": {
+            "min": 7,
+            "median": 7,
+            "mean": 7.33,
+            "max": 8
+          }
+        }
+      },
+      "counts": {
+        "labeled": 20,
+        "normal": 104,
+        "detected": 12,
+        "false_positives": 0
+      },
+      "false_positive_items": []
     },
     "sweep": {
       "start": "2026-07-01",
@@ -510,6 +735,74 @@
       "risk_type 일치율은 전 후보 25%(5/20)로 동일해 타이브레이크 ④가 변별력을 갖지 못했다. 라벨 20품목 중 11품목의 최빈 risk_type이 'general'이다(이상신호·공고 요인 0개).",
       "최고등급 정밀도는 전 후보 100% 유지.",
       "이 파일의 results는 채택이 없었으므로 v1 파라미터 재측정값이다 — 1차 측정과 수치가 완전히 동일하며(감지 20/20, 오탐 104/104, 선행 중앙값 47.5), risk_type_match 키만 새로 추가됐다."
-    ]
+    ],
+    "followup_S17b": {
+      "task": "S-17b",
+      "purpose": "컨트롤러 판정 근거 보강 — 오탐의 실용 정의를 조치 등급('경고' 이상)으로 볼 수 있는지 확인한다. 문턱은 감지·오탐 양쪽에 대칭 적용했다(threshold_metrics 단일 산식).",
+      "params_unchanged": true,
+      "params_ref_in_effect": "config/analytics_params.toml (v1, config_hash 2259bbf9)",
+      "thresholds": {
+        "주의 이상(기본)": {
+          "detection": "20/20",
+          "detection_rate": 1.0,
+          "false_positives": "104/104",
+          "false_positive_rate": 1.0,
+          "lead_days_median": 47.5
+        },
+        "경고 이상": {
+          "detection": "20/20",
+          "detection_rate": 1.0,
+          "false_positives": "91/104",
+          "false_positive_rate": 0.875,
+          "lead_days_median": 43.0
+        },
+        "위험 이상": {
+          "detection": "12/20",
+          "detection_rate": 0.6,
+          "false_positives": "0/104",
+          "false_positive_rate": 0.0,
+          "lead_days_median": 8.0
+        }
+      },
+      "finding": "'오탐의 몸통이 주의 등급'이라는 가설은 성립하지 않는다 — 정상 104품목 중 91품목이 스윕 32일 중 최소 1회 '경고' 이상(days_to_stockout <= 14)에 도달한다. 문턱을 '경고'로 올려도 오탐률은 100% → 87.5%로 12.5%p만 내려간다. 반면 감지율은 20/20(100%)이 그대로 유지되고 선행일수 중앙값만 47.5 → 43.0일로 줄어, 문턱 상향의 감지 측 비용은 거의 없다. '위험' 이상에서는 오탐이 0/104(0%)로 완전히 사라지지만 감지가 12/20(60%)로 무너지고 선행 중앙값도 8일까지 떨어진다.",
+      "sharp_boundary_note": "정상 품목 91개가 '경고'(<=14일)에는 닿는데 '위험'(<=7일)에는 단 한 개도 닿지 않는다. 정상 품목의 재발주 저점이 8~14일 구간에 몰려 있다는 뜻으로, 오탐의 원인이 판정 파라미터가 아니라 데이터 생성 쪽(재발주 리드타임·안전재고 수준)일 가능성을 시사한다.",
+      "recorded_at": "2026-08-21T02:55:07",
+      "false_positive_root_cause": {
+        "method": "경고+ 오탐 품목 목록(threshold_warning.false_positive_items)에서 2품목을 뽑아 스냅샷 DB만 조회해 실측했다 — 라벨은 참조하지 않았다.",
+        "samples": {
+          "ITM-0002": {
+            "min_days_to_stockout": 10,
+            "trough_as_of": "2026-07-29",
+            "grade_at_trough": "경고",
+            "closing_stock_at_trough": 195,
+            "daily_usage_at_trough": 23,
+            "warning_plus_days": "3/32",
+            "danger_days": "0/32",
+            "next_receipt": "expected 2026-07-30 qty=1000, actual_date=2026-07-30 (입고 완료)",
+            "pending_receipt_rows": 0
+          },
+          "ITM-0006": {
+            "min_days_to_stockout": 10,
+            "trough_as_of": "2026-07-01",
+            "grade_at_trough": "경고",
+            "closing_stock_at_trough": 62,
+            "daily_usage_at_trough": 7,
+            "warning_plus_days": "1/32",
+            "danger_days": "0/32",
+            "next_receipt": "expected 2026-07-02 qty=240, actual_date=2026-07-02 (입고 완료)",
+            "pending_receipt_rows": 0
+          }
+        },
+        "mechanism": "두 품목 모두 '저점 다음날 정상 입고'가 예정돼 있었고 실제로 정시 입고됐다. 그런데 estimate_depletion은 actual_date IS NULL AND expected_date > as_of인 입고만 반영하므로, 이미 actual_date가 기록된 행은 reflect_receipts=true여도 소진 계산에서 제외된다. 표준 스냅샷은 base_date 2026-08-01 기준으로 만들어져 도착한 입고에 actual_date를 채워 두므로, as_of < base_date인 백테스트에서는 임박한 정상 입고 대부분이 반영 대상에서 빠진다. 그 결과 정상 품목이 재발주 저점마다 'days_to_stockout 약 10일'로 계산돼 '경고'에 진입한다.",
+        "corroborating_counts": {
+          "incoming_shipments_total": 1222,
+          "actual_date_filled": 1174,
+          "actual_date_null_pending": 48,
+          "warning_fp_items_with_zero_pending_receipts": "86/91",
+          "sweep_window_receipts_already_marked_delivered": "99/127 (78.0%)"
+        },
+        "implication": "오탐률 100%는 판정 문턱이나 파라미터의 문제가 아니라 **스냅샷의 입고 표현 방식과 백테스트의 상호작용** 때문이다. 경고+ 오탐 91품목 중 86품목은 미입고(pending) 입고 행이 아예 없어 reflect_receipts 스위치가 작동할 여지 자체가 없다 — S-17 cand-A가 오탐을 104 → 97로만 줄인 이유가 이것으로 설명된다. 문턱 조정·파라미터 보정 어느 쪽도 이 원인을 건드리지 못한다."
+      }
+    }
   }
 }

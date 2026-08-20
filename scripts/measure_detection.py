@@ -32,6 +32,11 @@
 - risk_type 일치율(Task S-17 확장): 라벨 품목별로 "스윕 중 최빈 risk_type"이 라벨
   scenario_type이 허용하는 risk_type 집합(``RISK_TYPE_MATCH_RULES``)에 드는지 본다.
   등급·감지·오탐 판정과는 **완전히 분리된 부가 지표**다(채택 기준의 3차 타이브레이크용).
+- 이중 문턱 리포트(Task S-17b 확장): 위 감지·오탐 산식을 '경고 이상'(``threshold_warning``)·
+  '위험 이상'(``threshold_danger``) 문턱으로 각각 한 번 더 계산해 **병기**한다. 문턱은
+  ``threshold_metrics`` 한 함수의 인자일 뿐이라 감지와 오탐에 **대칭으로** 걸린다 — 오탐만
+  유리하게 문턱을 올리는 비교가 구조적으로 불가능하다. 기본 문턱('주의 이상')의 기존 키·산식은
+  그대로 두고 새 섹션만 추가한다.
 
 ## 예측 파일(``--predict-only`` 산출물) 스키마
 metrics-spec의 공통 meta/results 헤더는 **최종 결과 JSON**(``--out``)에만 적용된다. 예측
@@ -71,10 +76,17 @@ from medsupply.analytics.params import AnalyticsParams, load_params  # noqa: E40
 from medsupply.analytics.pipeline import assess_snapshot  # noqa: E402
 from medsupply.data import db  # noqa: E402
 
-#: '주의' 이상(주의·경고·위험) — 감지·오탐 판정에 쓰는 등급 집합.
+#: '주의' 이상(주의·경고·위험) — 감지·오탐 판정에 쓰는 등급 집합(기본 문턱, 변경 금지).
 ALERT_GRADES = frozenset({"주의", "경고", "위험"})
+#: '경고' 이상 — 조치 등급 문턱(Task S-17b 이중 문턱 리포트).
+WARNING_PLUS_GRADES = frozenset({"경고", "위험"})
+#: '위험' 이상 — 최고 문턱 참고치(Task S-17b).
+DANGER_PLUS_GRADES = frozenset({"위험"})
 #: 최고등급 정밀도 분모를 이루는 등급.
 DANGER_GRADE = "위험"
+
+#: 등급 심각도 내림차순 — 문턱 집합을 결과 JSON에 적을 때의 표기 순서(가독성용).
+GRADE_SEVERITY_ORDER = ("위험", "경고", "주의", "정상")
 
 MEASURED_BY = "scripts/measure_detection.py"
 
@@ -166,9 +178,17 @@ def _dataset_content_hash(conn) -> str | None:
 # ---------------------------------------------------------------------------
 
 
-def _first_alert(day_grades: dict[str, str]) -> date | None:
+def _first_alert(
+    day_grades: dict[str, str], alert_grades: frozenset[str] = ALERT_GRADES
+) -> date | None:
+    """day_grades에서 alert_grades에 드는 최초 판정일. 없으면 None.
+
+    alert_grades 기본값은 '주의' 이상(ALERT_GRADES)이라 기존 호출부의 동작은 그대로다.
+    이중 문턱 리포트(S-17b)는 같은 함수에 '경고' 이상·'위험' 이상 집합을 넣어 **동일한 산식**을
+    문턱만 바꿔 재사용한다.
+    """
     alert_days = sorted(
-        date.fromisoformat(day) for day, grade in day_grades.items() if grade in ALERT_GRADES
+        date.fromisoformat(day) for day, grade in day_grades.items() if grade in alert_grades
     )
     return alert_days[0] if alert_days else None
 
@@ -217,6 +237,87 @@ def _lead_day_stats(lead_days: list[int]) -> dict[str, float | int | None]:
     }
 
 
+def threshold_metrics(
+    predictions: dict[str, dict[str, str]],
+    label_by_item: dict[str, dict],
+    normal_ids: set[str],
+    alert_grades: frozenset[str],
+) -> tuple[dict, dict[str, dict], list[str]]:
+    """한 문턱(alert_grades)에 대한 감지·오탐·선행일수·유형별 분해를 계산한다(순수 함수).
+
+    **문턱을 제외한 산식은 문턱마다 완전히 동일하다** — 이 함수 하나를 '주의 이상'·'경고 이상'·
+    '위험 이상'에 각각 적용하는 구조라, 문턱별로 유리한 산식을 따로 쓰는 일이 구조적으로
+    불가능하다(S-17b: 문턱 변경은 감지·오탐 양쪽에 대칭 적용해야 지표 게이밍이 아니다).
+
+    Args:
+        predictions: {item_id: {date_iso: grade}}.
+        label_by_item: {item_id: 라벨 dict} — scenario_type·stockout_date 키를 쓴다.
+        normal_ids: 비라벨(정상) 품목 id 집합 — 오탐 모집단.
+        alert_grades: 이 문턱에서 "알림"으로 칠 등급 집합.
+
+    Returns:
+        (report, per_item, false_positive_ids)
+        - report: {alert_grades, detection_rate, lead_days, false_positive_rate, by_type, counts}
+        - per_item: {item_id: {"first_alert": date|None, "detected": bool}} — 라벨 품목만.
+        - false_positive_ids: 이 문턱에서 오탐으로 잡힌 정상 품목 id(정렬됨).
+    """
+    detected_ids: list[str] = []
+    lead_days_all: list[int] = []
+    labels_by_type: dict[str, list[str]] = {}
+    success_lead_by_type: dict[str, list[int]] = {}
+    per_item: dict[str, dict] = {}
+
+    for item_id, row in label_by_item.items():
+        scenario_type = row["scenario_type"]
+        stockout_date = date.fromisoformat(row["stockout_date"])
+        labels_by_type.setdefault(scenario_type, []).append(item_id)
+
+        first_alert = _first_alert(predictions.get(item_id, {}), alert_grades)
+        success = first_alert is not None and first_alert <= stockout_date
+        if success:
+            detected_ids.append(item_id)
+            lead = (stockout_date - first_alert).days
+            lead_days_all.append(lead)
+            success_lead_by_type.setdefault(scenario_type, []).append(lead)
+
+        per_item[item_id] = {"first_alert": first_alert, "detected": success}
+
+    false_positive_ids = sorted(
+        item_id
+        for item_id in normal_ids
+        if _first_alert(predictions[item_id], alert_grades) is not None
+    )
+
+    n_labeled = len(label_by_item)
+    n_normal = len(normal_ids)
+
+    by_type = {}
+    for scenario_type, item_ids in sorted(labels_by_type.items()):
+        n_type = len(item_ids)
+        succ = success_lead_by_type.get(scenario_type, [])
+        by_type[scenario_type] = {
+            "labeled": n_type,
+            "detected": len(succ),
+            "detection_rate": (len(succ) / n_type) if n_type else None,
+            "lead_days": _lead_day_stats(succ),
+        }
+
+    report = {
+        "alert_grades": [g for g in GRADE_SEVERITY_ORDER if g in alert_grades],
+        "detection_rate": (len(detected_ids) / n_labeled) if n_labeled else None,
+        "lead_days": _lead_day_stats(lead_days_all),
+        "false_positive_rate": (len(false_positive_ids) / n_normal) if n_normal else None,
+        "by_type": by_type,
+        "counts": {
+            "labeled": n_labeled,
+            "normal": n_normal,
+            "detected": len(detected_ids),
+            "false_positives": len(false_positive_ids),
+        },
+    }
+    return report, per_item, false_positive_ids
+
+
 def score_sweep(
     predictions: dict[str, dict[str, str]],
     labels: list[dict],
@@ -250,33 +351,40 @@ def score_sweep(
         first_alert}}} 형태다. items는 라벨 품목별 감사 추적을 겸한다 — 채택 기준이
         요구하는 "유형별 개별 품목의 감지 유지 여부"를 라벨 접근이 허용된 이 경로에서만
         확인할 수 있게 하기 위해 detected·first_alert를 함께 싣는다.
+
+        threshold_warning·threshold_danger(Task S-17b 신설 키)는 각각 '경고 이상'·'위험
+        이상' 문턱으로 **같은 산식을**(threshold_metrics 한 함수) 다시 돌린 결과다:
+        {alert_grades, detection_rate, lead_days, false_positive_rate, by_type, counts,
+        false_positive_items}. 문턱이 감지와 오탐 **양쪽에 대칭으로** 걸리므로 한쪽만
+        유리해지는 비교가 되지 않는다. 최상위 키('주의 이상' 기준)는 이 확장과 무관하게
+        기존 값 그대로다.
     """
     label_by_item = {row["item_id"]: row for row in labels}
     labeled_ids = set(label_by_item)
     normal_ids = set(predictions) - labeled_ids
 
-    detected_ids: list[str] = []
-    lead_days_all: list[int] = []
-    labels_by_type: dict[str, list[str]] = {}
-    success_lead_by_type: dict[str, list[int]] = {}
+    watch_report, watch_items, _watch_fp_ids = threshold_metrics(
+        predictions, label_by_item, normal_ids, ALERT_GRADES
+    )
+    warning_report, _, warning_fp_ids = threshold_metrics(
+        predictions, label_by_item, normal_ids, WARNING_PLUS_GRADES
+    )
+    danger_report, _, danger_fp_ids = threshold_metrics(
+        predictions, label_by_item, normal_ids, DANGER_PLUS_GRADES
+    )
+    warning_report["false_positive_items"] = warning_fp_ids
+    danger_report["false_positive_items"] = danger_fp_ids
+
     match_items: dict[str, dict] = {}
     matched_by_type: dict[str, int] = {}
+    labels_by_type: dict[str, list[str]] = {}
 
     for item_id, row in label_by_item.items():
         scenario_type = row["scenario_type"]
-        stockout_date = date.fromisoformat(row["stockout_date"])
         labels_by_type.setdefault(scenario_type, []).append(item_id)
 
-        day_grades = predictions.get(item_id, {})
-        first_alert = _first_alert(day_grades)
-        success = first_alert is not None and first_alert <= stockout_date
-        if success:
-            detected_ids.append(item_id)
-            lead = (stockout_date - first_alert).days
-            lead_days_all.append(lead)
-            success_lead_by_type.setdefault(scenario_type, []).append(lead)
-
         if risk_types is not None:
+            first_alert = watch_items[item_id]["first_alert"]
             item_modal = modal_risk_type(risk_types.get(item_id, {}))
             matched = risk_type_matches(scenario_type, item_modal)
             if matched:
@@ -285,29 +393,14 @@ def score_sweep(
                 "scenario_type": scenario_type,
                 "modal_risk_type": item_modal,
                 "matched": matched,
-                "detected": success,
+                "detected": watch_items[item_id]["detected"],
                 "first_alert": first_alert.isoformat() if first_alert is not None else None,
             }
 
-    false_positive_ids = [
-        item_id for item_id in normal_ids if _first_alert(predictions[item_id]) is not None
-    ]
     danger_ids = {item_id for item_id, grades in predictions.items() if _ever_danger(grades)}
     danger_hits = danger_ids & labeled_ids
 
     n_labeled = len(labeled_ids)
-    n_normal = len(normal_ids)
-
-    by_type = {}
-    for scenario_type, item_ids in sorted(labels_by_type.items()):
-        n_type = len(item_ids)
-        succ = success_lead_by_type.get(scenario_type, [])
-        by_type[scenario_type] = {
-            "labeled": n_type,
-            "detected": len(succ),
-            "detection_rate": (len(succ) / n_type) if n_type else None,
-            "lead_days": _lead_day_stats(succ),
-        }
 
     if risk_types is None:
         risk_type_match = None
@@ -330,18 +423,15 @@ def score_sweep(
         }
 
     return {
-        "detection_rate": (len(detected_ids) / n_labeled) if n_labeled else None,
-        "lead_days": _lead_day_stats(lead_days_all),
-        "false_positive_rate": (len(false_positive_ids) / n_normal) if n_normal else None,
+        "detection_rate": watch_report["detection_rate"],
+        "lead_days": watch_report["lead_days"],
+        "false_positive_rate": watch_report["false_positive_rate"],
         "danger_precision": (len(danger_hits) / len(danger_ids)) if danger_ids else None,
-        "by_type": by_type,
-        "counts": {
-            "labeled": n_labeled,
-            "normal": n_normal,
-            "detected": len(detected_ids),
-            "false_positives": len(false_positive_ids),
-        },
+        "by_type": watch_report["by_type"],
+        "counts": watch_report["counts"],
         "risk_type_match": risk_type_match,
+        "threshold_warning": warning_report,
+        "threshold_danger": danger_report,
     }
 
 
@@ -411,6 +501,19 @@ def _human_summary(results: dict) -> str:
         lines.append(
             "risk_type 일치율: "
             + _format_rate(rtm["overall"], rtm["counts"]["matched"], rtm["counts"]["labeled"])
+        )
+
+    for key in ("threshold_warning", "threshold_danger"):
+        section = results.get(key)
+        if section is None:
+            continue
+        counts = section["counts"]
+        median = section["lead_days"]["median"]
+        lines.append(
+            f"[{'·'.join(section['alert_grades'])} 이상 문턱] "
+            f"감지 {_format_rate(section['detection_rate'], counts['detected'], counts['labeled'])} / "
+            f"오탐 {_format_rate(section['false_positive_rate'], counts['false_positives'], counts['normal'])} / "
+            f"선행 중앙값 {median if median is not None else 'n/a'}"
         )
 
     sw = results["sweep"]
