@@ -28,8 +28,10 @@ SCHEMA_PATH = REPO_ROOT / "medsupply" / "data" / "schema.sql"
 #: 순방향 임포트 금지 대상 — 시나리오 생성기·감지 측정 계열 전부(하위 모듈 포함, 브리프 §1).
 FORBIDDEN_IMPORT_PREFIXES = ("scripts.datagen", "scripts.measure_detection")
 
-#: 순방향 경로 리터럴 금지 마커 — 시나리오 입력/ground truth 산출 경로(브리프 §1).
-PATH_LITERAL_MARKERS = ("data/scenarios", "ground_truth")
+#: 순방향 경로 리터럴 금지 마커 — 시나리오 입력/ground truth 산출 경로(브리프 §1) + 공고
+#: 골드 라벨 경로(Task S-24 브리프 §2 — 추출 로직 코드가 S-25 정답지를 미리 들여다보고
+#: 맞추는 뒷문을 정적으로 차단한다).
+PATH_LITERAL_MARKERS = ("data/scenarios", "ground_truth", "data/notices/gold")
 
 
 # ---------------------------------------------------------------------------
@@ -161,8 +163,23 @@ APP_PY_FILE = REPO_ROOT / "app.py"
 
 #: 순방향 검사(임포트 금지 + 경로 리터럴 금지) 대상 — 브리프 §1: medsupply/ 전체 + app.py.
 #: scripts/measure_detection.py·eval/ 이하는 정답 접근이 설계상 허용된 경로라 전면 제외한다
-#: (eval/에는 현재 .py가 없어 애초에 glob 대상에도 포함되지 않는다).
+#: (eval/은 MEDSUPPLY_FILES가 medsupply/ 디렉터리만 순회해 구성되므로 애초에 이 리스트에
+#: 들어오지 않는다 — eval/ 자체에 .py가 있는지 여부와는 무관하다).
 FORWARD_TARGETS = [*MEDSUPPLY_FILES, APP_PY_FILE]
+
+#: "data/notices/gold" 마커 예외 허용 목록(Task S-24 브리프 §2) — 공고 추출 정확도를 골드
+#: 라벨과 대조하는 평가/측정 계층은 정답 참조가 본연의 역할이라 예외다. 두 대상 모두 위
+#: FORWARD_TARGETS(medsupply/+app.py) 구성에 애초에 들어오지 않으므로
+#: find_path_literal_violations의 exemptions 인자로 실제로 넘길 필요는 없다 — 이 튜플은
+#: "왜 검사 대상이 아닌지"를 명시적으로 문서화해 두는 선언용 상수다(아래 자가 검증 테스트로
+#: 내용을 고정한다).
+#:   - "eval/": 위 FORWARD_TARGETS 주석과 동일 사유로 이미 전면 제외.
+#:   - "scripts/measure_extraction.py": Task S-25(추출 정확도 측정, 예정)가 신설할 스크립트.
+#:     scripts/measure_detection.py와 동급 성격(측정기가 정답을 읽는 것은 정상 설계)이라
+#:     생성 시에도 SCRIPTS_PATH_TARGETS에 등록하지 않고 계속 전면 제외 대상으로 남긴다. 아직
+#:     파일이 존재하지 않아 지금 SCRIPTS_PATH_TARGETS(파일을 실제로 ast.parse하는 딕셔너리)에
+#:     넣으면 FileNotFoundError로 테스트가 깨지므로, 여기서는 문자열 선언으로만 선등록한다.
+GOLD_LABELS_PATH_ALLOWLIST = ("eval/", "scripts/measure_extraction.py")
 
 #: 순방향 "경로 리터럴" 검사에만 추가되는 scripts/ 개별 파일과, 파일별 data/scenarios 예외
 #: (§3: "ground_truth 경로 미사용"은 전부 대상, "data/scenarios"는 설정 로딩/산출물 경로
@@ -260,6 +277,25 @@ def test_forward_scope_restricts_data_scenarios_path_to_allowlist() -> None:
     assert violations == [], "허용되지 않은 data/scenarios 경로 리터럴 발견:\n" + "\n".join(
         violations
     )
+
+
+def test_forward_scope_does_not_reference_gold_labels_path() -> None:
+    """순방향 경로 리터럴(Task S-24): medsupply/ + app.py는 data/notices/gold(S-25의 정답지가
+    되는 골드 라벨 경로)를 코드 값으로 쓰지 않는다 — 추출 로직이 정답을 미리 들여다보고
+    맞추는 뒷문을 정적으로 차단한다. eval/·scripts/measure_extraction.py(S-25 예정,
+    GOLD_LABELS_PATH_ALLOWLIST 문서화 대상)는 애초에 FORWARD_TARGETS 밖이라 이 스캔에
+    포함되지 않는다(예외 인자 불필요)."""
+    violations = find_path_literal_violations(FORWARD_TARGETS, ("data/notices/gold",))
+    assert violations == [], "data/notices/gold 경로 리터럴을 코드 값으로 쓰는 지점 발견:\n" + "\n".join(
+        violations
+    )
+
+
+def test_gold_labels_allowlist_declares_eval_and_measure_extraction() -> None:
+    """GOLD_LABELS_PATH_ALLOWLIST가 브리프 §2가 지정한 정확히 그 두 항목(eval/·
+    scripts/measure_extraction.py)만 선등록하고 있는지 고정한다 — 문서용 상수가 조용히
+    비거나 엉뚱한 값으로 바뀌는 것을 막는다."""
+    assert GOLD_LABELS_PATH_ALLOWLIST == ("eval/", "scripts/measure_extraction.py")
 
 
 def test_datagen_does_not_import_medsupply() -> None:

@@ -1,0 +1,267 @@
+{
+  "version": "v1",
+  "labels": {
+    "N-001": {
+      "product_names": [
+        "아지탑스주사500밀리그램(아지트로마이신수화물)"
+      ],
+      "ingredient_names": [
+        "아지트로마이신수화물"
+      ],
+      "reason": "판매 증가로 인한 품절 발생",
+      "halt_start_date": "2024-10-17",
+      "expected_restart_date": "2024-11-20",
+      "notice_type": "공급부족",
+      "notes": "공급정상화 예상일자(11-05)와 공급재개일자(11-20)가 상이 — 더 최근에 갱신된 것으로 판단되는 공급재개일자를 채택."
+    },
+    "N-002": {
+      "product_names": [
+        "몬테루칸속붕해정10밀리그램(몬테루카스트나트륨)"
+      ],
+      "ingredient_names": [
+        "몬테루카스트나트륨"
+      ],
+      "reason": "11~12월 판매 급증으로 인한 품절",
+      "halt_start_date": "2024-01-11",
+      "expected_restart_date": "2024-01-26",
+      "notice_type": "공급부족",
+      "notes": null
+    },
+    "N-003": {
+      "product_names": [
+        "비브라운0.9%생리식염주사액(염화나트륨)"
+      ],
+      "ingredient_names": [
+        "염화나트륨"
+      ],
+      "reason": "국내 판매계약의 신규·갱신이 불투명하여 공급 중단",
+      "halt_start_date": "2024-12-11",
+      "expected_restart_date": null,
+      "notice_type": "공급중단",
+      "notes": null
+    },
+    "N-004": {
+      "product_names": [
+        "유한세파졸린주사1000mg(수출명:오리졸린주1000mg,메디세파졸린1000mg,유한세졸주1000mg,마이코신주, 레프졸린주)"
+      ],
+      "ingredient_names": [
+        "세파졸린나트륨"
+      ],
+      "reason": "GMP 규제강화로 지속적인 시설 투자가 필요하고 수익성이 낮아 공급 중단",
+      "halt_start_date": "2025-07-25",
+      "expected_restart_date": null,
+      "notice_type": "공급중단",
+      "notes": null
+    },
+    "N-005": {
+      "product_names": [
+        "크렉산주(에녹사파린나트륨)"
+      ],
+      "ingredient_names": [
+        "에녹사파린나트륨"
+      ],
+      "reason": "해외제조소 파업으로 인한 생산 지연(함량별 일정 상이, 사유 상세 참조)",
+      "halt_start_date": "2026-01-05",
+      "expected_restart_date": "2026-09-15",
+      "notice_type": "공급부족",
+      "notes": "20/40/60/80mg 네 함량별 부족·재개 일정이 개별적으로 다르며(40·80mg은 이미 정상 공급) 상단 요약 일자와도 정확히 일치하지 않음 — halt_start_date·expected_restart_date는 공고 상단 요약 필드(전체 대표값) 기준으로 기재."
+    },
+    "N-006": {
+      "product_names": [
+        "넥시움주(에스오메프라졸나트륨)"
+      ],
+      "ingredient_names": [
+        "에스오메프라졸나트륨"
+      ],
+      "reason": "업체 포트폴리오 전략 변화 및 국내 제네릭 제품 출시로 대체의약품이 확보되어 제품 중단 결정",
+      "halt_start_date": "2026-03-31",
+      "expected_restart_date": null,
+      "notice_type": "공급중단",
+      "notes": null
+    },
+    "N-007": {
+      "product_names": [
+        "넬슨이부프로펜정400밀리그램(이부프로펜)"
+      ],
+      "ingredient_names": [
+        "이부프로펜"
+      ],
+      "reason": "원부자재 제조원가 상승으로 채산성이 악화되어 생산·공급 중단",
+      "halt_start_date": "2024-12-13",
+      "expected_restart_date": null,
+      "notice_type": "공급중단",
+      "notes": null
+    },
+    "N-008": {
+      "product_names": [
+        "피알디현탁시럽0.3%(프레드니솔론)"
+      ],
+      "ingredient_names": [
+        "프레드니솔론"
+      ],
+      "reason": "0.1% 함량을 동등성 재평가 대조약으로 신규 신청하기 위해 0.3%의 품목허가를 자진취하",
+      "halt_start_date": "2024-10-01",
+      "expected_restart_date": null,
+      "notice_type": "공급중단",
+      "notes": "사유가 동등성 재평가·대조약 전환이라는 복합 규제 절차라 reason은 원문 취지를 축약함."
+    },
+    "N-009": {
+      "product_names": [
+        "지트람씨알서방정75밀리그램(트라마돌염산염)"
+      ],
+      "ingredient_names": [
+        "트라마돌염산염"
+      ],
+      "reason": "생산업체(CMO)의 포장 기계 이슈로 일시적 공급 지연",
+      "halt_start_date": "2023-02-01",
+      "expected_restart_date": "2023-05-25",
+      "notice_type": "공급부족",
+      "notes": null
+    },
+    "N-010": {
+      "product_names": [
+        "조프란정8밀리그램(온단세트론염산염수화물)"
+      ],
+      "ingredient_names": [
+        "온단세트론염산염수화물"
+      ],
+      "reason": "제조처 생산지연으로 인한 공급부족",
+      "halt_start_date": "2024-04-05",
+      "expected_restart_date": "2024-07-15",
+      "notice_type": "공급부족",
+      "notes": null
+    },
+    "N-011": {
+      "product_names": [
+        "네시나메트정12.5/500밀리그램"
+      ],
+      "ingredient_names": [
+        "메트포르민염산염",
+        "알로글립틴 벤조산염"
+      ],
+      "reason": "자사 자체 생산 전환에 따른 수입 중단(자체 생산 제품으로 시장 공급은 지속될 예정)",
+      "halt_start_date": "2024-03-25",
+      "expected_restart_date": null,
+      "notice_type": "공급중단",
+      "notes": "보고구분은 공급중단이나 원문상 실제로는 수입 채널의 중단이며 자체 생산 제품으로 공급이 이어질 예정 — 원문 표기를 존중해 notice_type은 공급중단으로 유지."
+    },
+    "N-012": {
+      "product_names": [
+        "세브론시럽(아세틸시스테인)(수출명:뮤시스틴시럽,스파탐시럽)"
+      ],
+      "ingredient_names": [
+        "아세틸시스테인"
+      ],
+      "reason": "수탁사의 자재업체 변경으로 생산일정이 지연되어 공급 부족 예상",
+      "halt_start_date": "2024-06-11",
+      "expected_restart_date": "2024-09-20",
+      "notice_type": "공급부족",
+      "notes": null
+    },
+    "N-013": {
+      "product_names": [
+        "스테글루잔정5/100밀리그램"
+      ],
+      "ingredient_names": [
+        "시타글립틴인산염수화물",
+        "에르투글리플로진L-피로글루탐산"
+      ],
+      "reason": "시장 수요 감소에 따라 마지막 수입 후 공급 중단",
+      "halt_start_date": "2024-08-20",
+      "expected_restart_date": null,
+      "notice_type": "공급중단",
+      "notes": null
+    },
+    "N-014": {
+      "product_names": [
+        "벤토린네뷸2.5mg(살부타몰황산염)"
+      ],
+      "ingredient_names": [
+        "살부타몰황산염"
+      ],
+      "reason": "기존 호주 제조소 가동 중단에 따른 비축분 운용 중 국내 수요 증가 및 신규 제조소 허가변경 지연으로 재고 소진 시점이 예상보다 앞당겨짐",
+      "halt_start_date": "2024-08-01",
+      "expected_restart_date": "2025-08-11",
+      "notice_type": "공급부족",
+      "notes": "공급정상화 예상일자(2025-05-12)와 공급재개일자(2025-08-11)가 3개월 이상 상이 — 더 최근에 갱신된 것으로 판단되는 공급재개일자를 채택. 대체약제(벤토린흡입액)도 전세계적 품절 상태라는 점이 원문에 병기됨."
+    },
+    "N-015": {
+      "product_names": [
+        "데오크레건조시럽20%(테오필린)"
+      ],
+      "ingredient_names": [
+        "테오필린"
+      ],
+      "reason": "원제조처(일본 Towa)의 사업 중단 및 원료(테오필린) 원가 인상으로 채산성이 악화되어 공급 중단",
+      "halt_start_date": "2025-04-01",
+      "expected_restart_date": null,
+      "notice_type": "공급중단",
+      "notes": null
+    },
+    "N-016": {
+      "product_names": [
+        "삼진로라제팜주"
+      ],
+      "ingredient_names": [
+        "로라제팜"
+      ],
+      "reason": "일반제동 주사제 철수",
+      "halt_start_date": "2026-06-30",
+      "expected_restart_date": null,
+      "notice_type": "공급중단",
+      "notes": "공급 중단사유 원문 표현('일반제동 주사제 철수')의 의미가 명확하지 않으나 임의로 해석·수정하지 않고 원문 그대로 인용함."
+    },
+    "N-017": {
+      "product_names": [
+        "덱사하이정4밀리그램(덱사메타손)"
+      ],
+      "ingredient_names": [
+        "덱사메타손(미분화)"
+      ],
+      "reason": "제조설비 공사 및 원료(API) 수급 지연으로 생산이 미뤄지고 판매 증가로 재고가 빠르게 소진되어 일시적 공급 부족",
+      "halt_start_date": "2025-11-11",
+      "expected_restart_date": "2026-01-20",
+      "notice_type": "공급부족",
+      "notes": "공급재개일자(01-20)가 공급정상화 예상일자·사유 상세 서술(둘 다 01-30)과 10일 차이 — 구조화 필드값(공급재개일자)을 채택."
+    },
+    "N-018": {
+      "product_names": [
+        "살론주125밀리그램(메틸프레드니솔론숙시네이트나트륨)"
+      ],
+      "ingredient_names": [
+        "메틸프레드니솔론숙시네이트나트륨"
+      ],
+      "reason": "동결건조 주사제 라인 생산 과부하",
+      "halt_start_date": "2026-06-30",
+      "expected_restart_date": null,
+      "notice_type": "공급중단",
+      "notes": null
+    },
+    "N-019": {
+      "product_names": [
+        "트렌자민주250밀리그람(트라넥삼산)"
+      ],
+      "ingredient_names": [
+        "트라넥삼산"
+      ],
+      "reason": "허가 유지비용 대비 낮은 수익성(낮은 약가) 및 제품시험 난이도로 인한 채산성 문제",
+      "halt_start_date": "2023-07-01",
+      "expected_restart_date": null,
+      "notice_type": "공급중단",
+      "notes": "대책에 '약가 상승·인력 충원 시 생산 고려'라는 조건부 재개 가능성이 언급되나 구체적 일자가 없어 expected_restart_date는 null로 유지."
+    },
+    "N-020": {
+      "product_names": [
+        "태준리도카인비스코스2%액"
+      ],
+      "ingredient_names": [
+        "리도카인염산염수화물"
+      ],
+      "reason": "내용액제 스틱생산라인 구축 중단으로 생산설비가 없어 불가피하게 공급 중단",
+      "halt_start_date": "2025-06-26",
+      "expected_restart_date": null,
+      "notice_type": "공급중단",
+      "notes": null
+    }
+  }
+}
