@@ -157,6 +157,61 @@ def _build_type_params(
     raise ValueError(f"알 수 없는 시나리오 유형: {type_!r}")
 
 
+def measurement_windows(
+    ranges: dict[str, Any], base_date: date
+) -> tuple[tuple[date, date], tuple[date, date]]:
+    """blind_ranges.yaml의 measurement_window 절을 실제 날짜 창 2개로 푼다(Task S-30c A).
+
+    Returns:
+        (observable_window, sweep_window)
+        - observable_window = [스윕 시작, 스윕 종료 + watch_days] — 라벨 품절일이 여기
+          들어야 채점 규칙상 감지 성공이 가능하다(하한) 그리고 '주의' 판정 근거가
+          있다(상한). inject_scenarios(observable_window=...)로 그대로 넘어간다.
+        - sweep_window = [스윕 시작, 스윕 종료] — 오탐 판정이 매일 이뤄지는 구간이라
+          미끼 적격성(최저 커버리지)을 재는 창이다.
+
+    격리 원칙상 이 모듈은 medsupply/config를 읽지 못하므로 watch_days는 YAML의 복제
+    상수를 쓴다(measurement_window 절 주석 참조).
+    """
+    window = ranges["measurement_window"]
+    sweep_start = base_date + timedelta(days=int(window["sweep_start_offset_days"]))
+    sweep_end = base_date + timedelta(days=int(window["sweep_end_offset_days"]))
+    horizon_end = sweep_end + timedelta(days=int(window["watch_days"]))
+    return (sweep_start, horizon_end), (sweep_start, sweep_end)
+
+
+def _validate_offset_ranges(ranges: dict[str, Any]) -> None:
+    """앵커 오프셋 상한과 delivery_delay 지연 일수의 구조적 불변식을 검사한다(S-30c A).
+
+    arrives_late arm은 expected_date + delay_days에 실제 도착 행을 만든다. 그 날짜가
+    base_date를 넘으면 365일 타임라인 밖이라 재고에 credit되지 않고, inject.py가
+    "유령 입고(구현 오류)"로 **재시도 불가** 에러를 던진다. 즉
+    `scenario_start_offset_days_range.max + delivery_delay.delay_days_range.max <= 0`은
+    범위 YAML이 지켜야 하는 불변식이다 — 나중에 상한을 넓힐 때 난해한 런타임 에러 대신
+    여기서 바로 원인을 말하고 실패한다.
+    """
+    anchor_max = int(ranges["scenario_start_offset_days_range"]["max"])
+    delay_max = int(ranges["delivery_delay"]["delay_days_range"]["max"])
+    if anchor_max + delay_max > 0:
+        raise ValueError(
+            "blind_ranges.yaml 불변식 위반: scenario_start_offset_days_range.max"
+            f"({anchor_max}) + delivery_delay.delay_days_range.max({delay_max}) ="
+            f" {anchor_max + delay_max} > 0 — 지연 도착일이 base_date를 넘어 타임라인 밖으로"
+            " 나가면 재고에 credit되지 않아 '유령 입고(구현 오류)'로 생성이 중단된다"
+        )
+
+    decoy_ranges = ranges.get("decoys")
+    if decoy_ranges:
+        decoy_anchor_max = int(decoy_ranges["target_offset_days_range"]["max"])
+        decoy_delay_max = max(int(d) for d in decoy_ranges["minor_delay_days_choices"])
+        if decoy_anchor_max + decoy_delay_max > 0:
+            raise ValueError(
+                "blind_ranges.yaml 불변식 위반: decoys.target_offset_days_range.max"
+                f"({decoy_anchor_max}) + max(minor_delay_days_choices)({decoy_delay_max})"
+                " > 0 — 미끼 1의 도착일이 타임라인 밖으로 나간다"
+            )
+
+
 def _load_item_ids(items_csv: str | Path) -> list[str]:
     # config._load_item_ids는 set을 반환한다(순서 비결정) — 여기서는 정렬해 재사용,
     # random.sample에 결정적 순서의 시퀀스를 넘기기 위함이다.
@@ -285,19 +340,32 @@ class DecoyReport:
     비노출 원칙 — manifest_entry의 params_summary에 그대로 실릴 수 있는 값이므로)."""
 
     candidate_count: int
+    eligible_count: int
     minor_delay_count: int
-    safe_overdue_eligible_count: int
     safe_overdue_count: int
 
 
-def _coverage_days(conn: sqlite3.Connection, item_id: str, base_date: date) -> float | None:
-    """현재고(base_date 시점 closing_stock) / 평균 사용량(전체 관측 구간). 그 날짜 행이
-    없거나 평균 사용량이 0 이하면 None(적격성 계산 불가 — 안전하게 부적격 취급)."""
-    stock_row = conn.execute(
-        "SELECT closing_stock FROM stock_usage_daily WHERE item_id = ? AND date = ?",
-        (item_id, base_date.isoformat()),
+def sweep_min_coverage_days(
+    conn: sqlite3.Connection, item_id: str, sweep_window: tuple[date, date]
+) -> float | None:
+    """스윕 구간 **최저** 커버리지 = 창 내 min(closing_stock) / 평균 사용량(전체 구간).
+
+    Task S-30c A에서 옛 `_coverage_days`(base_date 한 점 측정)를 대체했다. 옛 정의는
+    "측정 시점 불일치" 때문에 거짓 보장을 만들었다 — 가드는 base_date 한 점을 봤지만
+    채점은 스윕 매일을 보고 최저치가 등급을 결정하는데, 이 시뮬레이터에서 base_date는
+    대체로 재발주 직후 고점이다(S-30b §2.3: 39건 중 37건이 보장을 위반).
+
+    창 안에 행이 없거나 평균 사용량이 0 이하면 None(적격성 계산 불가 — 안전하게 부적격
+    취급).
+    """
+    window_start, window_end = sweep_window
+    trough_row = conn.execute(
+        "SELECT MIN(closing_stock) FROM stock_usage_daily"
+        " WHERE item_id = ? AND date BETWEEN ? AND ?",
+        (item_id, window_start.isoformat(), window_end.isoformat()),
     ).fetchone()
-    if stock_row is None:
+    trough = trough_row[0] if trough_row is not None else None
+    if trough is None:
         return None
     avg_row = conn.execute(
         "SELECT AVG(usage_qty) FROM stock_usage_daily WHERE item_id = ?", (item_id,)
@@ -305,7 +373,7 @@ def _coverage_days(conn: sqlite3.Connection, item_id: str, base_date: date) -> f
     avg_usage = avg_row[0] if avg_row is not None else None
     if not avg_usage:
         return None
-    return stock_row[0] / avg_usage
+    return trough / avg_usage
 
 
 def _apply_minor_delay_decoy(
@@ -376,12 +444,19 @@ def inject_decoys(
     base_date: date,
     days: list[date],
     exclude_item_ids: set[str],
+    sweep_window: tuple[date, date],
 ) -> DecoyReport:
     """정상 품목(exclude_item_ids 제외) 일부에 미끼 2종을 결정적으로 주입한다.
 
+    Task S-30c A에서 적격성 규칙을 **두 미끼 공통**으로 통일했다: 스윕 구간 최저 커버리지
+    (sweep_min_coverage_days) > decoys.min_sweep_coverage_days인 품목만 미끼를 받는다.
+    옛 규칙(미끼 2에만, base_date 한 점 측정)은 S-30b 실측에서 39건 중 37건이 '주의'를
+    넘겨 보장이 거짓임이 확인됐고, 미끼 1은 애초에 가드가 없었는데도 무임계
+    overdue_cutoff 때문에 등급을 밀어 올렸다.
+
     미끼 1(경미한 지연 도착)과 미끼 2(안전 연체)는 겹치지 않는 별도 품목 집합에 적용한다.
-    미끼 2는 적격 품목(현재고/평균사용량 > safe_overdue_min_coverage_days)에만 주고,
     목표 개수보다 적격 품목이 적으면 있는 만큼만 준다(강제 금지 — 브리프 그대로).
+    적격 품목이 0건이면 미끼는 하나도 주입되지 않는다.
     """
     decoy_ranges = ranges.get("decoys")
     if not decoy_ranges:
@@ -390,6 +465,14 @@ def inject_decoys(
     all_item_ids = sorted(row[0] for row in conn.execute("SELECT item_id FROM items"))
     candidates = [item_id for item_id in all_item_ids if item_id not in exclude_item_ids]
 
+    min_coverage = float(decoy_ranges["min_sweep_coverage_days"])
+    eligible = [
+        item_id
+        for item_id in candidates
+        if (coverage := sweep_min_coverage_days(conn, item_id, sweep_window)) is not None
+        and coverage > min_coverage
+    ]
+
     ns = f"a{attempt}"
     rng_select = random.Random(blind_subseed(seed, f"{ns}:decoy_select"))
     rng_minor = random.Random(blind_subseed(seed, f"{ns}:decoy_minor_params"))
@@ -397,22 +480,15 @@ def inject_decoys(
 
     minor_range = decoy_ranges["minor_delay_ratio_range"]
     minor_ratio = rng_select.uniform(float(minor_range["min"]), float(minor_range["max"]))
-    minor_count = min(round(len(candidates) * minor_ratio), len(candidates))
-    minor_items = rng_select.sample(candidates, minor_count)
+    minor_count = min(round(len(candidates) * minor_ratio), len(eligible))
+    minor_items = rng_select.sample(eligible, minor_count) if minor_count > 0 else []
 
-    remaining = [item_id for item_id in candidates if item_id not in minor_items]
-
-    min_coverage = float(decoy_ranges["safe_overdue_min_coverage_days"])
-    eligible: list[str] = []
-    for item_id in remaining:
-        coverage = _coverage_days(conn, item_id, base_date)
-        if coverage is not None and coverage > min_coverage:
-            eligible.append(item_id)
+    remaining = [item_id for item_id in eligible if item_id not in minor_items]
 
     target_ratio = float(decoy_ranges["safe_overdue_target_ratio"])
     target_count = round(len(candidates) * target_ratio)
-    overdue_count = min(target_count, len(eligible))
-    overdue_items = rng_select.sample(eligible, overdue_count) if overdue_count > 0 else []
+    overdue_count = min(target_count, len(remaining))
+    overdue_items = rng_select.sample(remaining, overdue_count) if overdue_count > 0 else []
 
     for item_id in minor_items:
         _apply_minor_delay_decoy(conn, item_id, seed, base_date, days, decoy_ranges, rng_minor)
@@ -425,8 +501,8 @@ def inject_decoys(
 
     return DecoyReport(
         candidate_count=len(candidates),
+        eligible_count=len(eligible),
         minor_delay_count=len(minor_items),
-        safe_overdue_eligible_count=len(eligible),
         safe_overdue_count=len(overdue_items),
     )
 
@@ -505,11 +581,19 @@ def load_manifest(path: str | Path) -> dict[str, Any]:
 
 def upsert_manifest_entry(manifest: dict[str, Any], entry: dict[str, Any]) -> dict[str, Any]:
     """entry를 seed 기준으로 upsert(동일 seed면 교체)하고 seed 오름차순으로 정렬해
-    반환한다(순수 함수 — 호출부가 파일에 쓴다)."""
+    반환한다(순수 함수 — 호출부가 파일에 쓴다).
+
+    **runs 밖의 최상위 키는 그대로 보존한다**(Task S-30c). manifest.json에는 생성기가
+    쓰지 않는 봉인 증거가 함께 산다 — S-30 1차 블라인드의 `predictions` 절(예측 파일
+    sha256, 커밋으로 봉인된 감사 증거)이 그렇다. 옛 구현은 반환 dict를 version·runs로만
+    재구성해 그런 키를 조용히 날렸다. 2차 회차를 생성하면 1차 봉인 기록이 사라지는
+    셈이라(측정 결과 자체는 못 바꾸지만 증거는 잃는다) 보존으로 고친다.
+    """
     runs = [r for r in manifest.get("runs", []) if r["seed"] != entry["seed"]]
     runs.append(entry)
     runs.sort(key=lambda r: r["seed"])
-    return {"version": manifest.get("version", 1), "runs": runs}
+    preserved = {k: v for k, v in manifest.items() if k not in ("version", "runs")}
+    return {"version": manifest.get("version", 1), "runs": runs, **preserved}
 
 
 def write_manifest(path: str | Path, manifest: dict[str, Any]) -> None:
@@ -592,6 +676,11 @@ def generate_blind(
 
     total_items = len(_load_item_ids(items_csv_path))
     _validate_normal_item_count(ranges, total_items)
+    _validate_offset_ranges(ranges)
+
+    # S-30c A: 배치 구간을 측정 창과 결합한다 — 라벨 전건의 품절일이 관측 가능 창 안에
+    # 들 때까지 재추첨하고, 미끼 적격성은 스윕 구간 최저 커버리지로 잰다.
+    observable_window, sweep_window = measurement_windows(ranges, base_date_obj)
 
     max_attempts = int(ranges.get("max_generation_attempts", 1))
     summary: baseline.GenerationSummary | None = None
@@ -616,6 +705,7 @@ def generate_blind(
                     reference_dir=reference_dir,
                     schema_path=schema_path,
                     min_scenarios_per_type=1,
+                    observable_window=observable_window,
                 )
                 last_error = None
                 break
@@ -649,7 +739,8 @@ def generate_blind(
     decoy_conn = sqlite3.connect(out_path)
     try:
         decoy_report = inject_decoys(
-            decoy_conn, ranges, seed, attempt, base_date_obj, days, official_item_ids
+            decoy_conn, ranges, seed, attempt, base_date_obj, days, official_item_ids,
+            sweep_window,
         )
         final_hash = baseline.compute_content_hash(decoy_conn)
         with decoy_conn:
@@ -682,11 +773,18 @@ def generate_blind(
         "has_delayed_arrival_arm": has_delayed_arrival,
         "attempts_used": attempt + 1,
         # F1(픽스 라운드 1): 개수만 담는다 — 어떤 품목이 미끼를 받았는지는 비노출.
+        # S-30c A: 적격성이 두 미끼 공통이라 eligible_count 하나로 합쳤다.
         "decoy_counts": {
             "candidate_count": decoy_report.candidate_count,
+            "eligible_count": decoy_report.eligible_count,
             "minor_delay_count": decoy_report.minor_delay_count,
-            "safe_overdue_eligible_count": decoy_report.safe_overdue_eligible_count,
             "safe_overdue_count": decoy_report.safe_overdue_count,
+        },
+        # S-30c A: 이 회차가 어떤 측정 창에 결합돼 생성됐는지 감사용으로 남긴다. 라벨
+        # 누출이 아니다 — blind_ranges.yaml(커밋 대상)에 이미 공개된 설계 파라미터다.
+        "observable_window": {
+            "start": observable_window[0].isoformat(),
+            "end": observable_window[1].isoformat(),
         },
     }
     entry = {

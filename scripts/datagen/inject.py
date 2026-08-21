@@ -593,6 +593,8 @@ def _assert_effects_effective(
     forced_arrivals: tuple[ForcedArrival, ...],
     stock_rows: list[dict[str, object]],
     trace: ScenarioTrace,
+    *,
+    observable_window: tuple[date, date] | None = None,
 ) -> None:
     """이 시나리오의 각 효과(halt·delay·demand_surge)가 실제로 최소 1건의 행 변화를
     만들었는지 검증한다(1주차 리뷰 F1). scenario_config.yaml의 강도가 베이스라인 리듬과
@@ -607,7 +609,35 @@ def _assert_effects_effective(
     결함이면 재시도해도 계속 재현되거나, 최악의 경우 재시도가 우연히 그 버그를 안 밟는
     조합으로 넘어가 회귀를 숨긴다)는 일반 ValueError로 남긴다 — 재시도 루프가 이 둘을
     구분해서 잡아야 한다.
+
+    observable_window(Task S-30c A): (창 시작, 창 끝) 튜플을 주면 "효과가 물리적으로
+    발생했는가"에 더해 **"그 효과가 측정 구간 안에서 관측 가능한가"**까지 단언한다 —
+    S-30b가 실증한 평가 설계 결함(1차 블라인드 라벨 20건 중 12건이 스윕 시작 이전에
+    품절되어 채점 규칙 `first_alert <= stockout_date`를 어떤 탐지기도 만족할 수 없었다)의
+    생성 단계 차단이다. 여기서는 **관측 품절**(closing_stock이 실제로 0에 닿은 날, 라벨의
+    "observed" 근거와 동일 정의)만 본다 — 0에 닿지 않는 품목의 라벨은 외삽이라 base_date
+    이후로만 나오며, 그 상한 검사는 라벨 도출 후 assert_labels_observable이 맡는다.
+    기본값 None이면 이 검사를 하지 않는다(표준 20건 경로는 종전과 완전히 동일하다).
     """
+    if observable_window is not None:
+        window_start, window_end = observable_window
+        observed_stockout = next(
+            (
+                date.fromisoformat(str(row["date"]))
+                for row in stock_rows
+                if row["closing_stock"] == 0
+            ),
+            None,
+        )
+        if observed_stockout is not None and not (
+            window_start <= observed_stockout <= window_end
+        ):
+            raise IneffectiveInjectionError(
+                f"{scenario_id}: 관측 품절일({observed_stockout.isoformat()})이 측정 구간"
+                f"[{window_start.isoformat()}, {window_end.isoformat()}] 밖이라 채점 규칙상"
+                " 감지 성공이 불가능하다(무효과와 동일 취급 — 재추첨 대상)"
+            )
+
     if halt_effects and not trace.halt_blocked_order_dates:
         raise IneffectiveInjectionError(
             f"{scenario_id}: supply_halt가 미이행 발주를 1건도 만들지 못했다(무효과) —"
@@ -665,6 +695,40 @@ def _assert_effects_effective(
             raise IneffectiveInjectionError(
                 f"{scenario_id}: demand_surge가 사용량에 어떤 변화도 만들지 못했다(무효과)"
             )
+
+
+def assert_labels_observable(
+    labels: list[dict[str, object]], observable_window: tuple[date, date]
+) -> None:
+    """도출된 라벨 전건의 stockout_date가 측정 구간 안인지 단언한다(Task S-30c A).
+
+    `_assert_effects_effective`의 창 검사는 stock_rows의 관측 품절만 볼 수 있어 외삽 라벨
+    (base_date까지 재고가 0에 닿지 않은 품목 — `labels._stockout_date`의 "extrapolated"
+    분기)의 상한을 판단하지 못한다. 이 함수는 라벨 도출이 끝난 뒤 두 근거(observed·
+    extrapolated)를 구분하지 않고 **채점기가 실제로 읽는 값**인 stockout_date로 최종
+    확인한다. 창 밖이면 재시도 대상 예외(IneffectiveInjectionError)를 던진다 — 임의 품목
+    추첨의 운 문제이지 코드 결함이 아니기 때문이다.
+
+    창의 의미(S-30b §1 분류 정의):
+    - 하한(스윕 시작): `first_alert`는 아무리 일러도 스윕 첫날이므로, 그 이전 품절은
+      채점 규칙 `first_alert <= stockout_date`를 구조적으로 만족할 수 없다(H1a).
+    - 상한(스윕 종료 + watch_days): 그 밖의 품절은 '주의' 판정 근거 자체가 없다(H1b).
+    """
+    window_start, window_end = observable_window
+    outside = [
+        (str(lbl["params_ref"]), str(lbl["stockout_date"]))
+        for lbl in labels
+        if not (
+            window_start <= date.fromisoformat(str(lbl["stockout_date"])) <= window_end
+        )
+    ]
+    if outside:
+        detail = ", ".join(f"{ref}={stockout}" for ref, stockout in outside)
+        raise IneffectiveInjectionError(
+            f"라벨 품절일이 측정 구간[{window_start.isoformat()},"
+            f" {window_end.isoformat()}] 밖이다({detail}) — 채점 규칙상 감지 성공이"
+            " 불가능하거나('주의' 근거 없음) 관측 불가라 재추첨 대상이다"
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -770,6 +834,7 @@ def inject_scenarios(
     reference_dir: str | Path = baseline.DEFAULT_REFERENCE_DIR,
     schema_path: str | Path = baseline.DEFAULT_SCHEMA_PATH,
     min_scenarios_per_type: int = config.MIN_SCENARIOS_PER_TYPE,
+    observable_window: tuple[date, date] | None = None,
 ) -> tuple[GenerationSummary, list[dict[str, object]]]:
     """베이스라인 생성 후 scenario_config.yaml의 시나리오를 결정적으로 재시뮬레이션 주입한다.
 
@@ -785,6 +850,12 @@ def inject_scenarios(
     유형별 최소 개수 하한. 기본값은 config.MIN_SCENARIOS_PER_TYPE(4)로 표준 config 검증과
     동일하다 — 블라인드 생성기(유형당 시나리오 1개)가 이 오케스트레이션 전체(베이스라인
     생성+주입+해시+라벨 도출)를 복제하지 않고 재사용할 수 있도록 매개변수화했다.
+
+    observable_window(Task S-30c A): (창 시작, 창 끝). 주면 시나리오별
+    `_assert_effects_effective`(관측 품절)와 라벨 전건 `assert_labels_observable`
+    (observed·extrapolated 공통)에서 "품절일이 측정 구간 안"을 단언한다 — 창 밖이면
+    IneffectiveInjectionError(재시도 대상)다. 기본값 None이면 두 검사 모두 비활성이라
+    표준 20건 경로는 종전과 완전히 동일하게 동작한다(동결 무침해).
     """
     start = time.monotonic()
 
@@ -853,6 +924,7 @@ def inject_scenarios(
                 forced_arrivals,
                 stock_rows,
                 trace,
+                observable_window=observable_window,
             )
 
             # F3(1주차 리뷰): 라벨 외삽이 "실제로 막힌" 발주와 "아직 만기가 안 된 정상
@@ -886,6 +958,8 @@ def inject_scenarios(
         labels = labels_mod.derive_labels(
             conn, cfg, onset_overrides=onset_overrides, blocked_orders=blocked_orders
         )
+        if observable_window is not None:
+            assert_labels_observable(labels, observable_window)
     finally:
         conn.close()
 

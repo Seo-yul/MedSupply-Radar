@@ -974,3 +974,138 @@ class TestReplaceItemRows:
         ).fetchall()
         assert shipments == [("2026-07-25", "2026-08-05", 30, None, "입고 예정")]
         conn.close()
+
+
+# --- 14. S-30c A: 측정 구간 내 관측 가능성 단언(observable_window) --------------
+
+
+class TestObservableWindowAssertion:
+    """S-30b가 실증한 평가 설계 결함(1차 블라인드 라벨 20건 중 12건이 스윕 시작 이전에
+    품절 — 채점 규칙 `first_alert <= stockout_date`상 어떤 탐지기도 성공할 수 없다)을
+    생성 단계에서 차단한다. `observable_window`를 주면 주입기가 "이 시나리오의 품절일이
+    측정 창 안에서 관측 가능한가"를 단언하고, 아니면 재시도 대상인
+    IneffectiveInjectionError로 실패한다.
+
+    기본값(None)에서는 아무것도 검사하지 않는다 — 표준 20건 생성 경로는 완전히 동일하게
+    동작해야 한다(동결 무침해)."""
+
+    _ITEM = {
+        "item_id": "ITEM-X", "pack_size": "10", "supplier": "테스트공급사",
+        "atc_code": "A00AA00", "form": "정제",
+    }
+    _WINDOW = (date(2026, 7, 1), date(2026, 8, 31))
+
+    def _trace(self) -> "inject.ScenarioTrace":
+        return inject.ScenarioTrace(
+            halt_blocked_order_dates=frozenset({"2026-01-05"}),
+            delay_blocked_order_dates=frozenset(),
+        )
+
+    def _stock_rows(self, zero_date: str | None) -> list[dict[str, object]]:
+        rows = [
+            {"date": "2026-05-01", "usage_qty": 5, "incoming_qty": 0, "closing_stock": 40},
+            {"date": "2026-07-15", "usage_qty": 5, "incoming_qty": 0, "closing_stock": 20},
+            {"date": "2026-08-01", "usage_qty": 5, "incoming_qty": 0, "closing_stock": 10},
+        ]
+        if zero_date is not None:
+            for row in rows:
+                if row["date"] == zero_date:
+                    row["closing_stock"] = 0
+        return rows
+
+    def _call(self, stock_rows, window):
+        halt_effects = (inject.HaltEffect(start=date(2026, 1, 1)),)
+        inject._assert_effects_effective(
+            "SC-TEST", self._ITEM, SEED_A, [date(2026, 7, 1)],
+            (), halt_effects, (), [], (), stock_rows, self._trace(),
+            observable_window=window,
+        )
+
+    def test_rejects_stockout_before_window_start(self) -> None:
+        with pytest.raises(inject.IneffectiveInjectionError, match="측정 구간"):
+            self._call(self._stock_rows("2026-05-01"), self._WINDOW)
+
+    def test_accepts_stockout_inside_window(self) -> None:
+        self._call(self._stock_rows("2026-07-15"), self._WINDOW)  # 예외 없이 통과
+
+    def test_ignores_items_that_never_hit_zero(self) -> None:
+        """관측 품절이 없으면 라벨은 외삽(base_date 이후)이 된다 — 이 단계에서는 판단하지
+        않고 라벨 단계(assert_labels_observable)로 넘긴다."""
+        self._call(self._stock_rows(None), self._WINDOW)
+
+    def test_default_none_disables_the_check(self) -> None:
+        """표준 경로(기본값)는 스윕 훨씬 이전 품절도 그대로 통과시켜야 한다."""
+        self._call(self._stock_rows("2026-05-01"), None)
+
+
+class TestAssertLabelsObservable:
+    """외삽 라벨(관측 품절 없음 → base_date + 잔여/평균사용량)까지 포함해 최종 라벨의
+    stockout_date가 측정 창 안인지 확인하는 마지막 관문."""
+
+    _WINDOW = (date(2026, 7, 1), date(2026, 8, 31))
+
+    def _label(self, stockout: str) -> dict[str, object]:
+        return {
+            "item_id": "ITM-0001", "scenario_type": "demand_surge",
+            "onset_date": "2026-06-01", "stockout_date": stockout,
+            "params_ref": "SC-X", "stockout_basis": "extrapolated",
+        }
+
+    def test_passes_when_all_labels_inside_window(self) -> None:
+        inject.assert_labels_observable(
+            [self._label("2026-07-01"), self._label("2026-08-31")], self._WINDOW
+        )
+
+    def test_rejects_label_after_horizon(self) -> None:
+        with pytest.raises(inject.IneffectiveInjectionError, match="측정 구간"):
+            inject.assert_labels_observable([self._label("2026-09-17")], self._WINDOW)
+
+    def test_rejects_label_before_sweep_start(self) -> None:
+        with pytest.raises(inject.IneffectiveInjectionError, match="측정 구간"):
+            inject.assert_labels_observable([self._label("2026-05-28")], self._WINDOW)
+
+
+class TestInjectScenariosObservableWindow:
+    """inject_scenarios의 observable_window 배선 — 창을 주면 창 밖 라벨이 생기는 config는
+    재시도 대상 예외로 실패하고, 창을 주지 않으면(표준 경로) 그대로 성공한다."""
+
+    def _config_yaml(self, tmp_path: Path) -> Path:
+        return TestMinScenariosPerTypeOverride()._small_config_yaml(tmp_path)
+
+    def test_without_window_succeeds_and_reports_label_dates(self, tmp_path: Path) -> None:
+        _summary, labels = inject.inject_scenarios(
+            tmp_path / "nowin.db", seed=SEED_A, base_date=BASE_DATE,
+            scenario_config_path=self._config_yaml(tmp_path), min_scenarios_per_type=1,
+        )
+        assert len(labels) == 4
+
+    def test_window_that_excludes_a_label_raises_retryable_error(self, tmp_path: Path) -> None:
+        config_path = self._config_yaml(tmp_path)
+        _summary, labels = inject.inject_scenarios(
+            tmp_path / "probe.db", seed=SEED_A, base_date=BASE_DATE,
+            scenario_config_path=config_path, min_scenarios_per_type=1,
+        )
+        stockouts = sorted(date.fromisoformat(str(lbl["stockout_date"])) for lbl in labels)
+        # 가장 이른 라벨 하나만 밖으로 밀어내는 창.
+        narrow = (stockouts[0] + timedelta(days=1), stockouts[-1] + timedelta(days=1))
+        with pytest.raises(inject.IneffectiveInjectionError, match="측정 구간"):
+            inject.inject_scenarios(
+                tmp_path / "narrow.db", seed=SEED_A, base_date=BASE_DATE,
+                scenario_config_path=config_path, min_scenarios_per_type=1,
+                observable_window=narrow,
+            )
+
+    def test_window_covering_all_labels_succeeds(self, tmp_path: Path) -> None:
+        config_path = self._config_yaml(tmp_path)
+        _summary, labels = inject.inject_scenarios(
+            tmp_path / "probe2.db", seed=SEED_A, base_date=BASE_DATE,
+            scenario_config_path=config_path, min_scenarios_per_type=1,
+        )
+        stockouts = sorted(date.fromisoformat(str(lbl["stockout_date"])) for lbl in labels)
+        wide = (stockouts[0], stockouts[-1])
+        _summary2, labels2 = inject.inject_scenarios(
+            tmp_path / "wide.db", seed=SEED_A, base_date=BASE_DATE,
+            scenario_config_path=config_path, min_scenarios_per_type=1,
+            observable_window=wide,
+        )
+        assert labels2 == labels

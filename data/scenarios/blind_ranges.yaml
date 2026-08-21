@@ -25,17 +25,56 @@ item_allocation:
   # 이 범위의 하한(100)에서조차 4/100=4%로 여유 있게 만족한다.
   normal_item_count_range: {min: 100, max: 124}
 
+# ── 측정 창(measurement window) — Task S-30c A: 배치 구간을 채점 규칙과 결합 ────
+# S-30b가 실증한 1차 블라인드의 지배적 결함: 라벨 20건 중 12건이 스윕 시작 이전에 품절해
+# 채점 규칙 `success = first_alert is not None and first_alert <= stockout_date`
+# (scripts/measure_detection.py)를 **어떤 탐지기도 만족할 수 없었다**(그중 10건은 스윕 32일
+# 내내 '위험' 등급이었는데도 미감지로 집계됐다). 원인은 "시나리오를 언제 배치하는가"와
+# "언제 측정하는가"가 아무 제약으로도 묶여 있지 않았던 것이다.
+#
+# 이 절이 그 결합을 명시한다. 값은 base_date 기준 상대 오프셋(일)이라 --base-date가 바뀌어도
+# 그대로 쓴다. 격리 원칙상 이 모듈은 medsupply/config를 읽을 수 없어 상수를 복제한다 —
+# config/analytics_params.toml의 grade.watch_days가 바뀌면 watch_days도 같이 맞춰야 한다.
+#
+# 관측 가능 창 = [base_date + sweep_start_offset_days, base_date + sweep_end_offset_days
+#                 + watch_days] = 표준 스윕 기준 [2026-07-01, 2026-08-31]
+#   - 하한(스윕 시작): 스윕에서 나올 수 있는 가장 이른 first_alert가 스윕 첫날이므로 그
+#     이전 품절은 감지 성공이 구조적으로 불가능하다(S-30b H1a).
+#   - 상한(스윕 종료 + watch_days): 그 밖의 품절은 '주의'('watch_days 안에 소진 예상') 판정
+#     근거 자체가 없다(S-30b H1b, measure_detection.horizon_end와 동일 정의).
+# 생성기는 이 창을 inject_scenarios(observable_window=...)로 넘겨 라벨 전건이 창 안에
+# 들어갈 때까지 재추첨한다(scripts/datagen/blind.py).
+measurement_window:
+  sweep_start_offset_days: -31   # 표준 스윕 시작 2026-07-01 (base_date 2026-08-01 기준)
+  sweep_end_offset_days: 0       # 표준 스윕 종료 = base_date
+  watch_days: 30                 # = config/analytics_params.toml grade.watch_days(복제 상수)
+
 # ── 시나리오 개시일(앵커 날짜) 공통 구간 ───────────────────────────────────
 # demand_surge.surge_start_date · supply_halt.halt_start_date · delivery_delay.expected_date
 # 모두 이 구간에서 뽑는다(config.py의 ANCHOR_DATE_KEYS가 세 유형 모두 동일하게
 # timeline_start~base_date 범위만 요구하므로 공통 구간으로 충분하다). base_date 기준 상대
-# 오프셋(일, 음수=과거)으로 표현해 --base-date가 바뀌어도 그대로 쓸 수 있다. 표준값
-# 예시(SC-001~SC-020)는 전부 -13~-44일 사이라 이 구간에 포함된다. 하한을 -30일로 잡은
-# 이유: supply_halt가 실제로 미이행 발주를 만들려면(효과 없으면 생성기가 명확한 에러로
-# 실패한다 — inject.py의 _assert_effects_effective) 차단 시작 후 재고가 재주문점 밑으로
-# 내려갈 시간이 필요하다(1주차 리뷰 F1 교훈). 임의 품목을 뽑는 블라인드는 표준처럼 품목별
-# 미세조정을 할 수 없으므로 표준보다 넉넉한 여유(최소 30일, 최대 240일)를 둔다.
-scenario_start_offset_days_range: {min: -240, max: -30}
+# 오프셋(일, 음수=과거)으로 표현해 --base-date가 바뀌어도 그대로 쓸 수 있다.
+#
+# **Task S-30c A에서 -240~-30 → -52~-16으로 재정의했다.** 근거(전부 S-30b 실측):
+#  1. 옛 구간(-240~-30)은 365일 타임라인 중 210일을 덮지만 실제로 측정되는 구간은 마지막
+#     32일 + 오라클 지평 30일뿐이었다. onset→stockout 리드가 짧은 유형(supply_halt 13~46일,
+#     composite 7~130일)은 높은 확률로 측정 창보다 몇 달 앞에서 끝나버렸고 — 관측 결과
+#     10/10이 그랬다. 옛 구간에서 라벨 4건이 전부 창 안에 들어오는 조합은 12개 시드 중
+#     1개(재추첨 17회 소요)뿐이었다.
+#  2. 새 하한 -52는 표준 앵커 구간(SC-001~SC-020의 실사용 오프셋 -52~-6)의 하한과 같다 —
+#     supply_halt가 미이행 발주를 만들 시간(재고가 재주문점 밑으로 내려갈 시간, 1주차 리뷰
+#     F1)을 확보하면서도 품절이 스윕 이전에 끝나지 않는 구간이다. 실측: 20개 시드 전부
+#     생성 성공(재추첨 평균 3.5회·최대 10회).
+#  3. **새 상한 -16은 임의로 고른 값이 아니라 구조적 상한이다**: delivery_delay의
+#     arrives_late arm은 expected_date + delay_days에 실제 도착 행을 만드는데, 그 날짜가
+#     base_date를 넘으면 365일 타임라인 밖이라 재고에 credit되지 않아 inject.py가
+#     "유령 입고(구현 오류)"로 **재시도 불가 에러**를 던진다. delay_days_range.max=15이므로
+#     상한 + 15 <= 0, 즉 상한 <= -16이어야 한다. blind.py의 _validate_offset_ranges가 이
+#     불변식을 생성 시점에 검사한다(범위를 나중에 넓힐 때 조용히 깨지지 않도록).
+#  4. 구간이 좁아진 만큼 재추첨(max_generation_attempts) 의존도가 커진다 — 이는
+#     "측정 가능한 배치만 남긴다"는 의도된 조건부 표집이지만, S-22가 고지한 재시도 낙관
+#     편향을 키우는 방향이기도 하다(리포트에 반드시 병기할 것).
+scenario_start_offset_days_range: {min: -52, max: -16}
 
 demand_surge:
   ramp_days_range: {min: 7, max: 21}            # 표준 7~21일 폭과 동일
@@ -93,26 +132,55 @@ decoys:
   # 유지한다.
   target_offset_days_range: {min: -60, max: -10}
 
+  # ── 적격성 가드(Task S-30c A에서 재정의, 미끼 2종 공통) ──────────────────────
+  # **옛 가드는 거짓이었다.** 옛 규칙은 미끼 2에만 적용됐고 base_date **한 점**의
+  # closing_stock/평균사용량 > 44("watch_days 30 + 마진 14")를 봤다. 그런데 채점은 스윕
+  # 32일을 **매일** 평가하고 최저치가 등급을 결정하며, 이 시뮬레이터에서 base_date는 대체로
+  # 재발주 직후 고점이다(S-30b 실측: ITM-0002 base_date 재고 1748 vs 스윕 저점 301).
+  # 결과: 미끼 2를 받은 39건 중 **37건(94.9%)이 '주의'를 넘었고 36건이 '경고' 이상**까지
+  # 갔다 — 1차 블라인드 오탐 상승 +10.31%p 중 +6.17%p(정확 반사실 실험으로 확정)가 여기서
+  # 나왔다. 미끼 1도 "등급 불변"을 주장했지만 거짓이었다(아래 미끼 1 주석 참조).
+  #
+  # 새 규칙(두 미끼 공통): **스윕 구간 최저 커버리지** = 창 내 min(closing_stock) /
+  # 평균 사용량(전체 구간) > min_sweep_coverage_days. 창은 measurement_window의
+  # [스윕 시작, 스윕 종료]다 — 오탐은 스윕 매일 판정 중 한 번이라도 '주의' 이상이면
+  # 성립하므로 저점이 기준이어야 한다. overdue_cutoff(연체가 1건이라도 있으면 그 품목의
+  # 미래 예정 입고를 전부 미반영하는 보수 전환, medsupply/analytics/depletion.py)가 걸려도
+  # '주의' 미진입이 보장되는 품목에만 미끼를 준다는 원래 의도를 실제로 만족하는 정의다.
+  #
+  # **알려진 결과(정직 고지)**: 현재 카탈로그·베이스라인 리듬에서는 정상 품목의 스윕 저점
+  # 커버리지가 대체로 8~10일(S-30b §2.5)이라 이 기준(44일)을 넘는 품목이 **사실상 0건**
+  # 이다. 즉 이 가드 아래에서는 미끼가 거의/전혀 주입되지 않는다. 그건 상수를 잘못 골라서가
+  # 아니라 "cutoff가 걸려도 안전한 정상 품목"이 이 데이터에 존재하지 않는다는 사실의
+  # 반영이다(무임계 overdue_cutoff라는 실재하는 탐지기 취약점 — S-30b §4.3, 이번 범위 밖).
+  # 부작용: S-22 F1(단순 SQL 한 줄로 시나리오 품목을 역산하는 누출)에 대한 방어가 그만큼
+  # 약해진다. 그 대가로 오탐률이 표준 스냅샷과 like-for-like로 비교 가능해진다.
+  # 강제 주입은 금지다 — 적격 품목이 부족하면 넣을 수 있는 만큼만 넣는다.
+  min_sweep_coverage_days: 44   # = watch_days(30) + 14일 마진(복제 상수)
+
   # 미끼 1: 경미한 지연 도착 — receipt_delay_days(3, config/analytics_params.toml) 미만이라
-  # anomaly.detect_receipt_delay가 신호를 내지 않는다(이상신호·등급·점수 불변) — 순수하게
-  # "정상 품목도 입고가 정확히 제때 오지만은 않는다"는 노이즈만 더한다. 자연 발주 매칭
-  # 여부(natural/forced)는 inject._resolve_effects가 기존 규칙 그대로 결정한다(±7일 밖이면
-  # 강제 생성 arm으로 자동 분기 — 미끼 전용 특별 취급 없음).
+  # anomaly.detect_receipt_delay는 신호를 내지 않는다. **다만 "이상신호·등급·점수 불변"이라던
+  # 옛 주석은 거짓이었다**(S-30b §2.4): `depletion.overdue_cutoff`에는 일수 임계가 없어
+  # 예정일과 실도착일 사이 1~2일 동안 그 품목의 미래 예정 입고가 전부 미반영되고, 오탐은
+  # 32일 중 한 번만 울려도 성립한다 — 지연 창이 스윕과 겹친 미끼 35건 중 17건(48.6%)이
+  # 경보일이 컷오프 발동일에만 존재했다(1건은 곧장 '위험'). 그래서 이제 미끼 1도 위
+  # 적격성 가드를 통과한 품목에만 준다. 자연 발주 매칭 여부(natural/forced)는
+  # inject._resolve_effects가 기존 규칙 그대로 결정한다(±7일 밖이면 강제 생성 arm으로 자동
+  # 분기 — 미끼 전용 특별 취급 없음).
   minor_delay_ratio_range: {min: 0.05, max: 0.15}
   minor_delay_days_choices: [1, 2]
 
-  # 미끼 2: 안전 연체(고커버리지 정상 품목 전용) — 발주 1건을 영구 미이행(actual_date NULL)
+  # 미끼 2: 안전 연체(적격 정상 품목 전용) — 발주 1건을 영구 미이행(actual_date NULL)
   # 상태로 추가해 "연체" 시그니처를 만들되, 재고 궤적(stock_usage_daily)에는 손대지
   # 않는다(day-loop 상태기계 밖의 합성 행 — inject._item_reorder_profile로 reorder_qty·
-  # lead_time만 조회해 직접 구성). 적격성 = 현재고(base_date 시점)/평균 사용량(전체 구간) >
-  # safe_overdue_min_coverage_days — overdue_cutoff(연체 1건이라도 있으면 그 품목의 미래
-  # 예정 입고를 전부 미반영하는 보수 전환, medsupply/analytics/depletion.py)가 걸려도
-  # '주의' 미진입(watch_days=30, config/analytics_params.toml)이 보장되는 품목에만 준다.
-  # safe_overdue_min_coverage_days=44는 watch_days(30)+14일 마진이다(격리 원칙상 이
-  # 모듈이 medsupply를 import할 수 없어 상수로 복제 — config/analytics_params.toml의
-  # watch_days가 바뀌면 이 값도 같이 맞춰야 한다).
-  safe_overdue_min_coverage_days: 44
+  # lead_time만 조회해 직접 구성).
   safe_overdue_target_ratio: 0.10   # 목표 비율(적격 품목이 부족하면 있는 만큼만, 강제 금지)
+
+  # ── 비교 가능성 고지(S-30b §2.6·§5(b)4) ─────────────────────────────────────
+  # 미끼가 1건이라도 주입되면 블라인드 대조군(정상 품목)의 난이도가 표준 스냅샷 대조군과
+  # 비대칭이 된다 — 표준 정상 104건은 입고 이상 0건인 반면 1차 블라인드 정상 600슬롯은
+  # 109건(18.2%)이 주입된 입고 이상을 지녔다. 그런 회차의 오탐률은 표준과 **직접 비교할 수
+  # 없다**. 리포트에 반드시 병기할 것.
 
 # ── 생성기 안정성 가드 ──────────────────────────────────────────────────
 # 위 구간에서 뽑은 (품목, 파라미터) 조합이 우연히 물리적으로 무효과(예: 임의 품목의 재고
@@ -122,4 +190,10 @@ decoys:
 # 서브시드 네임스페이스("attempt{N}")로 전량 재추첨해 재시도한다(seed 자체는 그대로라
 # 최종 결과는 여전히 그 seed에 대해 결정적이다). 이 상한을 넘겨도 실패하면 명확한
 # 에러로 중단한다(조용한 폴백 없음).
-max_generation_attempts: 20
+#
+# Task S-30c A에서 20 → 40으로 올렸다. 재추첨 사유가 하나 늘었기 때문이다(무효과에 더해
+# "품절일이 측정 창 밖"). 실측(20개 시드, 새 onset 구간): 재추첨 평균 3.5회·중앙 2.5회·
+# 최대 10회로 20회 안에 전부 성공하지만, 4건의 라벨이 **동시에** 창 안에 들어야 하는
+# 결합 조건이라 꼬리가 길어 여유를 둔다. 이 상향은 S-22가 고지한 재시도 낙관 편향을
+# 키우는 방향이므로 결과 리포트에 반드시 병기한다.
+max_generation_attempts: 40
