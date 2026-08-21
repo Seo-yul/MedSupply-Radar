@@ -154,7 +154,8 @@ as_of)`)하자 오탐이 크게 떨어졌고, 연체 입고에 대한 보수 전
 
 - 시나리오 배치 구간을 측정 창과 **결합**했다. 이전에는 시나리오 개시 오프셋 범위와 측정
   구간 사이에 아무 제약이 없었다. 지금은 라벨 전건이 관측 가능 창(스윕 시작 ~ 스윕 종료 +
-  `watch_days`) 안에 들어올 때까지 스냅샷을 재추첨한다.
+  `watch_days`) 안에 들어올 때까지 스냅샷을 재추첨한다. 이 결합에는 대가가 있다 — 개시일
+  축에서 블라인드의 독립성이 줄었다(§6 11번 항목).
 - 미끼(정상 품목에 넣는 양성 교란) 적격성 기준을 "기준일 한 점의 재고 커버리지"에서 "스윕
   구간 최저 커버리지"로 바꿨다. 새 기준에서는 적격 품목이 없어 2차에는 미끼가 하나도 주입되지
   않았다.
@@ -180,8 +181,15 @@ as_of)`)하자 오탐이 크게 떨어졌고, 연체 입고에 대한 보수 전
 - **그리고 재채점된 raw 지표는 1차 공표값과 완전히 같다.** 1차 원본 결과와 재귀 전수 비교한
   결과, 지평 뷰와 신규 진단 밖에서 달라진 경로는 0건이다. <!-- check: reports/analytics/blind_round1_rescored.json:raw_metrics_identity_check.differing_paths_outside_horizon_view_total = 0 -->
 
+> **재현 주의**: 이 재현은 HEAD에서 스냅샷을 다시 만들어서는 되지 않는다 — 1차 스냅샷은
+> S-30c 이전의 `blind_ranges.yaml`·생성기로 만들어졌기 때문이다. 봉인 산출물이 없는
+> 환경에서는 `git checkout 880839b`로 1차 시점의 생성기를 복원해 시드
+> 20260901~20260905를 재생성한 뒤, `content_hash`·`labels_sha256`이 커밋된
+> `data/blind/manifest.json`과 일치하는지 대조하라.
+
 즉 **같은 예측·같은 산식** 위에서 "지평 안 라벨만 보면 전건 감지"와 "전체 라벨로 보면 35.0%"가 동시에 성립한다. <!-- check: reports/analytics/blind_round1_rescored.json:aggregate.raw_detection_rate_mean = 35.0% -->
-차이는 전적으로 분모에 남은 채점 불가 라벨에서 온다. 2차의 감지율 100%는 이 결과와 같은 성질의 수치이지 탐지기 개선의 증거가 아니다. <!-- check: reports/analytics/blind_round2_summary.json:aggregate.detection_rate.mean = 100% -->
+차이는 전적으로 분모에 남은 채점 불가 라벨 12건에서 온다 — 그 가운데 10건은 스윕 32일 내내 '위험' 등급이었는데도 미감지로 집계됐다. <!-- check: reports/analytics/blind_round1_rescored.json:aggregate.unscoreable_labels_total = 12 --><!-- check: reports/analytics/blind_summary.json:meta.sweep.days = 32 --><!-- check-skip: S-30b 조사의 전수 분류값(재고 0으로 스윕 내내 '위험'이던 10건) — 측정 JSON에 스칼라로 없다 -->
+2차의 감지율 100%는 이 결과와 같은 성질의 수치이지 탐지기 개선의 증거가 아니다. <!-- check: reports/analytics/blind_round2_summary.json:aggregate.detection_rate.mean = 100% -->
 
 #### 회차 비교('주의 이상' 문턱, raw)
 
@@ -262,9 +270,11 @@ as_of)`)하자 오탐이 크게 떨어졌고, 연체 입고에 대한 보수 전
 
 #### 이 블라인드 결과를 재사용하지 말 것
 
-- **역산 누출**: 2차에 미끼가 없어, `actual_date > expected_date OR (actual_date IS NULL AND
-  expected_date < base_date)` 같은 SQL 한 줄로 시나리오 품목의 상당수를 정답 없이 골라낼 수
-  있다. 이번 회차의 예측은 그 SQL을 쓰지 않는 고정 파이프라인(`run_risk_batch` →
+- **역산 누출**: 2차에 미끼가 없어 `actual_date > expected_date OR (actual_date IS NULL AND
+  expected_date < base_date)` SQL 한 줄이 시드마다 정확히 3개 품목을 걸러내고, 그 전부가 시나리오 품목이다(정상 품목 오탐 0건). <!-- check-skip: S-30c 실측 공시값(reports/analytics/blind_round2_summary.json disclosures[1] 문자열 안에만 있어 스칼라로 마킹할 수 없다) -->
+  걸리지 않는 라벨은 항상 demand_surge이고, 매니페스트가 유형당 라벨 1건임을 공개하므로 <!-- check: data/blind/manifest.json:runs[5].params_summary.scenario_type_counts.demand_surge = 1 -->
+  라벨 4건이 실질적으로 전부 복원 가능하다. <!-- check: data/blind/manifest.json:runs[5].params_summary.scenario_item_count = 4 -->
+  이번 회차의 예측은 그 SQL을 쓰지 않는 고정 파이프라인(`run_risk_batch` →
   `measure_detection --predict-only`)으로만 만들었지만, **설계상의 누출은 실재한다.**
 - **2차 스냅샷은 이미 개봉됐다.** 라벨이 열렸고 결과가 공표됐으므로 이 스냅샷을 이후의 인간
   블라인드 평가나 새 회차의 블라인드 세트로 **재사용해서는 안 된다**. 재사용하면 그것은
@@ -403,6 +413,12 @@ API 키가 없는 환경이라 이 절의 수치는 **하나도 측정되지 않
     상·하한을 모두 본다. 이 문서는 서로 다른 기준의 수치를 나란히 놓지 않으며, 기준이 통일된
     대조는 §2.4 (iii)의 재채점 결과 하나뿐이다. `detection_metrics.json`에 기록된
     `within_horizon.criterion` 문자열은 옛 기준 그대로다(동결 파일 무수정).
+11. **2차 배치 구간 축소로 개시일 축의 블라인드 독립성이 줄었다.** 측정 창 결합(§2.4 (i))을
+    위해 `blind_ranges.yaml`의 시나리오 개시 오프셋 범위를 `-240 ~ -30`에서 `-52 ~ -16`으로
+    좁혔는데, 새 하한 `-52`는 표준 스냅샷 앵커 구간의 하한과 **같은 값**이다. 개시일 축에서
+    블라인드가 표준과 사실상 같은 분포를 쓰게 된 셈이다. 품목 선정·시나리오 강도·지연 일수
+    축은 그대로 독립이고 라벨도 여전히 봉인된 채 예측을 먼저 제출하지만, "표준과 독립적인
+    배치"라는 주장은 이 축에서 약해졌다.
 
 ---
 
@@ -445,17 +461,20 @@ python scripts/measure_detection.py \
 ```
 
 예측 파일과 봉인 라벨은 `.gitignore` 대상이라 저장소에 없다(sha256만 `data/blind/manifest.json`에
-커밋돼 있다). 재현하려면 봉인 산출물이 남아 있는 작업 환경이 필요하며, 재채점 결과 요약은
+커밋돼 있다 — 미커밋 유지가 확정된 정책이다). 봉인 산출물이 남아 있지 않은 환경의 재현
+경로는 §2.4 (iii)의 **재현 주의**를 따른다. 재채점 결과 요약은
 `reports/analytics/blind_round1_rescored.json`에 커밋돼 있다.
 
 ### 7.4 이 문서의 수치 대조
 
 ```bash
-.venv/bin/python scripts/check_report_numbers.py
+.venv/bin/python scripts/check_report_numbers.py --out /tmp/report_check.json
 .venv/bin/python -m pytest tests/ -q
 ```
 
-첫 명령은 이 문서의 모든 마킹을 `reports/`의 JSON과 대조하고 결과를
-`reports/platform/report_check.json`에 쓴다. 테스트 스위트에도 같은 대조가 회귀 테스트로 들어
-있어(`tests/platform/test_check_report_numbers.py`), 측정을 다시 돌려 수치가 바뀌면 이 문서를
+첫 명령은 이 문서의 모든 마킹을 `reports/`의 JSON과 대조한다. **확인 목적이면 위처럼 `--out`을
+tmp로 돌려라** — 기본 경로(`reports/platform/report_check.json`)로 실행하면 커밋된 결과 파일의
+`generated_at`이 갱신돼 작업 트리가 dirty해진다(커밋본은 문서를 실제로 고칠 때만 다시 쓴다).
+테스트 스위트에도 같은 대조가 회귀 테스트로 들어 있어
+(`tests/platform/test_check_report_numbers.py`), 측정을 다시 돌려 수치가 바뀌면 이 문서를
 고치기 전까지 스위트가 그린이 되지 않는다.

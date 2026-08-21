@@ -1,19 +1,23 @@
 {
   "report": "docs/verification-report.md",
-  "generated_at": "2026-08-21T16:12:36",
+  "generated_at": "2026-08-21T16:25:33",
   "checked_by": "scripts/check_report_numbers.py",
   "summary": {
     "status": "PASS",
-    "marks": 174,
-    "matched": 174,
+    "marks": 178,
+    "matched": 178,
     "mismatches": 0,
     "unmarked": 0,
-    "skipped_lines": 5,
-    "skipped_tokens": 15,
+    "skipped_lines": 7,
+    "skipped_tokens": 18,
     "required_paths": 42,
     "missing_required_paths": 0
   },
   "sources": {
+    "data/blind/manifest.json": {
+      "exists": true,
+      "sha256": "50a3007f2800e43cc677c8d13fa1aa0587a55ae69fefe34abea9fa522ceb7e81"
+    },
     "eval/cases/eval_cases_v1.json": {
       "exists": true,
       "sha256": "3b040e31c921e17972d1cf455b2d8c987ad2a33287fffd05c34cf3b565f6e094"
@@ -565,7 +569,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 177,
+      "line": 178,
       "source": "reports/analytics/blind_round1_rescored.json",
       "path": "meta.hash_verification.status",
       "literal": "\"PASS\"",
@@ -573,7 +577,7 @@
       "literal_found_in_line": false
     },
     {
-      "line": 178,
+      "line": 179,
       "source": "reports/analytics/blind_round1_rescored.json",
       "path": "aggregate.labels_total",
       "literal": "20",
@@ -581,14 +585,6 @@
       "literal_found_in_line": true
     },
     {
-      "line": 178,
-      "source": "reports/analytics/blind_round1_rescored.json",
-      "path": "aggregate.within_horizon_current_criterion.labeled_in_horizon",
-      "literal": "5",
-      "json_value": 5,
-      "literal_found_in_line": true
-    },
-    {
       "line": 179,
       "source": "reports/analytics/blind_round1_rescored.json",
       "path": "aggregate.within_horizon_current_criterion.labeled_in_horizon",
@@ -597,7 +593,15 @@
       "literal_found_in_line": true
     },
     {
-      "line": 179,
+      "line": 180,
+      "source": "reports/analytics/blind_round1_rescored.json",
+      "path": "aggregate.within_horizon_current_criterion.labeled_in_horizon",
+      "literal": "5",
+      "json_value": 5,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 180,
       "source": "reports/analytics/blind_round1_rescored.json",
       "path": "aggregate.within_horizon_current_criterion.detected",
       "literal": "5",
@@ -605,7 +609,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 179,
+      "line": 180,
       "source": "reports/analytics/blind_round1_rescored.json",
       "path": "aggregate.within_horizon_current_criterion.detection_rate",
       "literal": "100.0%",
@@ -613,7 +617,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 181,
+      "line": 182,
       "source": "reports/analytics/blind_round1_rescored.json",
       "path": "raw_metrics_identity_check.differing_paths_outside_horizon_view_total",
       "literal": "0",
@@ -621,7 +625,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 183,
+      "line": 190,
       "source": "reports/analytics/blind_round1_rescored.json",
       "path": "aggregate.raw_detection_rate_mean",
       "literal": "35.0%",
@@ -629,7 +633,23 @@
       "literal_found_in_line": true
     },
     {
-      "line": 184,
+      "line": 191,
+      "source": "reports/analytics/blind_round1_rescored.json",
+      "path": "aggregate.unscoreable_labels_total",
+      "literal": "12",
+      "json_value": 12,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 191,
+      "source": "reports/analytics/blind_summary.json",
+      "path": "meta.sweep.days",
+      "literal": "32",
+      "json_value": 32,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 192,
       "source": "reports/analytics/blind_round2_summary.json",
       "path": "aggregate.detection_rate.mean",
       "literal": "100%",
@@ -637,7 +657,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 194,
+      "line": 202,
       "source": "reports/analytics/detection_metrics.json",
       "path": "results.detection_rate",
       "literal": "90.0%",
@@ -645,7 +665,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 194,
+      "line": 202,
       "source": "reports/analytics/detection_metrics.json",
       "path": "results.counts.detected",
       "literal": "18",
@@ -653,7 +673,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 194,
+      "line": 202,
       "source": "reports/analytics/detection_metrics.json",
       "path": "results.counts.labeled",
       "literal": "20",
@@ -661,7 +681,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 194,
+      "line": 202,
       "source": "reports/analytics/blind_summary.json",
       "path": "aggregate.detection_rate.mean",
       "literal": "35.0%",
@@ -669,7 +689,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 194,
+      "line": 202,
       "source": "reports/analytics/blind_round2_summary.json",
       "path": "aggregate.detection_rate.mean",
       "literal": "100.0%",
@@ -677,7 +697,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 195,
+      "line": 203,
       "source": "reports/analytics/detection_metrics.json",
       "path": "results.false_positive_rate",
       "literal": "45.19%",
@@ -685,7 +705,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 195,
+      "line": 203,
       "source": "reports/analytics/detection_metrics.json",
       "path": "results.counts.false_positives",
       "literal": "47",
@@ -693,7 +713,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 195,
+      "line": 203,
       "source": "reports/analytics/detection_metrics.json",
       "path": "results.counts.normal",
       "literal": "104",
@@ -701,7 +721,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 195,
+      "line": 203,
       "source": "reports/analytics/blind_summary.json",
       "path": "aggregate.false_positive_rate.mean",
       "literal": "55.50%",
@@ -709,7 +729,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 195,
+      "line": 203,
       "source": "reports/analytics/blind_round2_summary.json",
       "path": "aggregate.false_positive_rate.mean",
       "literal": "44.67%",
@@ -717,7 +737,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 196,
+      "line": 204,
       "source": "reports/analytics/detection_metrics.json",
       "path": "results.danger_precision",
       "literal": "100.0%",
@@ -725,7 +745,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 196,
+      "line": 204,
       "source": "reports/analytics/blind_summary.json",
       "path": "aggregate.danger_precision.mean",
       "literal": "76.67%",
@@ -733,7 +753,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 196,
+      "line": 204,
       "source": "reports/analytics/blind_round2_summary.json",
       "path": "aggregate.danger_precision.mean",
       "literal": "100.0%",
@@ -741,7 +761,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 197,
+      "line": 205,
       "source": "reports/analytics/detection_metrics.json",
       "path": "results.lead_days.median",
       "literal": "26.5",
@@ -749,7 +769,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 197,
+      "line": 205,
       "source": "reports/analytics/blind_summary.json",
       "path": "aggregate.lead_days_median.mean",
       "literal": "45.5",
@@ -757,7 +777,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 197,
+      "line": 205,
       "source": "reports/analytics/blind_round2_summary.json",
       "path": "aggregate.lead_days_median.mean",
       "literal": "14.4",
@@ -765,7 +785,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 198,
+      "line": 206,
       "source": "reports/analytics/detection_metrics.json",
       "path": "results.risk_type_match.overall",
       "literal": "25.0%",
@@ -773,7 +793,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 198,
+      "line": 206,
       "source": "reports/analytics/blind_summary.json",
       "path": "aggregate.risk_type_match_overall.mean",
       "literal": "20.0%",
@@ -781,7 +801,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 198,
+      "line": 206,
       "source": "reports/analytics/blind_round2_summary.json",
       "path": "aggregate.risk_type_match_overall.mean",
       "literal": "30.0%",
@@ -789,7 +809,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 199,
+      "line": 207,
       "source": "reports/analytics/blind_round1_rescored.json",
       "path": "aggregate.unscoreable_labels_total",
       "literal": "12",
@@ -797,7 +817,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 199,
+      "line": 207,
       "source": "reports/analytics/blind_round1_rescored.json",
       "path": "aggregate.labels_total",
       "literal": "20",
@@ -805,7 +825,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 199,
+      "line": 207,
       "source": "reports/analytics/blind_round2_summary.json",
       "path": "aggregate.unscoreable_labels_total",
       "literal": "0",
@@ -813,7 +833,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 199,
+      "line": 207,
       "source": "reports/analytics/blind_round2_summary.json",
       "path": "aggregate.labels_total",
       "literal": "20",
@@ -821,7 +841,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 204,
+      "line": 212,
       "source": "reports/analytics/blind_round2_summary.json",
       "path": "aggregate.by_type_detected.supply_halt.detected",
       "literal": "5",
@@ -829,7 +849,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 204,
+      "line": 212,
       "source": "reports/analytics/blind_round2_summary.json",
       "path": "aggregate.by_type_detected.supply_halt.labeled",
       "literal": "5",
@@ -837,7 +857,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 205,
+      "line": 213,
       "source": "reports/analytics/blind_round2_summary.json",
       "path": "aggregate.risk_type_match_overall.mean",
       "literal": "30.0%",
@@ -845,7 +865,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 206,
+      "line": 214,
       "source": "reports/analytics/blind_round2_summary.json",
       "path": "aggregate.risk_type_match_by_type.supply_halt.matched",
       "literal": "0",
@@ -853,7 +873,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 206,
+      "line": 214,
       "source": "reports/analytics/blind_round2_summary.json",
       "path": "aggregate.risk_type_match_by_type.supply_halt.labeled",
       "literal": "5",
@@ -861,7 +881,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 206,
+      "line": 214,
       "source": "reports/analytics/blind_round2_summary.json",
       "path": "aggregate.risk_type_match_by_type.composite.matched",
       "literal": "0",
@@ -869,7 +889,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 206,
+      "line": 214,
       "source": "reports/analytics/blind_round2_summary.json",
       "path": "aggregate.risk_type_match_by_type.composite.labeled",
       "literal": "5",
@@ -877,7 +897,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 215,
+      "line": 223,
       "source": "reports/analytics/blind_round1_rescored.json",
       "path": "aggregate.labels_total",
       "literal": "20",
@@ -885,7 +905,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 215,
+      "line": 223,
       "source": "reports/analytics/blind_round1_rescored.json",
       "path": "aggregate.unscoreable_labels_total",
       "literal": "12",
@@ -893,7 +913,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 225,
+      "line": 233,
       "source": "reports/analytics/blind_round2_summary.json",
       "path": "aggregate.attempts_used.values[0]",
       "literal": "1",
@@ -901,7 +921,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 225,
+      "line": 233,
       "source": "reports/analytics/blind_round2_summary.json",
       "path": "aggregate.attempts_used.values[1]",
       "literal": "6",
@@ -909,7 +929,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 225,
+      "line": 233,
       "source": "reports/analytics/blind_round2_summary.json",
       "path": "aggregate.attempts_used.values[2]",
       "literal": "2",
@@ -917,7 +937,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 225,
+      "line": 233,
       "source": "reports/analytics/blind_round2_summary.json",
       "path": "aggregate.attempts_used.values[3]",
       "literal": "5",
@@ -925,7 +945,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 225,
+      "line": 233,
       "source": "reports/analytics/blind_round2_summary.json",
       "path": "aggregate.attempts_used.values[4]",
       "literal": "8",
@@ -933,7 +953,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 225,
+      "line": 233,
       "source": "reports/analytics/blind_round2_summary.json",
       "path": "aggregate.attempts_used.mean",
       "literal": "4.4",
@@ -941,7 +961,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 225,
+      "line": 233,
       "source": "reports/analytics/blind_round2_summary.json",
       "path": "aggregate.attempts_used.max",
       "literal": "8",
@@ -949,7 +969,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 234,
+      "line": 242,
       "source": "reports/analytics/blind_round2_summary.json",
       "path": "aggregate.lead_days_median.mean",
       "literal": "14.4",
@@ -957,7 +977,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 234,
+      "line": 242,
       "source": "reports/analytics/blind_round2_summary.json",
       "path": "aggregate.labels_total",
       "literal": "20",
@@ -965,7 +985,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 239,
+      "line": 247,
       "source": "reports/analytics/blind_round2_summary.json",
       "path": "blind_results[0].by_type.demand_surge.lead_days.min",
       "literal": "31",
@@ -973,7 +993,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 239,
+      "line": 247,
       "source": "reports/analytics/blind_round2_summary.json",
       "path": "blind_results[0].by_type.supply_halt.lead_days.min",
       "literal": "8",
@@ -981,7 +1001,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 239,
+      "line": 247,
       "source": "reports/analytics/blind_round2_summary.json",
       "path": "blind_results[0].by_type.delivery_delay.lead_days.min",
       "literal": "44",
@@ -989,151 +1009,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 239,
-      "source": "reports/analytics/blind_round2_summary.json",
-      "path": "blind_results[0].by_type.composite.lead_days.min",
-      "literal": "0",
-      "json_value": 0,
-      "literal_found_in_line": true
-    },
-    {
-      "line": 240,
-      "source": "reports/analytics/blind_round2_summary.json",
-      "path": "blind_results[1].by_type.demand_surge.lead_days.min",
-      "literal": "28",
-      "json_value": 28,
-      "literal_found_in_line": true
-    },
-    {
-      "line": 240,
-      "source": "reports/analytics/blind_round2_summary.json",
-      "path": "blind_results[1].by_type.supply_halt.lead_days.min",
-      "literal": "6",
-      "json_value": 6,
-      "literal_found_in_line": true
-    },
-    {
-      "line": 240,
-      "source": "reports/analytics/blind_round2_summary.json",
-      "path": "blind_results[1].by_type.delivery_delay.lead_days.min",
-      "literal": "12",
-      "json_value": 12,
-      "literal_found_in_line": true
-    },
-    {
-      "line": 240,
-      "source": "reports/analytics/blind_round2_summary.json",
-      "path": "blind_results[1].by_type.composite.lead_days.min",
-      "literal": "3",
-      "json_value": 3,
-      "literal_found_in_line": true
-    },
-    {
-      "line": 241,
-      "source": "reports/analytics/blind_round2_summary.json",
-      "path": "blind_results[2].by_type.demand_surge.lead_days.min",
-      "literal": "25",
-      "json_value": 25,
-      "literal_found_in_line": true
-    },
-    {
-      "line": 241,
-      "source": "reports/analytics/blind_round2_summary.json",
-      "path": "blind_results[2].by_type.supply_halt.lead_days.min",
-      "literal": "7",
-      "json_value": 7,
-      "literal_found_in_line": true
-    },
-    {
-      "line": 241,
-      "source": "reports/analytics/blind_round2_summary.json",
-      "path": "blind_results[2].by_type.delivery_delay.lead_days.min",
-      "literal": "59",
-      "json_value": 59,
-      "literal_found_in_line": true
-    },
-    {
-      "line": 241,
-      "source": "reports/analytics/blind_round2_summary.json",
-      "path": "blind_results[2].by_type.composite.lead_days.min",
-      "literal": "5",
-      "json_value": 5,
-      "literal_found_in_line": true
-    },
-    {
-      "line": 242,
-      "source": "reports/analytics/blind_round2_summary.json",
-      "path": "blind_results[3].by_type.demand_surge.lead_days.min",
-      "literal": "29",
-      "json_value": 29,
-      "literal_found_in_line": true
-    },
-    {
-      "line": 242,
-      "source": "reports/analytics/blind_round2_summary.json",
-      "path": "blind_results[3].by_type.supply_halt.lead_days.min",
-      "literal": "9",
-      "json_value": 9,
-      "literal_found_in_line": true
-    },
-    {
-      "line": 242,
-      "source": "reports/analytics/blind_round2_summary.json",
-      "path": "blind_results[3].by_type.delivery_delay.lead_days.min",
-      "literal": "32",
-      "json_value": 32,
-      "literal_found_in_line": true
-    },
-    {
-      "line": 242,
-      "source": "reports/analytics/blind_round2_summary.json",
-      "path": "blind_results[3].by_type.composite.lead_days.min",
-      "literal": "4",
-      "json_value": 4,
-      "literal_found_in_line": true
-    },
-    {
-      "line": 243,
-      "source": "reports/analytics/blind_round2_summary.json",
-      "path": "blind_results[4].by_type.demand_surge.lead_days.min",
-      "literal": "26",
-      "json_value": 26,
-      "literal_found_in_line": true
-    },
-    {
-      "line": 243,
-      "source": "reports/analytics/blind_round2_summary.json",
-      "path": "blind_results[4].by_type.supply_halt.lead_days.min",
-      "literal": "8",
-      "json_value": 8,
-      "literal_found_in_line": true
-    },
-    {
-      "line": 243,
-      "source": "reports/analytics/blind_round2_summary.json",
-      "path": "blind_results[4].by_type.delivery_delay.lead_days.min",
-      "literal": "9",
-      "json_value": 9,
-      "literal_found_in_line": true
-    },
-    {
-      "line": 243,
-      "source": "reports/analytics/blind_round2_summary.json",
-      "path": "blind_results[4].by_type.composite.lead_days.min",
-      "literal": "5",
-      "json_value": 5,
-      "literal_found_in_line": true
-    },
-    {
-      "line": 245,
-      "source": "reports/analytics/blind_round2_summary.json",
-      "path": "blind_results[0].by_type.composite.lead_days.min",
-      "literal": "0",
-      "json_value": 0,
-      "literal_found_in_line": true
-    },
-    {
-      "line": 246,
+      "line": 247,
       "source": "reports/analytics/blind_round2_summary.json",
       "path": "blind_results[0].by_type.composite.lead_days.min",
       "literal": "0",
@@ -1143,13 +1019,157 @@
     {
       "line": 248,
       "source": "reports/analytics/blind_round2_summary.json",
+      "path": "blind_results[1].by_type.demand_surge.lead_days.min",
+      "literal": "28",
+      "json_value": 28,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 248,
+      "source": "reports/analytics/blind_round2_summary.json",
+      "path": "blind_results[1].by_type.supply_halt.lead_days.min",
+      "literal": "6",
+      "json_value": 6,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 248,
+      "source": "reports/analytics/blind_round2_summary.json",
+      "path": "blind_results[1].by_type.delivery_delay.lead_days.min",
+      "literal": "12",
+      "json_value": 12,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 248,
+      "source": "reports/analytics/blind_round2_summary.json",
+      "path": "blind_results[1].by_type.composite.lead_days.min",
+      "literal": "3",
+      "json_value": 3,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 249,
+      "source": "reports/analytics/blind_round2_summary.json",
+      "path": "blind_results[2].by_type.demand_surge.lead_days.min",
+      "literal": "25",
+      "json_value": 25,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 249,
+      "source": "reports/analytics/blind_round2_summary.json",
+      "path": "blind_results[2].by_type.supply_halt.lead_days.min",
+      "literal": "7",
+      "json_value": 7,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 249,
+      "source": "reports/analytics/blind_round2_summary.json",
+      "path": "blind_results[2].by_type.delivery_delay.lead_days.min",
+      "literal": "59",
+      "json_value": 59,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 249,
+      "source": "reports/analytics/blind_round2_summary.json",
+      "path": "blind_results[2].by_type.composite.lead_days.min",
+      "literal": "5",
+      "json_value": 5,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 250,
+      "source": "reports/analytics/blind_round2_summary.json",
+      "path": "blind_results[3].by_type.demand_surge.lead_days.min",
+      "literal": "29",
+      "json_value": 29,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 250,
+      "source": "reports/analytics/blind_round2_summary.json",
+      "path": "blind_results[3].by_type.supply_halt.lead_days.min",
+      "literal": "9",
+      "json_value": 9,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 250,
+      "source": "reports/analytics/blind_round2_summary.json",
+      "path": "blind_results[3].by_type.delivery_delay.lead_days.min",
+      "literal": "32",
+      "json_value": 32,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 250,
+      "source": "reports/analytics/blind_round2_summary.json",
+      "path": "blind_results[3].by_type.composite.lead_days.min",
+      "literal": "4",
+      "json_value": 4,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 251,
+      "source": "reports/analytics/blind_round2_summary.json",
+      "path": "blind_results[4].by_type.demand_surge.lead_days.min",
+      "literal": "26",
+      "json_value": 26,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 251,
+      "source": "reports/analytics/blind_round2_summary.json",
+      "path": "blind_results[4].by_type.supply_halt.lead_days.min",
+      "literal": "8",
+      "json_value": 8,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 251,
+      "source": "reports/analytics/blind_round2_summary.json",
+      "path": "blind_results[4].by_type.delivery_delay.lead_days.min",
+      "literal": "9",
+      "json_value": 9,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 251,
+      "source": "reports/analytics/blind_round2_summary.json",
+      "path": "blind_results[4].by_type.composite.lead_days.min",
+      "literal": "5",
+      "json_value": 5,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 253,
+      "source": "reports/analytics/blind_round2_summary.json",
+      "path": "blind_results[0].by_type.composite.lead_days.min",
+      "literal": "0",
+      "json_value": 0,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 254,
+      "source": "reports/analytics/blind_round2_summary.json",
+      "path": "blind_results[0].by_type.composite.lead_days.min",
+      "literal": "0",
+      "json_value": 0,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 256,
+      "source": "reports/analytics/blind_round2_summary.json",
       "path": "aggregate.detection_rate.mean",
       "literal": "100%",
       "json_value": 1.0,
       "literal_found_in_line": true
     },
     {
-      "line": 252,
+      "line": 260,
       "source": "reports/analytics/blind_round2_summary.json",
       "path": "aggregate.false_positive_rate.mean",
       "literal": "44.67%",
@@ -1157,7 +1177,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 252,
+      "line": 260,
       "source": "reports/analytics/detection_metrics.json",
       "path": "results.false_positive_rate",
       "literal": "45.19%",
@@ -1165,7 +1185,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 257,
+      "line": 265,
       "source": "reports/analytics/blind_round2_summary.json",
       "path": "comparison.false_positive_rate.delta_round2_minus_standard",
       "literal": "-0.52%p",
@@ -1173,7 +1193,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 260,
+      "line": 268,
       "source": "reports/analytics/detection_metrics.json",
       "path": "results.sweep.days",
       "literal": "32",
@@ -1181,7 +1201,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 261,
+      "line": 269,
       "source": "reports/analytics/detection_metrics.json",
       "path": "results.threshold_warning.false_positive_rate",
       "literal": "3.85%",
@@ -1189,7 +1209,23 @@
       "literal_found_in_line": true
     },
     {
-      "line": 277,
+      "line": 275,
+      "source": "data/blind/manifest.json",
+      "path": "runs[5].params_summary.scenario_type_counts.demand_surge",
+      "literal": "1",
+      "json_value": 1,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 276,
+      "source": "data/blind/manifest.json",
+      "path": "runs[5].params_summary.scenario_item_count",
+      "literal": "4",
+      "json_value": 4,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 287,
       "source": "reports/analytics/forecast_mape.json",
       "path": "horizon_days",
       "literal": "14",
@@ -1197,7 +1233,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 278,
+      "line": 288,
       "source": "reports/analytics/forecast_mape.json",
       "path": "overall.items_evaluated",
       "literal": "248",
@@ -1205,7 +1241,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 282,
+      "line": 292,
       "source": "reports/analytics/forecast_mape.json",
       "path": "overall.ses_mape_mean",
       "literal": "32.05%",
@@ -1213,7 +1249,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 282,
+      "line": 292,
       "source": "reports/analytics/forecast_mape.json",
       "path": "overall.sma_mape_mean",
       "literal": "31.25%",
@@ -1221,7 +1257,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 283,
+      "line": 293,
       "source": "reports/analytics/forecast_mape.json",
       "path": "overall.ses_mape_median",
       "literal": "31.25%",
@@ -1229,7 +1265,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 283,
+      "line": 293,
       "source": "reports/analytics/forecast_mape.json",
       "path": "overall.sma_mape_median",
       "literal": "30.61%",
@@ -1237,7 +1273,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 285,
+      "line": 295,
       "source": "reports/analytics/forecast_mape.json",
       "path": "overall.baseline_improved",
       "literal": "-2.56%p",
@@ -1245,7 +1281,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 286,
+      "line": 296,
       "source": "reports/analytics/forecast_mape.json",
       "path": "overall.ses_win_rate",
       "literal": "33.06%",
@@ -1253,7 +1289,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 302,
+      "line": 312,
       "source": "reports/platform/e2e_results.json",
       "path": "runs",
       "literal": "10",
@@ -1261,7 +1297,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 302,
+      "line": 312,
       "source": "reports/platform/e2e_results.json",
       "path": "passed_runs",
       "literal": "10",
@@ -1269,7 +1305,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 302,
+      "line": 312,
       "source": "reports/platform/e2e_results.json",
       "path": "runs",
       "literal": "10",
@@ -1277,7 +1313,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 302,
+      "line": 312,
       "source": "reports/platform/e2e_results.json",
       "path": "verdict",
       "literal": "true",
@@ -1285,7 +1321,7 @@
       "literal_found_in_line": false
     },
     {
-      "line": 309,
+      "line": 319,
       "source": "reports/platform/perf_results.json",
       "path": "repeats",
       "literal": "30",
@@ -1293,7 +1329,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 314,
+      "line": 324,
       "source": "reports/platform/perf_results.json",
       "path": "targets.list_items.p95_ms",
       "literal": "0.7",
@@ -1301,7 +1337,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 315,
+      "line": 325,
       "source": "reports/platform/perf_results.json",
       "path": "targets.load_overview.p95_ms",
       "literal": "4.8",
@@ -1309,7 +1345,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 316,
+      "line": 326,
       "source": "reports/platform/perf_results.json",
       "path": "targets.load_item_detail.p95_ms",
       "literal": "2.7",
@@ -1317,7 +1353,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 317,
+      "line": 327,
       "source": "reports/platform/perf_results.json",
       "path": "targets.assess_snapshot.p95_ms",
       "literal": "416.5",
@@ -1325,7 +1361,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 318,
+      "line": 328,
       "source": "reports/platform/perf_results.json",
       "path": "targets.notice_detail_sweep.p95_ms",
       "literal": "0.3",
@@ -1333,7 +1369,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 321,
+      "line": 331,
       "source": "reports/platform/perf_results.json",
       "path": "verdict",
       "literal": "true",
@@ -1341,7 +1377,7 @@
       "literal_found_in_line": false
     },
     {
-      "line": 325,
+      "line": 335,
       "source": "reports/platform/reproducibility.json",
       "path": "runs",
       "literal": "5",
@@ -1349,7 +1385,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 331,
+      "line": 341,
       "source": "reports/platform/reproducibility.json",
       "path": "generation.runs",
       "literal": "5",
@@ -1357,7 +1393,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 331,
+      "line": 341,
       "source": "reports/platform/reproducibility.json",
       "path": "generation.identical",
       "literal": "true",
@@ -1365,7 +1401,7 @@
       "literal_found_in_line": false
     },
     {
-      "line": 331,
+      "line": 341,
       "source": "reports/platform/reproducibility.json",
       "path": "generation.anchor_match",
       "literal": "true",
@@ -1373,7 +1409,7 @@
       "literal_found_in_line": false
     },
     {
-      "line": 332,
+      "line": 342,
       "source": "reports/platform/reproducibility.json",
       "path": "batch.runs",
       "literal": "5",
@@ -1381,7 +1417,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 332,
+      "line": 342,
       "source": "reports/platform/reproducibility.json",
       "path": "batch.row_count",
       "literal": "124",
@@ -1389,7 +1425,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 332,
+      "line": 342,
       "source": "reports/platform/reproducibility.json",
       "path": "batch.identical",
       "literal": "true",
@@ -1397,7 +1433,7 @@
       "literal_found_in_line": false
     },
     {
-      "line": 333,
+      "line": 343,
       "source": "reports/platform/reproducibility.json",
       "path": "detection.runs",
       "literal": "5",
@@ -1405,7 +1441,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 333,
+      "line": 343,
       "source": "reports/platform/reproducibility.json",
       "path": "detection.identical",
       "literal": "true",
@@ -1413,7 +1449,7 @@
       "literal_found_in_line": false
     },
     {
-      "line": 333,
+      "line": 343,
       "source": "reports/platform/reproducibility.json",
       "path": "detection.db_unchanged",
       "literal": "true",
@@ -1421,7 +1457,7 @@
       "literal_found_in_line": false
     },
     {
-      "line": 335,
+      "line": 345,
       "source": "reports/platform/reproducibility.json",
       "path": "generation.runs",
       "literal": "5",
@@ -1429,7 +1465,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 337,
+      "line": 347,
       "source": "reports/platform/reproducibility.json",
       "path": "generation.anchor_match",
       "literal": "true",
@@ -1437,7 +1473,7 @@
       "literal_found_in_line": false
     },
     {
-      "line": 349,
+      "line": 359,
       "source": "eval/cases/eval_cases_v1.json",
       "path": "meta.case_count",
       "literal": "40",
@@ -1484,7 +1520,14 @@
       ]
     },
     {
-      "line": 245,
+      "line": 191,
+      "reason": "S-30b 조사의 전수 분류값(재고 0으로 스윕 내내 '위험'이던 10건) — 측정 JSON에 스칼라로 없다",
+      "tokens": [
+        "10"
+      ]
+    },
+    {
+      "line": 253,
       "reason": "위 표의 마킹된 20개 값에서 계산한 분포(중앙값·3일 이하 건수) — 합산값 자체는 JSON에 없다",
       "tokens": [
         "2",
@@ -1492,19 +1535,27 @@
         "3",
         "9.0"
       ]
+    },
+    {
+      "line": 274,
+      "reason": "S-30c 실측 공시값(reports/analytics/blind_round2_summary.json disclosures[1] 문자열 안에만 있어 스칼라로 마킹할 수 없다)",
+      "tokens": [
+        "0",
+        "3"
+      ]
     }
   ],
   "allowed_tokens_by_rule": {
-    "code_span": 8,
+    "code_span": 14,
     "heading_number": 23,
-    "html_comment": 195,
-    "identifier": 2,
+    "html_comment": 206,
+    "identifier": 3,
     "iso_date": 18,
-    "ko_ordinal": 40,
-    "list_number": 13,
+    "ko_ordinal": 44,
+    "list_number": 14,
     "percentile_label": 0,
-    "section_ref": 12,
-    "seed": 5,
+    "section_ref": 15,
+    "seed": 7,
     "table_separator": 0
   },
   "required_paths": {
