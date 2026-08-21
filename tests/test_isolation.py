@@ -198,6 +198,11 @@ SCRIPTS_PATH_TARGETS: dict[Path, tuple[str, ...]] = {
     # 직접 호출하는 애플리케이션 계층이지만, 시나리오·정답 경로와는 무관하므로 data/scenarios·
     # ground_truth 둘 다 전면 금지(예외 없음).
     REPO_ROOT / "scripts" / "run_e2e.py": (),
+    # 성능 측정 하니스(Task M-29) — 캐시 우회 원 함수(list_items·load_overview·
+    # load_item_detail·assess_snapshot·get_notice_detail)를 반복 호출해 지연을 실측하는
+    # 애플리케이션 계층이지만, 시나리오·정답 경로와는 무관하므로 data/scenarios·ground_truth
+    # 둘 다 전면 금지(예외 없음).
+    REPO_ROOT / "scripts" / "measure_perf.py": (),
 }
 
 FORWARD_PATH_TARGETS = [*FORWARD_TARGETS, *SCRIPTS_PATH_TARGETS]
