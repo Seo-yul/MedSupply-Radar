@@ -17,3 +17,9 @@ data/blind/*
 # 미커밋. S-28 본실행 산출물은 그 시점에 커밋 여부를 별도 판단한다(task-S27-brief.md §격리).
 eval/results/*
 !eval/results/.gitkeep
+
+# 로컬 산출 데이터(재생성 절차: README 빠른 시작 — 앵커 c34bf4cb 검증)
+data/medsupply.db
+data/medsupply.db-wal
+data/medsupply.db-shm
+data/llm_cache.db
