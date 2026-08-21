@@ -79,6 +79,41 @@ compound:
     - [demand_surge, supply_halt]
     - [supply_halt, delivery_delay]
 
+# ── 정상 품목 미끼(decoys) — 컨트롤러 리뷰 F1(픽스 라운드 1, M-30 전 필수) ────────────
+# 결함: "actual_date>expected_date OR (actual_date IS NULL AND expected_date<base_date)"
+# 같은 단순 SQL 하나가 시나리오 품목 4개를 오탐 0으로 완전히 역산해낸다 — 정상 품목은
+# 입고 지연·연체 신호를 원천적으로 하나도 안 갖기 때문이다(baseline 궤적은 전부 제때
+# 도착). 블라인드 평가는 "데이터 패턴에서 위험을 찾아내는지"를 테스트해야지 "어느 품목이
+# 시나리오 품목인지 SQL 한 줄로 새는지"를 테스트하면 안 된다. 표준 경로(scenario_config.yaml
+# 기반 20건 생성)는 이 절의 영향을 받지 않는다 — 미끼는 blind.py의 생성 후처리 단계에서만
+# 주입된다.
+decoys:
+  # 미끼 앵커 날짜(expected_date) 공통 구간 — base_date 기준 상대 오프셋(일, 음수=과거).
+  # scenario_start_offset_days_range보다 base_date에 더 가깝게 잡아 "최근 발주" 느낌을
+  # 유지한다.
+  target_offset_days_range: {min: -60, max: -10}
+
+  # 미끼 1: 경미한 지연 도착 — receipt_delay_days(3, config/analytics_params.toml) 미만이라
+  # anomaly.detect_receipt_delay가 신호를 내지 않는다(이상신호·등급·점수 불변) — 순수하게
+  # "정상 품목도 입고가 정확히 제때 오지만은 않는다"는 노이즈만 더한다. 자연 발주 매칭
+  # 여부(natural/forced)는 inject._resolve_effects가 기존 규칙 그대로 결정한다(±7일 밖이면
+  # 강제 생성 arm으로 자동 분기 — 미끼 전용 특별 취급 없음).
+  minor_delay_ratio_range: {min: 0.05, max: 0.15}
+  minor_delay_days_choices: [1, 2]
+
+  # 미끼 2: 안전 연체(고커버리지 정상 품목 전용) — 발주 1건을 영구 미이행(actual_date NULL)
+  # 상태로 추가해 "연체" 시그니처를 만들되, 재고 궤적(stock_usage_daily)에는 손대지
+  # 않는다(day-loop 상태기계 밖의 합성 행 — inject._item_reorder_profile로 reorder_qty·
+  # lead_time만 조회해 직접 구성). 적격성 = 현재고(base_date 시점)/평균 사용량(전체 구간) >
+  # safe_overdue_min_coverage_days — overdue_cutoff(연체 1건이라도 있으면 그 품목의 미래
+  # 예정 입고를 전부 미반영하는 보수 전환, medsupply/analytics/depletion.py)가 걸려도
+  # '주의' 미진입(watch_days=30, config/analytics_params.toml)이 보장되는 품목에만 준다.
+  # safe_overdue_min_coverage_days=44는 watch_days(30)+14일 마진이다(격리 원칙상 이
+  # 모듈이 medsupply를 import할 수 없어 상수로 복제 — config/analytics_params.toml의
+  # watch_days가 바뀌면 이 값도 같이 맞춰야 한다).
+  safe_overdue_min_coverage_days: 44
+  safe_overdue_target_ratio: 0.10   # 목표 비율(적격 품목이 부족하면 있는 만큼만, 강제 금지)
+
 # ── 생성기 안정성 가드 ──────────────────────────────────────────────────
 # 위 구간에서 뽑은 (품목, 파라미터) 조합이 우연히 물리적으로 무효과(예: 임의 품목의 재고
 # 리듬상 halt 기간 중 재주문점 밑으로 안 내려감 — inject.py의 _assert_effects_effective가

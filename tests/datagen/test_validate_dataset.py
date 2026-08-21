@@ -2,7 +2,7 @@
 
 두 개의 섹션으로 나뉜다.
 
-섹션 A(TestAllChecksPassOnValidDb 이하)는 scripts/validate_dataset.py의 10개 검사 항목을
+섹션 A(TestAllChecksPassOnValidDb 이하)는 scripts/validate_dataset.py의 11개 검사 항목을
 검증한다. 실제 표준 스냅샷(124품목×365일)을 매번 생성하면 느리므로, 스키마(schema.sql)만
 그대로 적용한 소형 DB(품목 3개×5일)를 직접 구성해 "정상 데이터에서는 전 항목 PASS"를
 확인하고, 그 DB를 고의로 훼손해 각 항목이 FAIL을 검출하는지 검증한다.
@@ -54,7 +54,7 @@ BASE_DATE = "2026-08-01"
 
 
 def build_valid_db(path: Path) -> None:
-    """스키마(schema.sql) + 정상 데이터로 채운 소형 DB. validate_dataset 10항목 전부 PASS 기대.
+    """스키마(schema.sql) + 정상 데이터로 채운 소형 DB. validate_dataset 11항목 전부 PASS 기대.
 
     품목 3개, 각 5일치 stock_usage_daily(항등식 성립·비음수), 각 2건의 incoming_shipments
     (완료 1 + 예정 1, status/actual_date/expected_qty 전부 정합), action_history 8건(유형별
@@ -149,16 +149,16 @@ def valid_conn(valid_db_path: Path) -> Iterator[sqlite3.Connection]:
 
 
 # ---------------------------------------------------------------------------
-# 섹션 A-1: 정상 DB에서 10항목 전부 PASS
+# 섹션 A-1: 정상 DB에서 11항목 전부 PASS
 # ---------------------------------------------------------------------------
 
 
 class TestAllChecksPassOnValidDb:
-    def test_run_all_checks_returns_ten_results_all_pass(
+    def test_run_all_checks_returns_eleven_results_all_pass(
         self, valid_conn: sqlite3.Connection
     ) -> None:
         results = vd.run_all_checks(valid_conn)
-        assert len(results) == 10
+        assert len(results) == 11
         statuses = {name: result.status for name, result in results}
         assert all(status == "PASS" for status in statuses.values()), statuses
 
@@ -175,6 +175,7 @@ class TestAllChecksPassOnValidDb:
         assert vd.check_pre_batch_tables_empty(valid_conn).status == "PASS"
         assert vd.check_action_history_seed(valid_conn).status == "PASS"
         assert vd.check_content_hash(valid_conn, None).status == "PASS"
+        assert vd.check_arrival_ledger_consistency(valid_conn).status == "PASS"
 
     def test_content_hash_passes_with_matching_expect_hash(
         self, valid_conn: sqlite3.Connection
@@ -221,6 +222,39 @@ class TestCorruptionDetection:
         )
         conn.commit()
         result = vd.check_shipments(conn)
+        conn.close()
+        assert result.status == "FAIL"
+
+    def test_ghost_income_fails_when_ledger_missing_arrived_qty(
+        self, valid_db_path: Path
+    ) -> None:
+        """검사 11(Task S-22 픽스 라운드 1 F2, 컨트롤러 리뷰): incoming_shipments가 '도착
+        완료'로 기록한 수량이 같은 (item_id, date)의 stock_usage_daily.incoming_qty에
+        없으면(유령 입고) FAIL이어야 한다."""
+        conn = sqlite3.connect(valid_db_path)
+        conn.execute(
+            "UPDATE stock_usage_daily SET incoming_qty = 0"
+            " WHERE item_id = ? AND date = '2026-07-30'",
+            (ITEM_IDS[0],),
+        )
+        conn.commit()
+        result = vd.check_arrival_ledger_consistency(conn)
+        conn.close()
+        assert result.status == "FAIL"
+
+    def test_ghost_income_fails_when_arrival_date_outside_timeseries(
+        self, valid_db_path: Path
+    ) -> None:
+        """도착 기록의 actual_date가 그 품목의 stock_usage_daily 범위 밖(행 자체가 없음)이면
+        FAIL이어야 한다(재고 궤적에 반영될 자리조차 없다는 뜻)."""
+        conn = sqlite3.connect(valid_db_path)
+        conn.execute(
+            "UPDATE incoming_shipments SET actual_date = '2099-01-01'"
+            " WHERE item_id = ? AND status = '입고 완료'",
+            (ITEM_IDS[0],),
+        )
+        conn.commit()
+        result = vd.check_arrival_ledger_consistency(conn)
         conn.close()
         assert result.status == "FAIL"
 
@@ -381,7 +415,7 @@ class TestPreBatchWarnPath:
         conn.close()
         assert not any(r.status == "FAIL" for _name, r in all_results)
         passed = sum(1 for _name, r in all_results if r.status != "FAIL")
-        assert passed == 10
+        assert passed == 11
 
 
 # ---------------------------------------------------------------------------
@@ -421,7 +455,7 @@ class TestCliExitCode:
             capture_output=True, text=True, cwd=REPO_ROOT,
         )
         assert proc.returncode == 0, proc.stdout + proc.stderr
-        assert "VALIDATION PASSED (10/10)" in proc.stdout
+        assert "VALIDATION PASSED (11/11)" in proc.stdout
 
     def test_corrupted_db_exits_one_and_prints_failed(self, valid_db_path: Path) -> None:
         conn = sqlite3.connect(valid_db_path)
@@ -462,7 +496,7 @@ class TestCliExitCode:
             capture_output=True, text=True, cwd=REPO_ROOT,
         )
         assert proc.returncode == 0
-        assert "VALIDATION PASSED (10/10)" in proc.stdout
+        assert "VALIDATION PASSED (11/11)" in proc.stdout
 
     def test_missing_db_file_exits_one(self, tmp_path: Path) -> None:
         missing = tmp_path / "does_not_exist.db"

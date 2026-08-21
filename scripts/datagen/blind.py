@@ -50,10 +50,6 @@ DEFAULT_ACTION_HISTORY_SEED_PATH = baseline.DEFAULT_REFERENCE_DIR / "action_hist
 #: composite가 아닌, 단독으로 뽑을 수 있는 유형 3종(순서 고정 — 품목 배정 순서와 일치).
 _STANDALONE_TYPES: tuple[str, ...] = ("demand_surge", "supply_halt", "delivery_delay")
 
-#: 유형별 앵커 파라미터 키(config.ANCHOR_DATE_KEYS와 동일 — 여기서 재정의하지 않고 그대로
-#: 참조하면 config.py 쪽 정의가 바뀔 때 자동으로 맞물린다).
-_ANCHOR_KEY = config.ANCHOR_DATE_KEYS
-
 
 # ---------------------------------------------------------------------------
 # 범위 YAML 로딩 · 서브시드
@@ -183,6 +179,17 @@ def build_blind_config(
     재시도할 때만 바뀌는 서브시드 네임스페이스 접두어다(같은 seed라도 attempt가 다르면
     다른 조합이 나온다 — generate_blind의 재시도 루프가 사용).
     """
+    # F4(S-22 픽스 라운드 1, 컨트롤러 리뷰): 아래 로직 전체(zip으로 유형당 정확히 1개씩
+    # 배정)는 scenario_items_per_type == 1을 하드코딩된 전제로 삼는다 — YAML 값을 읽어만
+    # 두고 실제로 그 값에 맞춰 일반화하지는 않으므로, 값이 어긋나면 조용히 틀린 배분을
+    # 만드는 대신 여기서 바로 명확하게 실패한다.
+    per_type = int(ranges["item_allocation"]["scenario_items_per_type"])
+    if per_type != 1:
+        raise ValueError(
+            f"item_allocation.scenario_items_per_type={per_type} 은 지원하지 않는다"
+            " — build_blind_config는 유형당 정확히 1개 배정만 구현했다(고정값 1 필요)"
+        )
+
     timeline_start = base_date - timedelta(days=364)
     all_item_ids = _load_item_ids(items_csv)
     if len(all_item_ids) < 4:
@@ -259,6 +266,169 @@ def _validate_normal_item_count(ranges: dict[str, Any], total_items: int) -> Non
             f"정상 품목 수({normal_count})가 blind_ranges.yaml의 normal_item_count_range"
             f"({band['min']}~{band['max']}) 밖이다 — 카탈로그 크기가 바뀌었는지 확인해야 한다"
         )
+
+
+# ---------------------------------------------------------------------------
+# 정상 품목 미끼(decoys) — Task S-22 픽스 라운드 1 F1(컨트롤러 리뷰, M-30 전 필수)
+#
+# 결함: "actual_date>expected_date OR (actual_date IS NULL AND expected_date<base_date)"
+# 하나로 시나리오 품목 4개를 오탐 0으로 역산할 수 있었다(정상 품목은 baseline 궤적상 이
+# 조건을 원천적으로 만족할 수 없다). 미끼는 이 시그니처를 정상 품목 일부에도 심어 흐린다.
+# out DB에는 여전히 시나리오·라벨 흔적이 없다(미끼도 라벨화하지 않는다 — cfg.scenarios에
+# 추가하지 않고 별도 후처리로만 주입).
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class DecoyReport:
+    """미끼 주입 결과 요약. item_id는 담지 않는다(정상 품목 중 어떤 것이 미끼를 받았는지도
+    비노출 원칙 — manifest_entry의 params_summary에 그대로 실릴 수 있는 값이므로)."""
+
+    candidate_count: int
+    minor_delay_count: int
+    safe_overdue_eligible_count: int
+    safe_overdue_count: int
+
+
+def _coverage_days(conn: sqlite3.Connection, item_id: str, base_date: date) -> float | None:
+    """현재고(base_date 시점 closing_stock) / 평균 사용량(전체 관측 구간). 그 날짜 행이
+    없거나 평균 사용량이 0 이하면 None(적격성 계산 불가 — 안전하게 부적격 취급)."""
+    stock_row = conn.execute(
+        "SELECT closing_stock FROM stock_usage_daily WHERE item_id = ? AND date = ?",
+        (item_id, base_date.isoformat()),
+    ).fetchone()
+    if stock_row is None:
+        return None
+    avg_row = conn.execute(
+        "SELECT AVG(usage_qty) FROM stock_usage_daily WHERE item_id = ?", (item_id,)
+    ).fetchone()
+    avg_usage = avg_row[0] if avg_row is not None else None
+    if not avg_usage:
+        return None
+    return stock_row[0] / avg_usage
+
+
+def _apply_minor_delay_decoy(
+    conn: sqlite3.Connection,
+    item_id: str,
+    seed: int,
+    base_date: date,
+    days: list[date],
+    decoy_ranges: dict[str, Any],
+    rng: random.Random,
+) -> None:
+    """미끼 1: 1~2일 지연 도착(receipt_delay_days=3 미만이라 이상신호·등급 불변). 표준
+    delivery_delay 해석 경로(inject._resolve_effects)를 그대로 재사용한다 — 자연/강제 arm
+    분기·도착 credit(F2 ForcedArrival) 전부 동일 로직이다. 라벨화하지 않는다(가짜
+    Scenario는 라벨 도출용 cfg.scenarios에 들어가지 않는다 — 오직 이 함수 안에서만 쓰고
+    버려진다)."""
+    item_row = inject._load_item_row(conn, item_id)
+    offset_range = decoy_ranges["target_offset_days_range"]
+    offset = rng.randint(int(offset_range["min"]), int(offset_range["max"]))
+    target_expected = base_date + timedelta(days=offset)
+    delay_days = int(rng.choice(decoy_ranges["minor_delay_days_choices"]))
+
+    fake_sc = config.Scenario(
+        scenario_id=f"DECOY-MINOR-{item_id}",
+        item_id=item_id,
+        type="delivery_delay",
+        reference="블라인드 미끼(정상 품목 역산 방지, Task S-22 픽스 라운드 1 F1)",
+        params={
+            "expected_date": target_expected.isoformat(),
+            "delay_days": delay_days,
+            "qty_ratio": None,
+            "arrives_late": True,
+        },
+    )
+    _de, _he, delay_effects, forced_rows, forced_arrivals, _onset = inject._resolve_effects(
+        fake_sc, item_row, seed, days
+    )
+    stock_rows, shipment_rows, _trunc, _trace = inject.simulate_item_with_scenario(
+        item_row, seed, days, delay_effects=delay_effects, forced_arrivals=forced_arrivals
+    )
+    shipment_rows = shipment_rows + forced_rows
+    inject.replace_item_rows(conn, item_id, stock_rows, shipment_rows)
+
+
+def _apply_safe_overdue_decoy(
+    conn: sqlite3.Connection, item_id: str, seed: int, target_expected: date
+) -> None:
+    """미끼 2: 영구 미이행 발주 1건을 day-loop 밖에서 직접 합성해 INSERT한다(적격성은
+    호출부가 이미 확인했다). day-loop을 거치지 않으므로 재고 궤적(stock_usage_daily)에는
+    전혀 손대지 않는다 — actual_date가 NULL이라 F2의 도착 장부 정합(검사 11) 대상도 아니다
+    (그 검사는 actual_date IS NOT NULL 건만 본다). inject._item_reorder_profile로
+    reorder_qty·lead_time만 순수 조회한다(시뮬레이션 재실행 없음)."""
+    item_row = inject._load_item_row(conn, item_id)
+    reorder_qty, lead_time = inject._item_reorder_profile(item_row, seed)
+    order_date = target_expected - timedelta(days=lead_time)
+    conn.execute(
+        "INSERT INTO incoming_shipments(item_id, order_date, expected_date, expected_qty,"
+        " actual_date, actual_qty, status) VALUES (?, ?, ?, ?, NULL, NULL, '입고 예정')",
+        (item_id, order_date.isoformat(), target_expected.isoformat(), int(reorder_qty)),
+    )
+
+
+def inject_decoys(
+    conn: sqlite3.Connection,
+    ranges: dict[str, Any],
+    seed: int,
+    attempt: int,
+    base_date: date,
+    days: list[date],
+    exclude_item_ids: set[str],
+) -> DecoyReport:
+    """정상 품목(exclude_item_ids 제외) 일부에 미끼 2종을 결정적으로 주입한다.
+
+    미끼 1(경미한 지연 도착)과 미끼 2(안전 연체)는 겹치지 않는 별도 품목 집합에 적용한다.
+    미끼 2는 적격 품목(현재고/평균사용량 > safe_overdue_min_coverage_days)에만 주고,
+    목표 개수보다 적격 품목이 적으면 있는 만큼만 준다(강제 금지 — 브리프 그대로).
+    """
+    decoy_ranges = ranges.get("decoys")
+    if not decoy_ranges:
+        return DecoyReport(0, 0, 0, 0)
+
+    all_item_ids = sorted(row[0] for row in conn.execute("SELECT item_id FROM items"))
+    candidates = [item_id for item_id in all_item_ids if item_id not in exclude_item_ids]
+
+    ns = f"a{attempt}"
+    rng_select = random.Random(blind_subseed(seed, f"{ns}:decoy_select"))
+    rng_minor = random.Random(blind_subseed(seed, f"{ns}:decoy_minor_params"))
+    rng_overdue = random.Random(blind_subseed(seed, f"{ns}:decoy_overdue_params"))
+
+    minor_range = decoy_ranges["minor_delay_ratio_range"]
+    minor_ratio = rng_select.uniform(float(minor_range["min"]), float(minor_range["max"]))
+    minor_count = min(round(len(candidates) * minor_ratio), len(candidates))
+    minor_items = rng_select.sample(candidates, minor_count)
+
+    remaining = [item_id for item_id in candidates if item_id not in minor_items]
+
+    min_coverage = float(decoy_ranges["safe_overdue_min_coverage_days"])
+    eligible: list[str] = []
+    for item_id in remaining:
+        coverage = _coverage_days(conn, item_id, base_date)
+        if coverage is not None and coverage > min_coverage:
+            eligible.append(item_id)
+
+    target_ratio = float(decoy_ranges["safe_overdue_target_ratio"])
+    target_count = round(len(candidates) * target_ratio)
+    overdue_count = min(target_count, len(eligible))
+    overdue_items = rng_select.sample(eligible, overdue_count) if overdue_count > 0 else []
+
+    for item_id in minor_items:
+        _apply_minor_delay_decoy(conn, item_id, seed, base_date, days, decoy_ranges, rng_minor)
+
+    offset_range = decoy_ranges["target_offset_days_range"]
+    for item_id in overdue_items:
+        offset = rng_overdue.randint(int(offset_range["min"]), int(offset_range["max"]))
+        target_expected = base_date + timedelta(days=offset)
+        _apply_safe_overdue_decoy(conn, item_id, seed, target_expected)
+
+    return DecoyReport(
+        candidate_count=len(candidates),
+        minor_delay_count=len(minor_items),
+        safe_overdue_eligible_count=len(eligible),
+        safe_overdue_count=len(overdue_items),
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -415,13 +585,19 @@ def generate_blind(
     reference_dir = Path(reference_dir)
     items_csv_path = reference_dir / "items_master.csv"
 
+    # baseline.generate_baseline·inject.inject_scenarios와 동일한 공식(re-derive) — 미끼
+    # 주입(inject_decoys)이 같은 365일 타임라인으로 재시뮬레이션해야 한다.
+    timeline_start = base_date_obj - timedelta(days=364)
+    days = [timeline_start + timedelta(days=i) for i in range(365)]
+
     total_items = len(_load_item_ids(items_csv_path))
     _validate_normal_item_count(ranges, total_items)
 
     max_attempts = int(ranges.get("max_generation_attempts", 1))
     summary: baseline.GenerationSummary | None = None
     labels: list[dict[str, object]] | None = None
-    last_error: ValueError | None = None
+    cfg: ScenarioConfig | None = None
+    last_error: inject.IneffectiveInjectionError | None = None
     attempt = 0
 
     for attempt in range(max_attempts):
@@ -443,11 +619,20 @@ def generate_blind(
                 )
                 last_error = None
                 break
-            except ValueError as exc:
+            except inject.IneffectiveInjectionError as exc:
+                # F7(S-22 픽스 라운드 1, 컨트롤러 리뷰): 재시도 대상은 "이 임의 조합이
+                # 우연히 무효과였다"뿐이다 — config 구조 위반·효과 해석 구현 오류·halt
+                # 복원일 역전 등 나머지 ValueError는 여기서 잡지 않고 즉시 전파된다(재시도가
+                # 코드 결함을 조용히 숨기지 않게 하기 위함).
                 last_error = exc
                 continue
 
-    if last_error is not None or summary is None or labels is None:
+    if last_error is not None or summary is None or labels is None or cfg is None:
+        # F9(S-22 픽스 라운드 1, 컨트롤러 리뷰): 마지막 시도의 baseline.generate_baseline이
+        # out_path에 파일을 남긴 채로 실패했을 수 있다 — 호출부가 "예외가 났으니 결과 없음"
+        # 이라고 믿을 수 있도록, 소진 실패 시 그 잔여 파일을 정리한다.
+        if out_path.exists():
+            out_path.unlink()
         raise ValueError(
             f"블라인드 시나리오 생성이 {max_attempts}회 재시도 후에도 실패했다"
             f"(seed={seed}): {last_error}"
@@ -455,6 +640,25 @@ def generate_blind(
 
     new_hash = _apply_action_history_seed(out_path, Path(action_history_csv))
     summary = dataclasses.replace(summary, content_hash=new_hash)
+
+    # F1(S-22 픽스 라운드 1, 컨트롤러 리뷰 — M-30 전 필수): 공식 시나리오 4개를 제외한
+    # 정상 품목 일부에 미끼를 심는다. 이후 content_hash를 다시 재계산해야 한다(미끼가
+    # stock_usage_daily·incoming_shipments를 바꿨으므로 — F2와 동일한 이유로 "해시는 항상
+    # 마지막에" 원칙을 지킨다).
+    official_item_ids = {sc.item_id for sc in cfg.scenarios}
+    decoy_conn = sqlite3.connect(out_path)
+    try:
+        decoy_report = inject_decoys(
+            decoy_conn, ranges, seed, attempt, base_date_obj, days, official_item_ids
+        )
+        final_hash = baseline.compute_content_hash(decoy_conn)
+        with decoy_conn:
+            decoy_conn.execute(
+                "UPDATE meta SET value = ? WHERE key = 'content_hash'", (final_hash,)
+            )
+    finally:
+        decoy_conn.close()
+    summary = dataclasses.replace(summary, content_hash=final_hash)
 
     sealed_dir = Path(sealed_dir)
     sealed_dir.mkdir(parents=True, exist_ok=True)
@@ -477,6 +681,13 @@ def generate_blind(
         "scenario_type_counts": type_counts,
         "has_delayed_arrival_arm": has_delayed_arrival,
         "attempts_used": attempt + 1,
+        # F1(픽스 라운드 1): 개수만 담는다 — 어떤 품목이 미끼를 받았는지는 비노출.
+        "decoy_counts": {
+            "candidate_count": decoy_report.candidate_count,
+            "minor_delay_count": decoy_report.minor_delay_count,
+            "safe_overdue_eligible_count": decoy_report.safe_overdue_eligible_count,
+            "safe_overdue_count": decoy_report.safe_overdue_count,
+        },
     }
     entry = {
         "seed": seed,
@@ -484,6 +695,11 @@ def generate_blind(
         "db_sha256": db_sha256,
         "labels_file": labels_path.name,
         "labels_sha256": labels_sha256,
+        # F3(픽스 라운드 1, 컨트롤러 리뷰): 부트스트랩 원천 7테이블만 해싱하는 앵커라
+        # 위험 평가 배치가 risk_results·forecasts·alerts를 추가해도 안 변한다 — db_sha256은
+        # 파일 전체 바이트라 배치 실행 이후에는 더 이상 봉인 검증에 못 쓴다(생성 직후
+        # 결속 확인용으로만 유지).
+        "content_hash": summary.content_hash,
         "params_summary": params_summary,
     }
 

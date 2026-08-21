@@ -38,6 +38,20 @@ from scripts.datagen.config import Scenario, ScenarioConfig
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_SCENARIO_CONFIG_PATH = REPO_ROOT / "data" / "scenarios" / "scenario_config.yaml"
 
+
+class IneffectiveInjectionError(ValueError):
+    """뽑힌 (품목, 파라미터) 조합이 물리적으로 무효과일 때만 발생한다(예: halt 기간이 너무
+    짧아 재고가 재주문점 밑으로 안 내려가 미이행 발주가 0건, demand_surge가 반사실과 사용량
+    차이를 못 만듦). ValueError의 서브클래스라 기존 `pytest.raises(ValueError, ...)` 호출부와
+    하위 호환된다.
+
+    Task S-22 픽스 라운드 1 F7(컨트롤러 리뷰): generate_blind의 재시도 루프는 이 예외만
+    좁혀서 잡는다 — config 구조 위반(config.validate_scenario_config)·효과 해석 구현
+    오류("구현 오류" 문구가 붙은 assert들)·halt 복원일 역전 등은 계속 일반 ValueError로
+    남겨 즉시 실패시킨다. 재시도로 감싸도 되는 것은 "이 임의 품목·파라미터 조합이 우연히
+    안 먹혔다"뿐이며, 코드 결함까지 재시도가 조용히 삼켜 회귀를 숨기면 안 되기 때문이다.
+    """
+
 #: 주입기 서브시드 네임스페이스(브리프 계약). 현재는 결정적 계수 적용뿐이라 값을 직접
 #: 소비하지는 않지만, 향후 확률적 요소 도입 시 이 공식으로 뽑아야 한다.
 SUBSEED_TEMPLATE = "{seed}:inject:{scenario_id}"
@@ -153,6 +167,24 @@ class ScenarioTrace:
     delay_blocked_order_dates: frozenset[str]
 
 
+@dataclass(frozen=True)
+class ForcedArrival:
+    """day-loop 밖(자연 발주 상태기계 밖)에서 합성된 발주(delivery_delay 강제 생성 arm)가
+    그래도 실제로 도착할 때, 그 수량을 재고 궤적(stock_usage_daily)에 credit하기 위한 스펙
+    (Task S-22 픽스 라운드 1 F2 — 컨트롤러 리뷰).
+
+    강제 생성 발주는 자연 발주 상태기계(pending_row)를 거치지 않고 _resolve_effects가
+    바로 shipment 행을 합성한다(기존 설계 — 재고 궤적에 원래 영향이 없다). arrives_late=True
+    강제 발주는 incoming_shipments에 actual_date·actual_qty를 채우면서도 stock_usage_daily가
+    그 수량을 몰랐다 — "장부에는 도착했다고 적혀 있는데 재고 궤적에는 반영되지 않은" 유령
+    입고 모순이었다(validate_dataset.py 검사 11이 잡는다). ForcedArrival은 이 수량을 day-loop
+    에 직접 주입해 두 장부가 항상 일치하게 만든다(사후 SQL 패치 금지 — day-loop 계층 처리).
+    """
+
+    date: date
+    qty: int
+
+
 def simulate_item_with_scenario(
     item: dict[str, str],
     seed: int,
@@ -161,15 +193,22 @@ def simulate_item_with_scenario(
     demand_effects: tuple[DemandEffect, ...] = (),
     halt_effects: tuple[HaltEffect, ...] = (),
     delay_effects: tuple[DelayEffect, ...] = (),
+    forced_arrivals: tuple[ForcedArrival, ...] = (),
 ) -> tuple[list[dict[str, object]], list[dict[str, object]], int, ScenarioTrace]:
     """단일 품목의 시나리오 반영 일별 재고·사용량·발주 시뮬레이션(날짜순 진행).
 
     baseline._simulate_item과 동일한 서브시드 공식·노이즈 시퀀스·재고 항등식·1-pack
     하한 로직을 쓰되, 사용량 배수(demand_effects)와 미이행 발주 규칙(halt_effects·
-    delay_effects)을 얹는다. 세 효과가 모두 비어 있으면 앞 3개 반환값(stock_rows·
-    shipment_rows·truncation_count)은 baseline._simulate_item과 바이트 동일하다(1주차
-    리뷰 F8 — 무효과 동등성 회귀 테스트로 고정). 4번째 반환값(ScenarioTrace)은
+    delay_effects)을 얹는다. 네 효과(forced_arrivals 포함)가 모두 비어 있으면 앞 3개
+    반환값(stock_rows·shipment_rows·truncation_count)은 baseline._simulate_item과 바이트
+    동일하다(1주차 리뷰 F8 — 무효과 동등성 회귀 테스트로 고정). 4번째 반환값(ScenarioTrace)은
     baseline._simulate_item에는 없는 이 함수만의 부기 정보다.
+
+    forced_arrivals(Task S-22 F2): 지정된 date에 qty만큼을 그날의 incoming에 가산한다 —
+    자연 발주 상태기계(pending_row)와 완전히 독립적으로 더해진다(동시에 자연 입고가 있어도
+    합산). usage는 그날의 incoming을 더하기 전 stock으로 계산하므로(기존 규칙 그대로)
+    forced_arrivals는 같은 날짜의 절삭(truncation)에는 영향을 주지 않고, closing_stock과
+    그 이후 날짜들의 진행에만 반영된다.
     """
     item_id = item["item_id"]
     pack_size = int(item["pack_size"])
@@ -200,6 +239,10 @@ def simulate_item_with_scenario(
     truncation_count = 0
     halt_blocked_order_dates: set[str] = set()
     delay_blocked_order_dates: set[str] = set()
+
+    forced_arrival_by_date: dict[date, int] = {}
+    for fa in forced_arrivals:
+        forced_arrival_by_date[fa.date] = forced_arrival_by_date.get(fa.date, 0) + fa.qty
 
     for d in days:
         noise = max(0.5, rng.gauss(1.0, 0.12))
@@ -258,6 +301,12 @@ def simulate_item_with_scenario(
             pending_blocked = False
             pending_release_day = None
             pending_arrives_late = False
+
+        forced_qty = forced_arrival_by_date.get(d)
+        if forced_qty is not None:
+            # F2(S-22 픽스 라운드 1): 자연 발주 상태기계와 독립적으로 그날의 incoming에
+            # 가산한다 — 강제 생성 발주의 도착 수량이 재고 궤적에도 반영되게 한다.
+            incoming += forced_qty
 
         stock = stock - usage + incoming
 
@@ -371,11 +420,17 @@ def _resolve_effects(
     tuple[HaltEffect, ...],
     tuple[DelayEffect, ...],
     list[dict[str, object]],
+    tuple[ForcedArrival, ...],
     date,
 ]:
     """시나리오 1건(composite는 하위 요소 전체)을 효과 리스트 + 강제 발주 + 실제
     onset_date로 변환한다. 반환: (demand_effects, halt_effects, delay_effects,
-    forced_shipment_rows, onset_date).
+    forced_shipment_rows, forced_arrivals, onset_date).
+
+    forced_arrivals(Task S-22 F2): 강제 생성 발주 중 arrives_late=True인 것의 도착 스펙.
+    호출부가 이걸 simulate_item_with_scenario(forced_arrivals=...)에 그대로 넘겨야
+    incoming_shipments의 도착 기록과 stock_usage_daily의 재고 궤적이 일치한다(유령 입고
+    금지).
 
     delivery_delay 요소는 "지정 expected_date에 가장 가까운 주문"을 찾아야 하므로, 그
     시점까지 이미 확정된 효과(이전 sub_scenario들의 demand/halt)를 반영한 드라이런
@@ -397,6 +452,7 @@ def _resolve_effects(
     halt_effects: list[HaltEffect] = []
     delay_effects: list[DelayEffect] = []
     forced_rows: list[dict[str, object]] = []
+    forced_arrivals: list[ForcedArrival] = []
     resolved_onsets: list[date] = []
 
     for sub in _sub_specs(sc):
@@ -438,6 +494,7 @@ def _resolve_effects(
                 demand_effects=tuple(demand_effects),
                 halt_effects=tuple(halt_effects),
                 delay_effects=tuple(delay_effects),
+                forced_arrivals=tuple(forced_arrivals),
             )
             qty_ratio = params.get("qty_ratio")
             qty_ratio_f = float(qty_ratio) if qty_ratio is not None else None
@@ -493,6 +550,10 @@ def _resolve_effects(
                             "status": "입고 완료",
                         }
                     )
+                    # F2(S-22 픽스 라운드 1): incoming_shipments의 도착 기록만으로는
+                    # stock_usage_daily가 이 수량을 모른다 — day-loop에 직접 credit해야
+                    # 두 장부가 일치한다(유령 입고 금지, 사후 SQL 패치 금지).
+                    forced_arrivals.append(ForcedArrival(date=arrival_date, qty=int(forced_qty)))
                 else:
                     forced_rows.append(
                         {
@@ -510,7 +571,14 @@ def _resolve_effects(
         else:
             raise ValueError(f"{sc.scenario_id}: 알 수 없는 시나리오 유형 {sub_type!r}")
 
-    return tuple(demand_effects), tuple(halt_effects), tuple(delay_effects), forced_rows, min(resolved_onsets)
+    return (
+        tuple(demand_effects),
+        tuple(halt_effects),
+        tuple(delay_effects),
+        forced_rows,
+        tuple(forced_arrivals),
+        min(resolved_onsets),
+    )
 
 
 def _assert_effects_effective(
@@ -522,6 +590,7 @@ def _assert_effects_effective(
     halt_effects: tuple[HaltEffect, ...],
     delay_effects: tuple[DelayEffect, ...],
     forced_rows: list[dict[str, object]],
+    forced_arrivals: tuple[ForcedArrival, ...],
     stock_rows: list[dict[str, object]],
     trace: ScenarioTrace,
 ) -> None:
@@ -532,9 +601,15 @@ def _assert_effects_effective(
     SC-018에서 실제로 발생했던 사례). 이런 경우를 조용히 지나치지 않고 명확한 에러로
     실패시켜, config 조정 없이는 "정답 라벨은 있는데 데이터에는 신호가 없는" 상태로
     감지율 측정에 들어가는 일이 없게 한다.
+
+    예외 종류 구분(Task S-22 F7): "무효과"(임의 품목·파라미터 조합이 우연히 안 먹힘)는
+    IneffectiveInjectionError — 재시도로 해소될 수 있는 것들이다. "구현 오류"(코드
+    결함이면 재시도해도 계속 재현되거나, 최악의 경우 재시도가 우연히 그 버그를 안 밟는
+    조합으로 넘어가 회귀를 숨긴다)는 일반 ValueError로 남긴다 — 재시도 루프가 이 둘을
+    구분해서 잡아야 한다.
     """
     if halt_effects and not trace.halt_blocked_order_dates:
-        raise ValueError(
+        raise IneffectiveInjectionError(
             f"{scenario_id}: supply_halt가 미이행 발주를 1건도 만들지 못했다(무효과) —"
             " halt_start_date를 앞당기거나 demand_shift_multiplier를 조정해야 한다"
         )
@@ -561,6 +636,21 @@ def _assert_effects_effective(
                     " 기록됐다(구현 오류)"
                 )
 
+    if forced_arrivals:
+        # F2(S-22 픽스 라운드 1) 자가 점검: 강제 도착분이 실제로 재고 궤적에 credit됐는지
+        # 생성 시점에 바로 잡는다(유령 입고 자가 점검 — validate_dataset 검사 11과 같은
+        # 불변식을 여기서도 확인해 실패를 최대한 앞에서 잡는다). 이건 파라미터 운이 아니라
+        # 배선 결함이면 나는 문제라 일반 ValueError로 둔다(재시도 비대상).
+        incoming_by_date = {r["date"]: r["incoming_qty"] for r in stock_rows}
+        for fa in forced_arrivals:
+            credited = incoming_by_date.get(fa.date.isoformat(), 0)
+            if credited < fa.qty:
+                raise ValueError(
+                    f"{scenario_id}: 강제 도착(date={fa.date.isoformat()}, qty={fa.qty})이"
+                    f" stock_usage_daily.incoming_qty에 반영되지 않았다(유령 입고, 구현 오류)"
+                    f" — 실제 credited={credited}"
+                )
+
     if demand_effects:
         # demand_effects만 뺀 반사실(counterfactual)과 비교해 사용량이 실제로 달라졌는지
         # 확인한다(halt·delay는 그대로 둬 demand 기여만 격리). 감시 구간은 가장 이른
@@ -572,7 +662,7 @@ def _assert_effects_effective(
         real_usage = {r["date"]: r["usage_qty"] for r in stock_rows if r["date"] >= window_start}
         counterfactual_usage = {r["date"]: r["usage_qty"] for r in _no_stock if r["date"] >= window_start}
         if all(real_usage[d] == counterfactual_usage[d] for d in real_usage):
-            raise ValueError(
+            raise IneffectiveInjectionError(
                 f"{scenario_id}: demand_surge가 사용량에 어떤 변화도 만들지 못했다(무효과)"
             )
 
@@ -620,6 +710,37 @@ def load_action_history_seed(conn: sqlite3.Connection, csv_path: str | Path) -> 
 # ---------------------------------------------------------------------------
 # 오케스트레이션
 # ---------------------------------------------------------------------------
+
+
+def replace_item_rows(
+    conn: sqlite3.Connection,
+    item_id: str,
+    stock_rows: list[dict[str, object]],
+    shipment_rows: list[dict[str, object]],
+) -> None:
+    """item_id의 stock_usage_daily·incoming_shipments 행을 통째로 지우고 새로 넣는다.
+
+    inject_scenarios가 시나리오 품목을 재시뮬레이션 결과로 교체할 때 쓰던 DELETE+INSERT
+    패턴을 재사용 가능한 함수로 뽑았다(Task S-22 픽스 라운드 1 — 컨트롤러 리뷰 F1). 블라인드
+    생성기의 정상 품목 미끼 주입도 이 함수를 그대로 재사용한다 — 로직을 복제하지 않기
+    위함이다. 다른 item_id의 행에는 영향이 없다.
+    """
+    with conn:
+        conn.execute("DELETE FROM stock_usage_daily WHERE item_id = ?", (item_id,))
+        conn.execute("DELETE FROM incoming_shipments WHERE item_id = ?", (item_id,))
+        conn.executemany(
+            "INSERT INTO stock_usage_daily(item_id, date, usage_qty, incoming_qty,"
+            " closing_stock) VALUES (:item_id, :date, :usage_qty, :incoming_qty,"
+            " :closing_stock)",
+            stock_rows,
+        )
+        conn.executemany(
+            "INSERT INTO incoming_shipments(item_id, order_date, expected_date,"
+            " expected_qty, actual_date, actual_qty, status) VALUES (:item_id,"
+            " :order_date, :expected_date, :expected_qty, :actual_date, :actual_qty,"
+            " :status)",
+            shipment_rows,
+        )
 
 
 def _load_item_row(conn: sqlite3.Connection, item_id: str) -> dict[str, str]:
@@ -699,9 +820,14 @@ def inject_scenarios(
         blocked_orders: dict[str, set[str]] = {}
         for sc in cfg.scenarios:
             item_row = _load_item_row(conn, sc.item_id)
-            demand_effects, halt_effects, delay_effects, forced_rows, onset_date = _resolve_effects(
-                sc, item_row, seed, days
-            )
+            (
+                demand_effects,
+                halt_effects,
+                delay_effects,
+                forced_rows,
+                forced_arrivals,
+                onset_date,
+            ) = _resolve_effects(sc, item_row, seed, days)
             onset_overrides[sc.scenario_id] = onset_date
             stock_rows, shipment_rows, truncations, trace = simulate_item_with_scenario(
                 item_row,
@@ -710,6 +836,7 @@ def inject_scenarios(
                 demand_effects=demand_effects,
                 halt_effects=halt_effects,
                 delay_effects=delay_effects,
+                forced_arrivals=forced_arrivals,
             )
             shipment_rows = shipment_rows + forced_rows
             total_truncations += truncations
@@ -723,6 +850,7 @@ def inject_scenarios(
                 halt_effects,
                 delay_effects,
                 forced_rows,
+                forced_arrivals,
                 stock_rows,
                 trace,
             )
@@ -736,22 +864,7 @@ def inject_scenarios(
                 | {row["order_date"] for row in forced_rows}
             )
 
-            with conn:
-                conn.execute("DELETE FROM stock_usage_daily WHERE item_id = ?", (sc.item_id,))
-                conn.execute("DELETE FROM incoming_shipments WHERE item_id = ?", (sc.item_id,))
-                conn.executemany(
-                    "INSERT INTO stock_usage_daily(item_id, date, usage_qty, incoming_qty,"
-                    " closing_stock) VALUES (:item_id, :date, :usage_qty, :incoming_qty,"
-                    " :closing_stock)",
-                    stock_rows,
-                )
-                conn.executemany(
-                    "INSERT INTO incoming_shipments(item_id, order_date, expected_date,"
-                    " expected_qty, actual_date, actual_qty, status) VALUES (:item_id,"
-                    " :order_date, :expected_date, :expected_qty, :actual_date, :actual_qty,"
-                    " :status)",
-                    shipment_rows,
-                )
+            replace_item_rows(conn, sc.item_id, stock_rows, shipment_rows)
 
         # F2(1주차 리뷰): config_hash를 content_hash보다 먼저 확정해야 한다.
         # compute_content_hash는 meta 테이블 전체(자기 자신인 content_hash 키만 제외)를

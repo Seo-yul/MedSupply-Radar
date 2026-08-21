@@ -203,6 +203,14 @@ SCRIPTS_PATH_TARGETS: dict[Path, tuple[str, ...]] = {
     # 애플리케이션 계층이지만, 시나리오·정답 경로와는 무관하므로 data/scenarios·ground_truth
     # 둘 다 전면 금지(예외 없음).
     REPO_ROOT / "scripts" / "measure_perf.py": (),
+    # 블라인드 평가 스냅샷 생성 CLI(Task S-22, 픽스 라운드 1 F5 — 컨트롤러 리뷰: 신규
+    # scripts/ 최상위 파일은 명시적으로 등록해 완결성을 지킨다). 실제 경로 상수(data/blind·
+    # data/scenarios/blind_ranges.yaml)는 전부 scripts/datagen/blind.py의 모듈 속성(예:
+    # blind.DEFAULT_RANGES_PATH)을 참조해서만 쓴다 — 이 파일 자체에는 "data/scenarios"·
+    # "ground_truth"를 코드 값(리터럴)으로 쓴 지점이 없다(모듈 docstring 언급만 있고,
+    # docstring은 검사 대상에서 항상 제외된다). data/scenarios 예외도 두지 않는다(시나리오
+    # config를 읽지 않는다 — 라벨은 blind.py가 뽑은 결정적 config에서 나온다).
+    REPO_ROOT / "scripts" / "generate_blind.py": (),
 }
 
 FORWARD_PATH_TARGETS = [*FORWARD_TARGETS, *SCRIPTS_PATH_TARGETS]

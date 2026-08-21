@@ -180,7 +180,12 @@ class TestBuildBlindConfigRangeCompliance:
                         <= params["qty_ratio"]
                         <= dd_r["qty_ratio_range"]["max"]
                     )
-                    assert params.get("arrives_late", False) in (True, False)
+                    # F8(S-22 픽스 라운드 1, 컨트롤러 리뷰): 예전 단언
+                    # `params.get("arrives_late", False) in (True, False)`는 .get()의
+                    # 반환값이 사실상 언제나 bool이라 공허했다(범위 준수를 검증하지
+                    # 못함) — 실제 구성 로직의 불변식(키가 있으면 항상 정확히 True,
+                    # 결코 명시적 False가 아니다)을 검증하도록 바꿨다.
+                    assert "arrives_late" not in params or params["arrives_late"] is True
 
 
 # --- 2. generate_blind 오케스트레이션: 결정성 -------------------------------
@@ -264,6 +269,150 @@ class TestDelayedArrivalArm:
         finally:
             conn.close()
         assert rows, "expected_date < actual_date인 행이 생성 DB에 없다"
+
+    def test_delayed_arrival_leaves_no_ghost_income(
+        self, ranges: dict, tmp_path: Path
+    ) -> None:
+        """F2(S-22 픽스 라운드 1, 컨트롤러 리뷰 차단 항목): 지연 도착 arm이 실제로 뽑힌
+        시드에서 validate_dataset 검사 11(도착 장부 정합)이 PASS해야 한다 — 강제 생성
+        arm의 도착 수량이 stock_usage_daily에도 credit돼 있어야 한다는 뜻이다."""
+        seed = self._find_seed_with_arrives_late(ranges)
+        out = tmp_path / "blind_arrival_ledger.db"
+        blind.generate_blind(
+            RANGES_PATH, seed, BASE_DATE, out,
+            sealed_dir=tmp_path / "sealed", manifest_path=tmp_path / "manifest.json",
+        )
+        conn = sqlite3.connect(out)
+        try:
+            result = vd.check_arrival_ledger_consistency(conn)
+        finally:
+            conn.close()
+        assert result.status == "PASS", result.message
+
+
+# --- 3c. 정상 품목 미끼(decoys) — Task S-22 픽스 라운드 1 F1(컨트롤러 리뷰, M-30 전 필수)
+
+
+def _reverse_engineering_flagged_items(conn: sqlite3.Connection, base_date: str) -> set[str]:
+    """컨트롤러 리뷰 F1이 지적한 역산 SQL 그대로: actual_date>expected_date이거나
+    (actual_date IS NULL AND expected_date<base_date)인 발주를 가진 품목 집합."""
+    rows = conn.execute(
+        "SELECT DISTINCT item_id FROM incoming_shipments"
+        " WHERE (actual_date IS NOT NULL AND actual_date > expected_date)"
+        " OR (actual_date IS NULL AND expected_date < ?)",
+        (base_date,),
+    ).fetchall()
+    return {r[0] for r in rows}
+
+
+class TestDecoyInjection:
+    """F1: 정상 품목 일부에 미끼(경미한 지연 도착·안전 연체)를 심어, 단순 SQL 하나로
+    시나리오 품목을 오탐 0으로 역산하지 못하게 한다."""
+
+    def _generate(self, tmp_path: Path, seed: int = SEED_A) -> tuple[Path, dict]:
+        out = tmp_path / f"blind_decoy_{seed}.db"
+        result = blind.generate_blind(
+            RANGES_PATH, seed, BASE_DATE, out,
+            sealed_dir=tmp_path / "sealed", manifest_path=tmp_path / "manifest.json",
+        )
+        labels = json.loads(result.labels_path.read_text(encoding="utf-8"))
+        official_item_ids = {lbl["item_id"] for lbl in labels}
+        return out, {"result": result, "official_item_ids": official_item_ids}
+
+    def test_reverse_engineering_sql_has_false_positives_after_decoys(
+        self, tmp_path: Path
+    ) -> None:
+        """F1 핵심 요건: 미끼 주입 후에는 역산 SQL이 정상 품목도 걸러낸다(오탐 0이 아님) —
+        시나리오 품목만 정확히 골라내던 이전의 완전한 신호 누출이 사라져야 한다."""
+        out, ctx = self._generate(tmp_path)
+        conn = sqlite3.connect(out)
+        try:
+            flagged = _reverse_engineering_flagged_items(conn, BASE_DATE)
+        finally:
+            conn.close()
+
+        false_positives = flagged - ctx["official_item_ids"]
+        assert false_positives, (
+            "미끼 주입 후에도 역산 SQL의 오탐이 0건이다 — F1 요건 미충족"
+        )
+
+    def test_decoy_manifest_counts_match_yaml_ratio_bounds(self, tmp_path: Path) -> None:
+        out, ctx = self._generate(tmp_path)
+        entry = ctx["result"].manifest_entry
+        decoy_counts = entry["params_summary"]["decoy_counts"]
+        candidate = decoy_counts["candidate_count"]
+
+        ranges = blind.load_ranges(RANGES_PATH)
+        minor_r = ranges["decoys"]["minor_delay_ratio_range"]
+        assert (
+            round(candidate * minor_r["min"])
+            <= decoy_counts["minor_delay_count"]
+            <= round(candidate * minor_r["max"]) + 1
+        )
+        assert decoy_counts["safe_overdue_count"] <= decoy_counts["safe_overdue_eligible_count"]
+        assert decoy_counts["safe_overdue_eligible_count"] <= candidate
+
+    def test_minor_delay_decoy_stays_under_receipt_delay_threshold(
+        self, tmp_path: Path
+    ) -> None:
+        """미끼 1은 receipt_delay_days(3, config/analytics_params.toml) 미만이어야
+        anomaly.detect_receipt_delay가 반응하지 않는다(등급·이상신호 불변 요건)."""
+        out, ctx = self._generate(tmp_path)
+        conn = sqlite3.connect(out)
+        try:
+            rows = conn.execute(
+                "SELECT item_id, expected_date, actual_date FROM incoming_shipments"
+                " WHERE actual_date IS NOT NULL AND actual_date > expected_date"
+            ).fetchall()
+        finally:
+            conn.close()
+
+        decoy_rows = [r for r in rows if r[0] not in ctx["official_item_ids"]]
+        assert decoy_rows, "미끼 1(경미한 지연 도착) 행을 하나도 못 찾았다"
+        for item_id, expected_date, actual_date in decoy_rows:
+            delay = (date.fromisoformat(actual_date) - date.fromisoformat(expected_date)).days
+            assert 1 <= delay <= 2, (item_id, delay)
+
+    def test_safe_overdue_decoy_items_are_eligible_and_stock_unchanged(
+        self, tmp_path: Path
+    ) -> None:
+        """미끼 2는 적격 품목(현재고/평균사용량 > 44)에만 주고, 재고 궤적은 건드리지
+        않아야 한다(day-loop 미개입 — F2 유령 입고 대상이 아님을 재확인)."""
+        out, ctx = self._generate(tmp_path)
+        conn = sqlite3.connect(out)
+        try:
+            rows = conn.execute(
+                "SELECT DISTINCT item_id FROM incoming_shipments"
+                " WHERE actual_date IS NULL AND expected_date < ?",
+                (BASE_DATE,),
+            ).fetchall()
+            overdue_items = [r[0] for r in rows if r[0] not in ctx["official_item_ids"]]
+            assert overdue_items, "미끼 2(안전 연체) 행을 하나도 못 찾았다"
+
+            for item_id in overdue_items:
+                coverage = blind._coverage_days(conn, item_id, BASE_DATE_OBJ)
+                assert coverage is not None and coverage > 44, (item_id, coverage)
+
+            # 검사 11(도착 장부 정합)은 actual_date IS NOT NULL 건만 보므로 이 미끼는
+            # 대상이 아니다 — PASS로 남아 있어야 한다(재고 궤적 불변의 방증).
+            result = vd.check_arrival_ledger_consistency(conn)
+        finally:
+            conn.close()
+        assert result.status == "PASS"
+
+    def test_decoy_assignment_is_deterministic(self, tmp_path: Path) -> None:
+        out1, ctx1 = self._generate(tmp_path / "r1", SEED_A)
+        out2, ctx2 = self._generate(tmp_path / "r2", SEED_A)
+        conn1 = sqlite3.connect(out1)
+        conn2 = sqlite3.connect(out2)
+        try:
+            flagged1 = _reverse_engineering_flagged_items(conn1, BASE_DATE)
+            flagged2 = _reverse_engineering_flagged_items(conn2, BASE_DATE)
+        finally:
+            conn1.close()
+            conn2.close()
+        assert flagged1 == flagged2
+        assert ctx1["result"].summary.content_hash == ctx2["result"].summary.content_hash
 
 
 # --- 3b. 물리적 무효과 재시도(max_generation_attempts) -----------------------

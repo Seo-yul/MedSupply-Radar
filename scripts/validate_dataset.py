@@ -1,7 +1,7 @@
 """표준 스냅샷 독립 정합성 검증기.
 
 scripts/generate_dataset.py가 만든 SQLite 스냅샷(예: data/medsupply.db)이 데이터 계약을
-지키는지 기계적으로 검증한다. 10개 항목을 각각 PASS/WARN/FAIL로 판정해 한 줄씩 출력하고,
+지키는지 기계적으로 검증한다. 11개 항목을 각각 PASS/WARN/FAIL로 판정해 한 줄씩 출력하고,
 FAIL이 하나라도 있으면 종료 코드 1을 반환한다. WARN은 실패로 치지 않는다(risk_results 등
 배치·적재 이후 재실행된 스냅샷을 검증할 가능성을 배려한 경고일 뿐이다).
 
@@ -340,6 +340,56 @@ def check_content_hash(conn: sqlite3.Connection, expect_hash: str | None) -> Che
 
 
 # ---------------------------------------------------------------------------
+# 11. 도착 장부 정합(유령 입고 금지) — Task S-22 픽스 라운드 1 F2(컨트롤러 리뷰, 차단 항목)
+# ---------------------------------------------------------------------------
+
+
+def check_arrival_ledger_consistency(conn: sqlite3.Connection) -> CheckResult:
+    """incoming_shipments의 도착 건(actual_date IS NOT NULL)이 같은 (item_id, actual_date)의
+    stock_usage_daily.incoming_qty 합과 정확히 일치하는지 교차 대조한다.
+
+    도착이 기록된 발주는 반드시 그 수량만큼 같은 품목·같은 날짜의 재고 궤적에도 반영돼야
+    한다 — 그렇지 않으면 "장부(incoming_shipments)에는 도착했다고 적혀 있는데 재고 궤적
+    (stock_usage_daily)에는 없는" 유령 입고 모순이다(블라인드 생성기의 delivery_delay
+    강제 생성 arm에서 실제로 발생했던 결함 — Task S-22 픽스 라운드 1). 미이행(actual_date
+    NULL) 발주는 애초에 검사 대상이 아니다(재고에 반영될 이유가 없다).
+
+    같은 (item_id, date)에 여러 발주가 동시에 도착할 수 있어(자연 입고 + 강제 도착 등)
+    SUM으로 합계를 비교한다(개별 발주 단위가 아니라 날짜 단위 합계 정합). 표준 스냅샷도
+    이 검사를 자연히 통과해야 한다(delivery_delay가 애초에 arrives_late를 쓰지 않으므로
+    강제 생성 발주는 전부 actual_date NULL — 검사 대상 자체가 자연 입고 건뿐이라 항상
+    정합).
+    """
+    shipment_totals = conn.execute(
+        "SELECT item_id, actual_date, SUM(actual_qty) FROM incoming_shipments"
+        " WHERE actual_date IS NOT NULL GROUP BY item_id, actual_date"
+    ).fetchall()
+
+    mismatches: list[str] = []
+    for item_id, actual_date, arrived_qty in shipment_totals:
+        row = conn.execute(
+            "SELECT incoming_qty FROM stock_usage_daily WHERE item_id = ? AND date = ?",
+            (item_id, actual_date),
+        ).fetchone()
+        ledger_qty = row[0] if row is not None else None
+        if ledger_qty != arrived_qty:
+            mismatches.append(
+                f"{item_id}@{actual_date}: 발주 도착 합계={arrived_qty}, 재고 궤적"
+                f" incoming_qty={ledger_qty}"
+            )
+
+    if mismatches:
+        sample = mismatches[:5]
+        return CheckResult(
+            "FAIL",
+            f"유령 입고(도착 발주 vs 재고 궤적 불일치) {len(mismatches)}건, 예: {sample}",
+        )
+    return CheckResult(
+        "PASS", f"도착 발주 {len(shipment_totals)}건(품목·날짜 단위) 전부 재고 궤적과 정합"
+    )
+
+
+# ---------------------------------------------------------------------------
 # 오케스트레이션
 # ---------------------------------------------------------------------------
 
@@ -356,7 +406,8 @@ def _safe(name: str, fn, *args: object) -> tuple[str, CheckResult]:
 def run_all_checks(
     conn: sqlite3.Connection, expect_hash: str | None = None
 ) -> list[tuple[str, CheckResult]]:
-    """10개 검사를 브리프 순서대로 실행해 (이름, 결과) 리스트를 반환한다."""
+    """11개 검사를 브리프 순서대로 실행해 (이름, 결과) 리스트를 반환한다(검사 11은 Task
+    S-22 픽스 라운드 1 F2 신설 — 유령 입고 금지)."""
     return [
         _safe("1. 테이블 16종/meta 7키 완비성", check_tables_and_meta, conn),
         _safe("2. FK 정합(foreign_key_check)", check_foreign_keys, conn),
@@ -368,6 +419,7 @@ def run_all_checks(
         _safe("8. 배치 전 공백 테이블(WARN 허용)", check_pre_batch_tables_empty, conn),
         _safe("9. action_history 시드 8건", check_action_history_seed, conn),
         _safe("10. content_hash 재계산 일치", check_content_hash, conn, expect_hash),
+        _safe("11. 도착 장부 정합(유령 입고 금지)", check_arrival_ledger_consistency, conn),
     ]
 
 

@@ -477,7 +477,7 @@ class TestDeliveryDelayForcedOrder:
                     "item_id": sc.item_id, "pack_size": str(pack_size),
                     "supplier": supplier, "atc_code": atc_code, "form": form,
                 }
-                _de, _he, delay_effects, forced_rows, _onset = inject._resolve_effects(
+                _de, _he, delay_effects, forced_rows, _fa, _onset = inject._resolve_effects(
                     sc, item_row, SEED_A, days
                 )
                 target = date.fromisoformat(delay_subs[0]["params"]["expected_date"])
@@ -509,10 +509,10 @@ class TestEffectEffectivenessAssertion:
             halt_blocked_order_dates=frozenset(), delay_blocked_order_dates=frozenset()
         )
         halt_effects = (inject.HaltEffect(start=date(2026, 7, 1)),)
-        with pytest.raises(ValueError, match="무효과"):
+        with pytest.raises(inject.IneffectiveInjectionError, match="무효과"):
             inject._assert_effects_effective(
                 "SC-TEST", self._ITEM, SEED_A, [date(2026, 7, 1)],
-                (), halt_effects, (), [], [], trace,
+                (), halt_effects, (), [], (), [], trace,
             )
 
     def test_passes_when_halt_has_at_least_one_blocked_order(self) -> None:
@@ -522,7 +522,7 @@ class TestEffectEffectivenessAssertion:
         halt_effects = (inject.HaltEffect(start=date(2026, 7, 1)),)
         inject._assert_effects_effective(
             "SC-TEST", self._ITEM, SEED_A, [date(2026, 7, 1)],
-            (), halt_effects, (), [], [], trace,
+            (), halt_effects, (), [], (), [], trace,
         )  # 예외 없이 통과해야 한다
 
     def test_all_twenty_scenarios_pass_effectiveness_check(self, injected_a: InjectResult) -> None:
@@ -748,20 +748,28 @@ class TestDeliveryDelayForcedArrivesLate:
                 "arrives_late": True,
             },
         )
-        demand_effects, halt_effects, delay_effects, forced_rows, onset = inject._resolve_effects(
-            sc, self._ITEM_ROW, SEED_A, days
+        demand_effects, halt_effects, delay_effects, forced_rows, forced_arrivals, onset = (
+            inject._resolve_effects(sc, self._ITEM_ROW, SEED_A, days)
         )
         assert not demand_effects and not halt_effects
         assert not delay_effects, "이 케이스는 강제 생성 arm이어야 한다(자연 발주가 없어야 함)"
         assert len(forced_rows) == 1
         row = forced_rows[0]
-        assert row["actual_date"] == (target_expected + timedelta(days=delay_days)).isoformat()
+        arrival_date = target_expected + timedelta(days=delay_days)
+        assert row["actual_date"] == arrival_date.isoformat()
         assert row["actual_qty"] == row["expected_qty"]
         assert row["status"] == "입고 완료"
         assert onset == target_expected
 
+        # F2(S-22 픽스 라운드 1): 강제 도착이 day-loop에 credit되도록 forced_arrivals에
+        # 정확히 1건, 같은 날짜·수량으로 담겨야 한다.
+        assert forced_arrivals == (
+            inject.ForcedArrival(date=arrival_date, qty=row["actual_qty"]),
+        )
+
     def test_forced_order_without_flag_stays_unfulfilled(self) -> None:
-        """회귀: arrives_late를 안 주면 강제 생성 arm은 기존처럼 영구 미이행이다."""
+        """회귀: arrives_late를 안 주면 강제 생성 arm은 기존처럼 영구 미이행이고,
+        forced_arrivals도 비어 있어야 한다(재고 궤적에 손대지 않는다)."""
         days = _synthetic_days()
         timeline_start = days[0]
         target_expected = timeline_start + timedelta(days=5)
@@ -773,13 +781,57 @@ class TestDeliveryDelayForcedArrivesLate:
             reference="테스트",
             params={"expected_date": target_expected.isoformat(), "delay_days": 6, "qty_ratio": 1.0},
         )
-        _de, _he, delay_effects, forced_rows, _onset = inject._resolve_effects(
+        _de, _he, delay_effects, forced_rows, forced_arrivals, _onset = inject._resolve_effects(
             sc, self._ITEM_ROW, SEED_A, days
         )
         assert not delay_effects
         assert len(forced_rows) == 1
         assert forced_rows[0]["actual_date"] is None
         assert forced_rows[0]["status"] == "입고 예정"
+        assert forced_arrivals == ()
+
+    def test_forced_arrival_is_actually_credited_in_stock_usage_daily(self) -> None:
+        """F2(S-22 픽스 라운드 1, 컨트롤러 리뷰 — 차단 항목): 강제 도착 발주의 수량이
+        stock_usage_daily.incoming_qty·closing_stock에 실제로 반영돼야 한다(사후 SQL
+        패치가 아니라 day-loop 계층에서). 이전 구현은 incoming_shipments에만
+        actual_date·actual_qty를 채우고 재고 궤적은 그대로라 '유령 입고' 모순이 있었다."""
+        days = _synthetic_days()
+        timeline_start = days[0]
+        target_expected = timeline_start + timedelta(days=5)
+        delay_days = 6
+
+        sc = config_mod.Scenario(
+            scenario_id="SC-TEST-FORCED-CREDIT",
+            item_id=self._ITEM_ROW["item_id"],
+            type="delivery_delay",
+            reference="테스트",
+            params={
+                "expected_date": target_expected.isoformat(),
+                "delay_days": delay_days,
+                "qty_ratio": 1.0,
+                "arrives_late": True,
+            },
+        )
+        _de, _he, delay_effects, forced_rows, forced_arrivals, _onset = inject._resolve_effects(
+            sc, self._ITEM_ROW, SEED_A, days
+        )
+        stock_rows, _shipments, _trunc, _trace = inject.simulate_item_with_scenario(
+            self._ITEM_ROW, SEED_A, days,
+            demand_effects=(), halt_effects=(), delay_effects=delay_effects,
+            forced_arrivals=forced_arrivals,
+        )
+
+        arrival_date = target_expected + timedelta(days=delay_days)
+        arrival_qty = forced_rows[0]["actual_qty"]
+        row_with = next(r for r in stock_rows if r["date"] == arrival_date.isoformat())
+
+        base_stock, _bs, _bt, _btr = inject.simulate_item_with_scenario(
+            self._ITEM_ROW, SEED_A, days
+        )
+        row_without = next(r for r in base_stock if r["date"] == arrival_date.isoformat())
+
+        assert row_with["incoming_qty"] == row_without["incoming_qty"] + arrival_qty
+        assert row_with["closing_stock"] == row_without["closing_stock"] + arrival_qty
 
 
 # --- 12. S-22: min_scenarios_per_type 매개변수화(플러밍) ---------------------
@@ -869,3 +921,56 @@ class TestMinScenariosPerTypeOverride:
         }
         assert out.exists()
         assert summary.content_hash
+
+
+# --- 13. S-22 픽스 라운드 1: replace_item_rows 추출(F1 미끼 주입이 재사용) -----
+
+
+class TestReplaceItemRows:
+    """inject_scenarios가 시나리오 품목 교체에 쓰던 DELETE+INSERT 패턴을 재사용 가능한
+    함수로 뽑았다(Task S-22 픽스 라운드 1 — 블라인드 미끼 주입(F1)도 같은 규약을 쓴다)."""
+
+    def _conn_with_schema(self) -> sqlite3.Connection:
+        conn = sqlite3.connect(":memory:")
+        conn.executescript(SCHEMA_PATH.read_text(encoding="utf-8"))
+        conn.executemany(
+            "INSERT INTO items(item_id, item_name) VALUES (?, ?)",
+            [("ITEM-A", "테스트A"), ("ITEM-B", "테스트B")],
+        )
+        conn.executemany(
+            "INSERT INTO stock_usage_daily(item_id, date, usage_qty, incoming_qty,"
+            " closing_stock) VALUES (?, ?, 10, 0, 90)",
+            [("ITEM-A", "2026-07-01"), ("ITEM-B", "2026-07-01")],
+        )
+        conn.commit()
+        return conn
+
+    def test_replaces_only_target_item_rows(self) -> None:
+        conn = self._conn_with_schema()
+        new_stock = [
+            {"item_id": "ITEM-A", "date": "2026-08-01", "usage_qty": 5, "incoming_qty": 0,
+             "closing_stock": 50},
+        ]
+        new_shipments = [
+            {"item_id": "ITEM-A", "order_date": "2026-07-25", "expected_date": "2026-08-05",
+             "expected_qty": 30, "actual_date": None, "actual_qty": None, "status": "입고 예정"},
+        ]
+        inject.replace_item_rows(conn, "ITEM-A", new_stock, new_shipments)
+
+        a_rows = conn.execute(
+            "SELECT date, usage_qty, incoming_qty, closing_stock FROM stock_usage_daily"
+            " WHERE item_id = 'ITEM-A'"
+        ).fetchall()
+        assert a_rows == [("2026-08-01", 5, 0, 50)]
+
+        b_rows = conn.execute(
+            "SELECT date FROM stock_usage_daily WHERE item_id = 'ITEM-B'"
+        ).fetchall()
+        assert b_rows == [("2026-07-01",)], "다른 품목 행은 손대지 않아야 한다"
+
+        shipments = conn.execute(
+            "SELECT order_date, expected_date, expected_qty, actual_date, status"
+            " FROM incoming_shipments WHERE item_id = 'ITEM-A'"
+        ).fetchall()
+        assert shipments == [("2026-07-25", "2026-08-05", 30, None, "입고 예정")]
+        conn.close()
