@@ -8,6 +8,10 @@ tracing은 여전히 후속 태스크이며, trace_id는 계약만 남겨둔다.
 SDK 호출 패턴은 태스크 브리프에 명시된 형태를 그대로 따른다 — 특히 Anthropic
 호출에는 temperature 등 샘플링 파라미터를 넣지 않는다(claude-opus-5에서 제거되어
 400이 발생한다).
+
+complete_json의 temperature 인자(Task S-27)는 이 제약을 그대로 지킨다 — 기본값 None은
+기존 동작과 완전히 동일(어느 공급자에도 전달하지 않음)하고, 값이 있어도 OpenAI 호출에만
+실린다. Anthropic 경로(_call_anthropic)는 temperature를 절대 받지 않는다.
 """
 
 from __future__ import annotations
@@ -93,16 +97,21 @@ def _call_anthropic(
     return data, resp.model, usage
 
 
-def _call_openai(prompt: RenderedPrompt, schema: type[T], model: str) -> tuple[T, str, dict]:
+def _call_openai(
+    prompt: RenderedPrompt, schema: type[T], model: str, temperature: float | None = None
+) -> tuple[T, str, dict]:
     client = _get_openai_client()
-    comp = client.chat.completions.parse(
-        model=model,
-        messages=[
+    kwargs: dict = {
+        "model": model,
+        "messages": [
             {"role": "system", "content": prompt.system},
             {"role": "user", "content": prompt.user},
         ],
-        response_format=schema,
-    )
+        "response_format": schema,
+    }
+    if temperature is not None:
+        kwargs["temperature"] = temperature
+    comp = client.chat.completions.parse(**kwargs)
     data = comp.choices[0].message.parsed
     usage = {
         "input_tokens": comp.usage.prompt_tokens,
@@ -133,6 +142,7 @@ def complete_json(
     schema: type[T],
     *,
     provider: Literal["anthropic", "openai"] | None = None,
+    temperature: float | None = None,
     max_tokens: int = 8192,
     cache_key: str | None = None,
     force_refresh: bool = False,
@@ -146,6 +156,10 @@ def complete_json(
         schema: 응답을 검증할 pydantic BaseModel 서브클래스.
         provider: 명시하면 해당 공급자만 시도하고 폴백하지 않는다. None이면
             LLMConfig.provider(환경변수 LLM_PROVIDER)를 따른다.
+        temperature: 샘플링 온도(Task S-27 judge 등 결정성이 필요한 호출용). None(기본)이면
+            기존 동작 그대로 어느 공급자 호출에도 포함하지 않는다. 값이 있으면 OpenAI
+            호출에만 포함된다 — Anthropic(claude-opus-5)은 temperature를 지원하지 않아
+            (전달 시 400, 모듈 docstring 참조) 값과 무관하게 항상 제외한다.
         max_tokens: Anthropic 호출의 max_tokens(OpenAI 쪽은 SDK 기본값을 따른다).
         cache_key: None이면 캐시에 전혀 관여하지 않는다(기존 동작 그대로). 값이
             있으면 force_refresh=False일 때 우선 cache_get을 시도해 히트 시
@@ -191,10 +205,12 @@ def complete_json(
     elif resolved_provider == "openai":
         if not cfg.openai_key_set:
             raise LLMUnavailableError("OPENAI_API_KEY가 설정되지 않았습니다.")
-        data, model, usage = _call_openai(prompt, schema, cfg.openai_model)
+        data, model, usage = _call_openai(prompt, schema, cfg.openai_model, temperature)
         used_provider = "openai"
     elif resolved_provider == "auto":
-        data, model, usage, used_provider = _complete_json_auto(prompt, schema, cfg, max_tokens)
+        data, model, usage, used_provider = _complete_json_auto(
+            prompt, schema, cfg, max_tokens, temperature
+        )
     else:  # pragma: no cover - load_llm_config()가 이미 검증하므로 도달하지 않음
         raise ValueError(f"알 수 없는 provider: {resolved_provider!r}")
 
@@ -217,13 +233,21 @@ def complete_json(
 
 
 def _complete_json_auto(
-    prompt: RenderedPrompt, schema: type[T], cfg: LLMConfig, max_tokens: int
+    prompt: RenderedPrompt,
+    schema: type[T],
+    cfg: LLMConfig,
+    max_tokens: int,
+    temperature: float | None = None,
 ) -> tuple[T, str, dict, str]:
-    """LLM_PROVIDER=auto 정책: Anthropic 우선, 자격이 되는 예외에 한해 OpenAI로 폴백."""
+    """LLM_PROVIDER=auto 정책: Anthropic 우선, 자격이 되는 예외에 한해 OpenAI로 폴백.
+
+    temperature는 (여기서든 폴백에서든) OpenAI 호출에만 실린다 — Anthropic 시도는 성공이든
+    실패든 항상 temperature 없이 이루어진다(모듈 docstring의 claude-opus-5 제약).
+    """
     if not cfg.anthropic_key_set:
         if not cfg.openai_key_set:
             raise LLMUnavailableError("ANTHROPIC_API_KEY, OPENAI_API_KEY가 모두 설정되지 않았습니다.")
-        data, model, usage = _call_openai(prompt, schema, cfg.openai_model)
+        data, model, usage = _call_openai(prompt, schema, cfg.openai_model, temperature)
         return data, model, usage, "openai"
 
     try:
@@ -240,7 +264,7 @@ def _complete_json_auto(
             ) from anthropic_exc
 
         try:
-            data, model, usage = _call_openai(prompt, schema, cfg.openai_model)
+            data, model, usage = _call_openai(prompt, schema, cfg.openai_model, temperature)
             return data, model, usage, "openai"
         except Exception as openai_exc:
             raise LLMUnavailableError(

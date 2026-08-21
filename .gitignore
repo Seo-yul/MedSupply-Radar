@@ -12,3 +12,8 @@ docs/superpowers/
 # 봉인 증거(해시 매니페스트)라 예외적으로 커밋 대상이다(data/blind/manifest.json).
 data/blind/*
 !data/blind/manifest.json
+
+# judge 실행 결과(Task S-27, eval/judge.py::run_experiment 산출) — 실행마다 달라지는 jsonl이라
+# 미커밋. S-28 본실행 산출물은 그 시점에 커밋 여부를 별도 판단한다(task-S27-brief.md §격리).
+eval/results/*
+!eval/results/.gitkeep
