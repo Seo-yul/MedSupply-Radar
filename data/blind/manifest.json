@@ -141,5 +141,35 @@
         }
       }
     }
-  ]
+  ],
+  "predictions": {
+    "recorded_at": "2026-08-21T02:44:57+00:00",
+    "files": [
+      {
+        "seed": 20260901,
+        "pred_file": "blind_20260901.pred.json",
+        "sha256": "da38fb613c23fccc8f056dff4e1bf2a39a6a835e4edd9222f80b4ac8f375606f"
+      },
+      {
+        "seed": 20260902,
+        "pred_file": "blind_20260902.pred.json",
+        "sha256": "4b651b06fdb969f2a7d24d9038828cfc6b66f3666b0b86d1ea832a37ab7a18d2"
+      },
+      {
+        "seed": 20260903,
+        "pred_file": "blind_20260903.pred.json",
+        "sha256": "0d015a63e37efc51f3813a17be382a27c0731cd6e57c32892d19187bb9ba14e1"
+      },
+      {
+        "seed": 20260904,
+        "pred_file": "blind_20260904.pred.json",
+        "sha256": "0423d85d3ae89199c57bb953ec3dbab89518e6934a2239ba5ecbc713134134a6"
+      },
+      {
+        "seed": 20260905,
+        "pred_file": "blind_20260905.pred.json",
+        "sha256": "a2f035e2b6ae409d54cabfa97ee74ac463d7e16fc5a86a5b49ab05c06d049374"
+      }
+    ]
+  }
 }
