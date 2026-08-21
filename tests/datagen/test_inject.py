@@ -273,6 +273,65 @@ class TestLabels:
         for label in labels:
             assert label["params_ref"] == by_item[label["item_id"]]
 
+    def test_standard_path_has_no_attribution_field(self, injected_a: InjectResult) -> None:
+        """Task S-30c B: 귀속 표기는 옵트인이다 — 기본값(표준 20건 경로)에서는 라벨
+        스키마가 종전과 완전히 동일해야 한다(standard_v1.json 바이트 불변 요건)."""
+        _, _, labels = injected_a
+        for label in labels:
+            assert "scenario_attribution" not in label, label
+
+
+class TestStockoutAttributionAnnotation:
+    """Task S-30c B(S-30b (c)③): `_stockout_date`의 extrapolated 분기는 향후 재입고를
+    전량 동결하는 외삽이라, 시나리오 효과가 base_date 이전에 소멸한 품목에도 "품절 라벨"이
+    붙는다. 실증(S-30b §3): 같은 공식을 seed 20260901의 정상 품목 120건에 적용하면 43건이
+    지평 이내로, 85건이 문제의 라벨값(ITM-0101, 2026-09-17)보다 이르게 나온다 — 그 라벨은
+    대조군의 71%보다 덜 위급했다. 그래서 외삽 라벨에는 "시나리오 귀속 미검증"을 명시한다.
+
+    옵트인(annotate_attribution=True)으로만 붙는다 — 블라인드 생성 경로만 켠다."""
+
+    def test_annotates_extrapolated_labels_as_unverified(
+        self, tmp_path: Path
+    ) -> None:
+        config_path = TestMinScenariosPerTypeOverride()._small_config_yaml(tmp_path)
+        _summary, labels = inject.inject_scenarios(
+            tmp_path / "annotated.db", seed=SEED_A, base_date=BASE_DATE,
+            scenario_config_path=config_path, min_scenarios_per_type=1,
+            annotate_attribution=True,
+        )
+        assert labels
+        for label in labels:
+            assert "scenario_attribution" in label, label
+            if label["stockout_basis"] == "extrapolated":
+                assert label["scenario_attribution"] == "unverified_extrapolation"
+            else:
+                assert label["scenario_attribution"] == "observed_stockout"
+
+    def test_annotation_does_not_change_any_other_field(self, tmp_path: Path) -> None:
+        config_path = TestMinScenariosPerTypeOverride()._small_config_yaml(tmp_path)
+        _s1, plain = inject.inject_scenarios(
+            tmp_path / "plain.db", seed=SEED_A, base_date=BASE_DATE,
+            scenario_config_path=config_path, min_scenarios_per_type=1,
+        )
+        _s2, annotated = inject.inject_scenarios(
+            tmp_path / "annot.db", seed=SEED_A, base_date=BASE_DATE,
+            scenario_config_path=config_path, min_scenarios_per_type=1,
+            annotate_attribution=True,
+        )
+        stripped = [
+            {k: v for k, v in lbl.items() if k != "scenario_attribution"} for lbl in annotated
+        ]
+        assert stripped == plain
+
+    def test_derive_labels_default_is_unannotated(self, tmp_path: Path) -> None:
+        config_path = TestMinScenariosPerTypeOverride()._small_config_yaml(tmp_path)
+        out = tmp_path / "default.db"
+        _summary, labels = inject.inject_scenarios(
+            out, seed=SEED_A, base_date=BASE_DATE,
+            scenario_config_path=config_path, min_scenarios_per_type=1,
+        )
+        assert all("scenario_attribution" not in lbl for lbl in labels)
+
 
 # --- 6. 핸드오프 방어 회귀(expected_qty NULL 금지) ----------------------------
 

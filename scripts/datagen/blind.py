@@ -706,6 +706,9 @@ def generate_blind(
                     schema_path=schema_path,
                     min_scenarios_per_type=1,
                     observable_window=observable_window,
+                    # S-30c B: 블라인드 라벨에만 시나리오 귀속 표기를 붙인다(외삽 라벨은
+                    # "미검증"). 표준 라벨 파일은 기본값 False로 바이트 불변이다.
+                    annotate_attribution=True,
                 )
                 last_error = None
                 break

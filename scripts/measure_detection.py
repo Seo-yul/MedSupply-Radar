@@ -37,6 +37,12 @@
   ``threshold_metrics`` 한 함수의 인자일 뿐이라 감지와 오탐에 **대칭으로** 걸린다 — 오탐만
   유리하게 문턱을 올리는 비교가 구조적으로 불가능하다. 기본 문턱('주의 이상')의 기존 키·산식은
   그대로 두고 새 섹션만 추가한다.
+- 채점 불가 라벨 진단(Task S-30c B 확장): ``stockout_date < sweep_start``인 라벨은 성공 규칙
+  ``first_alert <= stockout_date``를 **어떤 예측으로도** 만족할 수 없다(스윕에서 나올 수 있는
+  가장 이른 first_alert가 스윕 첫날이기 때문). 그 개수·목록을 ``unscoreable_labels``로 병기하고
+  stderr에 경고한다. **산식은 바꾸지 않는다** — 이 라벨들은 종전대로 감지율 분모에 남는다
+  (새 비율 지표를 정의하지 않는다). 같은 이유로 ``within_horizon``의 지평 기준에는 하한
+  ``sweep_start <= stockout_date``가 추가됐다(종전에는 상한만 있었다).
 
 ## 예측 파일(``--predict-only`` 산출물) 스키마
 metrics-spec의 공통 meta/results 헤더는 **최종 결과 JSON**(``--out``)에만 적용된다. 예측
@@ -329,17 +335,63 @@ def horizon_end(sweep_end: date, horizon_days: int) -> date:
 
 
 def split_labels_by_horizon(
-    labels: list[dict], sweep_end: date, horizon_days: int
+    labels: list[dict], sweep_end: date, horizon_days: int, sweep_start: date | None = None
 ) -> tuple[list[dict], list[dict]]:
-    """라벨을 (지평 안, 지평 밖)으로 나눈다 — 기준: stockout_date <= sweep_end + horizon_days.
+    """라벨을 (지평 안, 지평 밖)으로 나눈다.
+
+    기준(Task S-30c B에서 하한 추가):
+    - 상한 ``stockout_date <= sweep_end + horizon_days`` — 그 밖의 품절은 '주의'
+      ("horizon_days 안에 소진 예상") 판정 근거 자체가 없다(S-17d, 종전 그대로).
+    - 하한 ``sweep_start <= stockout_date`` — 스윕에서 나올 수 있는 가장 이른 first_alert가
+      스윕 첫날이므로, 그 이전에 품절한 라벨은 ``threshold_metrics``의 성공 규칙
+      ``first_alert <= stockout_date``에서 **항상 거짓**이다. 상한만 있던 종전 기준은
+      "이 스윕이 맞힐 기회가 있었던 라벨만"이라는 docstring 선언을 절반만 구현한 상태였고
+      (S-30b (c)①), 실제로 1차 블라인드에서 12건의 감지 불가 라벨을 지평 안에 남겼다.
+
+    sweep_start가 None이면 하한을 적용하지 않는다(종전 동작 그대로).
 
     **라벨 파일은 건드리지 않는다.** 채점 시점에만 계산하는 뷰이며, 원본 라벨의 어떤 필드도
     수정·삭제하지 않는다(raw 감지율은 지금까지와 똑같이 전체 라벨로 계속 산출한다).
     """
     cutoff = horizon_end(sweep_end, horizon_days)
-    in_horizon = [row for row in labels if date.fromisoformat(row["stockout_date"]) <= cutoff]
-    out_of_horizon = [row for row in labels if date.fromisoformat(row["stockout_date"]) > cutoff]
+
+    def _inside(row: dict) -> bool:
+        stockout = date.fromisoformat(row["stockout_date"])
+        if stockout > cutoff:
+            return False
+        return sweep_start is None or stockout >= sweep_start
+
+    in_horizon = [row for row in labels if _inside(row)]
+    out_of_horizon = [row for row in labels if not _inside(row)]
     return in_horizon, out_of_horizon
+
+
+#: 채점 규칙상 감지 성공이 불가능한 라벨의 판정 기준(진단 전용 문자열, 산식 아님).
+UNSCOREABLE_CRITERION = (
+    "stockout_date < sweep_start — 스윕에서 나올 수 있는 가장 이른 first_alert가 스윕"
+    " 첫날이므로 성공 규칙 first_alert <= stockout_date를 어떤 예측으로도 만족할 수 없다"
+)
+
+
+def unscoreable_labels(labels: list[dict], sweep_start: date) -> list[dict]:
+    """``stockout_date < sweep_start``인 라벨 목록(item_id·scenario_type·stockout_date).
+
+    Task S-30c B의 진단 카운터다. **채점 산식은 이 함수를 전혀 참조하지 않는다** —
+    raw 감지율·오탐률·counts의 정의는 종전과 100% 동일하고, 이 목록은 결과 JSON에
+    나란히 병기되는 사실 진술일 뿐이다(새 비율 지표를 정의하지 않는다).
+    """
+    return sorted(
+        (
+            {
+                "item_id": row["item_id"],
+                "scenario_type": row["scenario_type"],
+                "stockout_date": row["stockout_date"],
+            }
+            for row in labels
+            if date.fromisoformat(row["stockout_date"]) < sweep_start
+        ),
+        key=lambda row: row["item_id"],
+    )
 
 
 def score_sweep(
@@ -348,6 +400,7 @@ def score_sweep(
     risk_types: dict[str, dict[str, str]] | None = None,
     sweep_end: date | None = None,
     horizon_days: int | None = None,
+    sweep_start: date | None = None,
 ) -> dict:
     """스윕 결과(predictions) + 라벨 리스트 → metrics-spec 지표 dict(순수 함수).
 
@@ -391,10 +444,20 @@ def score_sweep(
         품절되므로 '주의' 이상으로 뜰 근거 자체가 없다. **raw 감지율(최상위 키)은 전체 라벨
         기준 그대로 유지하고**, within_horizon은 나란히 병기하는 두 번째 뷰다 — 어느 쪽도
         다른 쪽을 대체하지 않는다. 구성:
-        {criterion, sweep_end, horizon_days, horizon_end, counts{labeled_total,
+        {criterion, sweep_start, sweep_end, horizon_days, horizon_end, counts{labeled_total,
         labeled_in_horizon, excluded}, excluded_labels[{item_id, scenario_type,
         stockout_date}], threshold_watch/threshold_warning/threshold_danger(각각
-        threshold_metrics 결과)}.
+        threshold_metrics 결과)}. sweep_start를 함께 주면 지평 기준에 하한
+        (stockout_date >= sweep_start)이 추가된다(Task S-30c B).
+
+        unscoreable_labels(Task S-30c B 신설 키)는 sweep_start가 주어졌을 때만 채워진다
+        (아니면 None). ``stockout_date < sweep_start``라 **어떤 예측으로도 감지 성공이
+        불가능한 라벨**의 개수와 목록이다 — S-30b가 1차 블라인드에서 20건 중 12건을
+        찾아낸 그 상태다. 진단 병기일 뿐이며 **채점 산식은 전혀 바뀌지 않는다**:
+        detection_rate·false_positive_rate·counts·by_type·threshold_* 전부 이 키가
+        있든 없든 완전히 동일하다(새 비율 지표도 정의하지 않는다).
+        구성: {criterion, sweep_start, counts{labeled_total, unscoreable},
+        labels[{item_id, scenario_type, stockout_date}]}.
     """
     label_by_item = {row["item_id"]: row for row in labels}
     labeled_ids = set(label_by_item)
@@ -459,13 +522,31 @@ def score_sweep(
             "items": dict(sorted(match_items.items())),
         }
 
+    if sweep_start is None:
+        unscoreable = None
+    else:
+        unscoreable_rows = unscoreable_labels(labels, sweep_start)
+        unscoreable = {
+            "criterion": UNSCOREABLE_CRITERION,
+            "sweep_start": sweep_start.isoformat(),
+            "counts": {"labeled_total": n_labeled, "unscoreable": len(unscoreable_rows)},
+            "labels": unscoreable_rows,
+        }
+
     if sweep_end is None or horizon_days is None:
         within_horizon = None
     else:
-        in_horizon, excluded = split_labels_by_horizon(labels, sweep_end, horizon_days)
+        in_horizon, excluded = split_labels_by_horizon(
+            labels, sweep_end, horizon_days, sweep_start
+        )
         in_horizon_by_item = {row["item_id"]: row for row in in_horizon}
         within_horizon = {
-            "criterion": "stockout_date <= sweep_end + grade.watch_days",
+            "criterion": (
+                "stockout_date <= sweep_end + grade.watch_days"
+                if sweep_start is None
+                else "sweep_start <= stockout_date <= sweep_end + grade.watch_days"
+            ),
+            "sweep_start": sweep_start.isoformat() if sweep_start is not None else None,
             "sweep_end": sweep_end.isoformat(),
             "horizon_days": horizon_days,
             "horizon_end": horizon_end(sweep_end, horizon_days).isoformat(),
@@ -505,6 +586,7 @@ def score_sweep(
         "threshold_warning": warning_report,
         "threshold_danger": danger_report,
         "within_horizon": within_horizon,
+        "unscoreable_labels": unscoreable,
     }
 
 
@@ -636,12 +718,36 @@ def _preserved_sections(out_path: str | Path) -> dict:
     return {key: value for key, value in existing.items() if key not in ("meta", "results")}
 
 
+def _warn_unscoreable(results: dict) -> None:
+    """채점 불가 라벨이 있으면 stderr로 경고한다(Task S-30c B).
+
+    S-30b: 1차 블라인드는 라벨 20건 중 12건이 이 상태였는데 채점기가 세지도 경고하지도
+    않아 리포트에 아무 흔적이 남지 않았고, 35%라는 raw 감지율이 "탐지기 일반화 성능"으로
+    오독됐다. 경고 한 줄이면 그 오독은 원천 차단된다.
+    """
+    diag = results.get("unscoreable_labels")
+    if not diag or not diag["counts"]["unscoreable"]:
+        return
+    counts = diag["counts"]
+    items = ", ".join(
+        f"{row['item_id']}({row['stockout_date']})" for row in diag["labels"]
+    )
+    print(
+        f"경고: 채점 불가 라벨 {counts['unscoreable']}/{counts['labeled_total']}건 —"
+        f" stockout_date가 스윕 시작일({diag['sweep_start']})보다 앞선다."
+        f" 성공 규칙 first_alert <= stockout_date를 어떤 예측으로도 만족할 수 없으므로"
+        f" 이 라벨들은 감지율의 분모에만 들어간다: {items}",
+        file=sys.stderr,
+    )
+
+
 def _finalize(results: dict, meta: dict, out_path: str) -> int:
     preserved = _preserved_sections(out_path)
     _write_json(out_path, {"meta": meta, "results": results, **preserved})
     print(_human_summary(results))
     if preserved:
         print(f"보존된 기존 섹션: {', '.join(sorted(preserved))}")
+    _warn_unscoreable(results)
     return 0
 
 
@@ -685,6 +791,7 @@ def _run_score(args: argparse.Namespace) -> int:
         payload.get("risk_types"),
         sweep_end=date.fromisoformat(payload["sweep"]["end"]),
         horizon_days=horizon_days,
+        sweep_start=date.fromisoformat(payload["sweep"]["start"]),
     )
     results["sweep"] = payload["sweep"]
 
@@ -716,6 +823,7 @@ def _run_full(args: argparse.Namespace) -> int:
         risk_types,
         sweep_end=args.end,
         horizon_days=params.grade.watch_days,
+        sweep_start=args.start,
     )
     results["sweep"] = _sweep_info(args.start, args.end)
 

@@ -361,6 +361,139 @@ class TestResultMeta:
         assert results["sweep"] == {"start": START, "end": END, "days": 3}
 
 
+class TestUnscoreableLabelDiagnostics:
+    """Task S-30c B: 채점 규칙상 성공이 불가능한 라벨(stockout_date < 스윕 시작)을 세어
+    진단으로 병기한다. S-30b: 1차 블라인드 라벨 20건 중 12건이 그 상태였는데 리포트에
+    아무 흔적도 남지 않아 35%라는 수치가 "일반화 성능"으로 오독됐다.
+
+    **채점 산식은 바꾸지 않는다** — raw 감지율·오탐률·counts는 진단 추가 전후 완전히
+    같아야 한다(진단 병기일 뿐이다).
+    """
+
+    _PREDICTIONS = {
+        "A": {"2026-07-01": "위험", "2026-07-15": "위험"},
+        "B": {"2026-07-01": "정상", "2026-07-20": "주의"},
+        "N": {"2026-07-01": "정상"},
+    }
+    _LABELS = [
+        # A: 스윕(07-01~08-01) 시작 **이전** 품절 — first_alert가 아무리 일러도 07-01이라
+        # first_alert <= stockout_date가 구조적으로 성립 불가(S-30b H1a).
+        {"item_id": "A", "scenario_type": "supply_halt", "stockout_date": "2026-05-28"},
+        {"item_id": "B", "scenario_type": "demand_surge", "stockout_date": "2026-08-10"},
+    ]
+    _SWEEP_START = date(2026, 7, 1)
+    _SWEEP_END = date(2026, 8, 1)
+
+    def test_counts_and_lists_unscoreable_labels(self) -> None:
+        result = md.score_sweep(
+            self._PREDICTIONS, self._LABELS, sweep_start=self._SWEEP_START,
+            sweep_end=self._SWEEP_END, horizon_days=30,
+        )
+        diag = result["unscoreable_labels"]
+        assert diag["counts"] == {"labeled_total": 2, "unscoreable": 1}
+        assert diag["sweep_start"] == "2026-07-01"
+        assert diag["labels"] == [
+            {"item_id": "A", "scenario_type": "supply_halt", "stockout_date": "2026-05-28"}
+        ]
+        assert "first_alert" in diag["criterion"]
+
+    def test_raw_metrics_are_identical_with_and_without_the_diagnostic(self) -> None:
+        without = md.score_sweep(
+            self._PREDICTIONS, self._LABELS, sweep_end=self._SWEEP_END, horizon_days=30
+        )
+        with_diag = md.score_sweep(
+            self._PREDICTIONS, self._LABELS, sweep_start=self._SWEEP_START,
+            sweep_end=self._SWEEP_END, horizon_days=30,
+        )
+        for key in ("detection_rate", "false_positive_rate", "danger_precision",
+                    "lead_days", "by_type", "counts", "threshold_warning", "threshold_danger"):
+            assert with_diag[key] == without[key], key
+        assert without["unscoreable_labels"] is None
+
+    def test_no_unscoreable_labels_reports_zero(self) -> None:
+        result = md.score_sweep(
+            self._PREDICTIONS, self._LABELS[1:], sweep_start=self._SWEEP_START,
+            sweep_end=self._SWEEP_END, horizon_days=30,
+        )
+        assert result["unscoreable_labels"]["counts"] == {
+            "labeled_total": 1, "unscoreable": 0
+        }
+        assert result["unscoreable_labels"]["labels"] == []
+
+    def test_cli_writes_diagnostic_and_warns_on_stderr(
+        self, tiny_snapshot: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        labels_path = tmp_path / "pre_sweep_labels.json"
+        labels_path.write_text(
+            json.dumps(
+                [
+                    {
+                        "item_id": "ITM-0001", "scenario_type": "supply_halt",
+                        "onset_date": "2026-04-01", "stockout_date": "2026-05-28",
+                        "params_ref": "SC-X", "stockout_basis": "observed",
+                    }
+                ],
+                ensure_ascii=False,
+            ),
+            encoding="utf-8",
+        )
+        out_path = tmp_path / "diag.json"
+        assert md.main(
+            [
+                "--db", str(tiny_snapshot), "--labels", str(labels_path),
+                "--start", START, "--end", END, "--out", str(out_path),
+            ]
+        ) == 0
+
+        captured = capsys.readouterr()
+        assert "채점 불가" in captured.err
+
+        results = json.loads(out_path.read_text(encoding="utf-8"))["results"]
+        assert results["unscoreable_labels"]["counts"]["unscoreable"] == 1
+
+
+class TestWithinHorizonLowerBound:
+    """Task S-30c B: within_horizon에 하한(stockout >= 스윕 시작)을 추가한다.
+
+    S-30b (c)①: 기존 기준은 상한뿐이라 "스윕이 맞힐 기회가 있었던 라벨만"이라는 선언과
+    달리 스윕 시작 이전 품절 라벨을 지평 안에 그대로 남겼다 — threshold_metrics의 성공
+    규칙(first_alert <= stockout_date)에서 항상 거짓인 라벨들이다.
+    """
+
+    _LABELS = [
+        {"item_id": "EARLY", "scenario_type": "supply_halt", "stockout_date": "2026-05-28"},
+        {"item_id": "IN", "scenario_type": "demand_surge", "stockout_date": "2026-08-10"},
+        {"item_id": "LATE", "scenario_type": "delivery_delay", "stockout_date": "2026-09-17"},
+    ]
+
+    def test_lower_bound_excludes_pre_sweep_labels(self) -> None:
+        in_horizon, excluded = md.split_labels_by_horizon(
+            self._LABELS, date(2026, 8, 1), 30, sweep_start=date(2026, 7, 1)
+        )
+        assert [row["item_id"] for row in in_horizon] == ["IN"]
+        assert sorted(row["item_id"] for row in excluded) == ["EARLY", "LATE"]
+
+    def test_without_sweep_start_keeps_legacy_upper_bound_only(self) -> None:
+        in_horizon, excluded = md.split_labels_by_horizon(self._LABELS, date(2026, 8, 1), 30)
+        assert sorted(row["item_id"] for row in in_horizon) == ["EARLY", "IN"]
+        assert [row["item_id"] for row in excluded] == ["LATE"]
+
+    def test_criterion_string_states_both_bounds(self) -> None:
+        result = md.score_sweep(
+            {"IN": {"2026-07-01": "정상"}, "EARLY": {"2026-07-01": "위험"},
+             "LATE": {"2026-07-01": "정상"}},
+            self._LABELS, sweep_start=date(2026, 7, 1), sweep_end=date(2026, 8, 1),
+            horizon_days=30,
+        )
+        criterion = result["within_horizon"]["criterion"]
+        assert "sweep_start <= stockout_date" in criterion
+        assert "sweep_end + grade.watch_days" in criterion
+        assert result["within_horizon"]["sweep_start"] == "2026-07-01"
+        assert result["within_horizon"]["counts"] == {
+            "labeled_total": 3, "labeled_in_horizon": 1, "excluded": 2
+        }
+
+
 class TestPreservesForeignSections:
     """재측정이 결과 파일의 {meta, results} 밖 최상위 키를 지우지 않는다(S-17 리뷰 F5).
 

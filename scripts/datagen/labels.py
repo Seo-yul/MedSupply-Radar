@@ -36,6 +36,20 @@ from scripts.datagen.config import ANCHOR_DATE_KEYS, Scenario, ScenarioConfig
 #: 외삽에 쓰는 "최근" 구간 길이(일) — 브리프 지정값.
 EXTRAPOLATION_WINDOW_DAYS = 28
 
+#: stockout_basis → 시나리오 귀속 표기(Task S-30c B, S-30b (c)③ 권고).
+#:
+#: `_stockout_date`의 "observed" 분기는 시나리오 주입 이후 실제로 closing_stock이 0에
+#: 닿은 날을 쓴다 — 데이터에 관측된 사실이다. 반면 "extrapolated" 분기는 **향후 재입고를
+#: 전량 동결**하는 가정 위의 선형 외삽이라, 시나리오 효과가 base_date 이전에 이미 소멸한
+#: 품목에도 "품절 라벨"을 붙일 수 있다. S-30b §3 실증: 같은 공식을 어떤 시나리오도 없는
+#: 정상 품목 120건에 그대로 적용하면 43건이 오라클 지평(스윕 종료+30일) 이내로 외삽되고,
+#: 85건(70.8%)이 문제의 라벨값보다 이른 품절일을 받는다. 즉 그 라벨은 "시나리오의 결과"가
+#: 아니라 "공식의 산물"일 수 있으며, 감지 실패로 집계하기 전에 라벨 타당성을 의심해야 한다.
+STOCKOUT_ATTRIBUTION = {
+    "observed": "observed_stockout",
+    "extrapolated": "unverified_extrapolation",
+}
+
 
 def _onset_date(sc: Scenario) -> date:
     """시나리오 개시일 — 유형별 앵커 날짜(composite는 하위 시나리오 중 최초 개시일)."""
@@ -111,6 +125,7 @@ def derive_labels(
     *,
     onset_overrides: dict[str, date] | None = None,
     blocked_orders: dict[str, set[str]] | None = None,
+    annotate_attribution: bool = False,
 ) -> list[dict[str, object]]:
     """cfg의 20건 시나리오 각각에 대해 라벨 1건씩 도출한다.
 
@@ -129,6 +144,12 @@ def derive_labels(
     blocked_orders는 item_id → 그 품목에서 시나리오가 실제로 막은 order_date 집합이다
     (1주차 리뷰 F3). 없는 item_id는 빈 집합으로 취급한다 — 즉 그 품목의 미이행 발주는
     전부 "비차단"으로 보고 외삽에 가산한다.
+
+    annotate_attribution(Task S-30c B): True면 라벨마다 `scenario_attribution` 필드를
+    덧붙인다(STOCKOUT_ATTRIBUTION 매핑 — extrapolated는 "시나리오 귀속 미검증"). **기본값
+    False에서는 라벨 스키마가 종전과 100% 동일**하다 — 동결된 표준 라벨 파일
+    (data/scenarios/ground_truth/standard_v1.json)이 재생성해도 바이트 단위로 그대로여야
+    하기 때문이다. 블라인드 생성 경로(scripts/datagen/blind.py)만 이 옵션을 켠다.
     """
     base_date = date.fromisoformat(cfg.base_date)
     onset_overrides = onset_overrides or {}
@@ -144,16 +165,17 @@ def derive_labels(
                 f"{sc.scenario_id}: onset_date({onset})가 stockout_date({stockout}) 이상이다"
             )
 
-        labels.append(
-            {
-                "item_id": sc.item_id,
-                "scenario_type": sc.type,
-                "onset_date": onset.isoformat(),
-                "stockout_date": stockout.isoformat(),
-                "params_ref": sc.scenario_id,
-                "stockout_basis": basis,
-            }
-        )
+        label: dict[str, object] = {
+            "item_id": sc.item_id,
+            "scenario_type": sc.type,
+            "onset_date": onset.isoformat(),
+            "stockout_date": stockout.isoformat(),
+            "params_ref": sc.scenario_id,
+            "stockout_basis": basis,
+        }
+        if annotate_attribution:
+            label["scenario_attribution"] = STOCKOUT_ATTRIBUTION[basis]
+        labels.append(label)
 
     return labels
 

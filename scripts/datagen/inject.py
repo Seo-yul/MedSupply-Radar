@@ -835,6 +835,7 @@ def inject_scenarios(
     schema_path: str | Path = baseline.DEFAULT_SCHEMA_PATH,
     min_scenarios_per_type: int = config.MIN_SCENARIOS_PER_TYPE,
     observable_window: tuple[date, date] | None = None,
+    annotate_attribution: bool = False,
 ) -> tuple[GenerationSummary, list[dict[str, object]]]:
     """베이스라인 생성 후 scenario_config.yaml의 시나리오를 결정적으로 재시뮬레이션 주입한다.
 
@@ -856,6 +857,10 @@ def inject_scenarios(
     (observed·extrapolated 공통)에서 "품절일이 측정 구간 안"을 단언한다 — 창 밖이면
     IneffectiveInjectionError(재시도 대상)다. 기본값 None이면 두 검사 모두 비활성이라
     표준 20건 경로는 종전과 완전히 동일하게 동작한다(동결 무침해).
+
+    annotate_attribution(Task S-30c B): labels.derive_labels로 그대로 전달한다 — True면
+    라벨에 `scenario_attribution`("외삽 라벨은 시나리오 귀속 미검증")이 붙는다. 기본값
+    False에서 표준 라벨 파일은 바이트 단위로 종전과 동일하다.
     """
     start = time.monotonic()
 
@@ -956,7 +961,11 @@ def inject_scenarios(
         shipment_count = conn.execute("SELECT COUNT(*) FROM incoming_shipments").fetchone()[0]
 
         labels = labels_mod.derive_labels(
-            conn, cfg, onset_overrides=onset_overrides, blocked_orders=blocked_orders
+            conn,
+            cfg,
+            onset_overrides=onset_overrides,
+            blocked_orders=blocked_orders,
+            annotate_attribution=annotate_attribution,
         )
         if observable_window is not None:
             assert_labels_observable(labels, observable_window)
