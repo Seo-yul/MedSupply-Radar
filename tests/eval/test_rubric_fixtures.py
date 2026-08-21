@@ -407,8 +407,12 @@ def _render_judge_user_message(case_id: str) -> tuple[str, dict]:
 )
 @pytest.mark.parametrize("case_id", ["grounded_concrete", "fabricated_number"])
 def test_smoke_real_judge_matches_expected_range(case_id):
-    # 캐시를 켜 재실행을 무비용으로 만든다(브리프 지시) — settings.LLM_CACHE_PATH를 격리하지
-    # 않으므로 실제 data/llm_cache.db에 저장되고, 같은 case_id 재실행은 캐시 히트로 처리된다.
+    # cache_key를 넘겨 caching 경로 자체는 계속 행사한다(브리프 지시 — judge_generation과
+    # 동일한 호출 형태 재현). 다만 tests/eval/conftest.py의 autouse 픽스처가
+    # settings.LLM_CACHE_PATH를 tmp_path로 격리하므로(Task X-1 후속 조치 — 실제
+    # data/llm_cache.db 오염 방지) 이 캐시 항목은 이 테스트 프로세스 밖에서 재사용되지
+    # 않는다 — 재실행마다(파라미터별로도) 항상 실 API를 다시 호출한다. 예전처럼 이전
+    # 실행의 캐시를 재사용해 "무비용 재실행"하는 설계는 더 이상 유효하지 않다.
     from medsupply.llm.cache import build_cache_key
     from medsupply.llm.client import RenderedPrompt, complete_json
     from medsupply.llm.config import load_llm_config
