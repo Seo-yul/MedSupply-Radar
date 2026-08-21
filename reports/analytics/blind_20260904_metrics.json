@@ -1,0 +1,492 @@
+{
+  "meta": {
+    "dataset_content_hash": "ea7fdd6e39ff84cb3d1e1da697ded607ac7ad8e8717852cc83f67cdd5376d7ac",
+    "config_hash": "6ec9bf05",
+    "labels_version": "blind_20260904.labels.json",
+    "params_ref": "config/analytics_params.toml",
+    "generated_at": "2026-08-21T11:45:42",
+    "measured_by": "scripts/measure_detection.py"
+  },
+  "results": {
+    "detection_rate": 0.25,
+    "lead_days": {
+      "min": 44,
+      "median": 44,
+      "mean": 44,
+      "max": 44
+    },
+    "false_positive_rate": 0.6,
+    "danger_precision": 1.0,
+    "by_type": {
+      "composite": {
+        "labeled": 1,
+        "detected": 0,
+        "detection_rate": 0.0,
+        "lead_days": {
+          "min": null,
+          "median": null,
+          "mean": null,
+          "max": null
+        }
+      },
+      "delivery_delay": {
+        "labeled": 1,
+        "detected": 0,
+        "detection_rate": 0.0,
+        "lead_days": {
+          "min": null,
+          "median": null,
+          "mean": null,
+          "max": null
+        }
+      },
+      "demand_surge": {
+        "labeled": 1,
+        "detected": 1,
+        "detection_rate": 1.0,
+        "lead_days": {
+          "min": 44,
+          "median": 44,
+          "mean": 44,
+          "max": 44
+        }
+      },
+      "supply_halt": {
+        "labeled": 1,
+        "detected": 0,
+        "detection_rate": 0.0,
+        "lead_days": {
+          "min": null,
+          "median": null,
+          "mean": null,
+          "max": null
+        }
+      }
+    },
+    "counts": {
+      "labeled": 4,
+      "normal": 120,
+      "detected": 1,
+      "false_positives": 72
+    },
+    "risk_type_match": {
+      "overall": 0.25,
+      "counts": {
+        "labeled": 4,
+        "matched": 1
+      },
+      "by_type": {
+        "composite": {
+          "labeled": 1,
+          "matched": 0,
+          "match_rate": 0.0
+        },
+        "delivery_delay": {
+          "labeled": 1,
+          "matched": 1,
+          "match_rate": 1.0
+        },
+        "demand_surge": {
+          "labeled": 1,
+          "matched": 0,
+          "match_rate": 0.0
+        },
+        "supply_halt": {
+          "labeled": 1,
+          "matched": 0,
+          "match_rate": 0.0
+        }
+      },
+      "items": {
+        "ITM-0008": {
+          "scenario_type": "supply_halt",
+          "modal_risk_type": "delivery_delay",
+          "matched": false,
+          "detected": false,
+          "first_alert": "2026-07-01"
+        },
+        "ITM-0012": {
+          "scenario_type": "delivery_delay",
+          "modal_risk_type": "delivery_delay",
+          "matched": true,
+          "detected": false,
+          "first_alert": "2026-07-01"
+        },
+        "ITM-0051": {
+          "scenario_type": "demand_surge",
+          "modal_risk_type": "general",
+          "matched": false,
+          "detected": true,
+          "first_alert": "2026-07-08"
+        },
+        "ITM-0072": {
+          "scenario_type": "composite",
+          "modal_risk_type": "delivery_delay",
+          "matched": false,
+          "detected": false,
+          "first_alert": "2026-07-01"
+        }
+      }
+    },
+    "threshold_warning": {
+      "alert_grades": [
+        "위험",
+        "경고"
+      ],
+      "detection_rate": 0.0,
+      "lead_days": {
+        "min": null,
+        "median": null,
+        "mean": null,
+        "max": null
+      },
+      "false_positive_rate": 0.09166666666666666,
+      "by_type": {
+        "composite": {
+          "labeled": 1,
+          "detected": 0,
+          "detection_rate": 0.0,
+          "lead_days": {
+            "min": null,
+            "median": null,
+            "mean": null,
+            "max": null
+          }
+        },
+        "delivery_delay": {
+          "labeled": 1,
+          "detected": 0,
+          "detection_rate": 0.0,
+          "lead_days": {
+            "min": null,
+            "median": null,
+            "mean": null,
+            "max": null
+          }
+        },
+        "demand_surge": {
+          "labeled": 1,
+          "detected": 0,
+          "detection_rate": 0.0,
+          "lead_days": {
+            "min": null,
+            "median": null,
+            "mean": null,
+            "max": null
+          }
+        },
+        "supply_halt": {
+          "labeled": 1,
+          "detected": 0,
+          "detection_rate": 0.0,
+          "lead_days": {
+            "min": null,
+            "median": null,
+            "mean": null,
+            "max": null
+          }
+        }
+      },
+      "counts": {
+        "labeled": 4,
+        "normal": 120,
+        "detected": 0,
+        "false_positives": 11
+      },
+      "false_positive_items": [
+        "ITM-0023",
+        "ITM-0049",
+        "ITM-0052",
+        "ITM-0065",
+        "ITM-0078",
+        "ITM-0089",
+        "ITM-0091",
+        "ITM-0093",
+        "ITM-0096",
+        "ITM-0097",
+        "ITM-0124"
+      ]
+    },
+    "threshold_danger": {
+      "alert_grades": [
+        "위험"
+      ],
+      "detection_rate": 0.0,
+      "lead_days": {
+        "min": null,
+        "median": null,
+        "mean": null,
+        "max": null
+      },
+      "false_positive_rate": 0.0,
+      "by_type": {
+        "composite": {
+          "labeled": 1,
+          "detected": 0,
+          "detection_rate": 0.0,
+          "lead_days": {
+            "min": null,
+            "median": null,
+            "mean": null,
+            "max": null
+          }
+        },
+        "delivery_delay": {
+          "labeled": 1,
+          "detected": 0,
+          "detection_rate": 0.0,
+          "lead_days": {
+            "min": null,
+            "median": null,
+            "mean": null,
+            "max": null
+          }
+        },
+        "demand_surge": {
+          "labeled": 1,
+          "detected": 0,
+          "detection_rate": 0.0,
+          "lead_days": {
+            "min": null,
+            "median": null,
+            "mean": null,
+            "max": null
+          }
+        },
+        "supply_halt": {
+          "labeled": 1,
+          "detected": 0,
+          "detection_rate": 0.0,
+          "lead_days": {
+            "min": null,
+            "median": null,
+            "mean": null,
+            "max": null
+          }
+        }
+      },
+      "counts": {
+        "labeled": 4,
+        "normal": 120,
+        "detected": 0,
+        "false_positives": 0
+      },
+      "false_positive_items": []
+    },
+    "within_horizon": {
+      "criterion": "stockout_date <= sweep_end + grade.watch_days",
+      "sweep_end": "2026-08-01",
+      "horizon_days": 30,
+      "horizon_end": "2026-08-31",
+      "counts": {
+        "labeled_total": 4,
+        "labeled_in_horizon": 4,
+        "excluded": 0
+      },
+      "excluded_labels": [],
+      "threshold_watch": {
+        "alert_grades": [
+          "위험",
+          "경고",
+          "주의"
+        ],
+        "detection_rate": 0.25,
+        "lead_days": {
+          "min": 44,
+          "median": 44,
+          "mean": 44,
+          "max": 44
+        },
+        "false_positive_rate": 0.6,
+        "by_type": {
+          "composite": {
+            "labeled": 1,
+            "detected": 0,
+            "detection_rate": 0.0,
+            "lead_days": {
+              "min": null,
+              "median": null,
+              "mean": null,
+              "max": null
+            }
+          },
+          "delivery_delay": {
+            "labeled": 1,
+            "detected": 0,
+            "detection_rate": 0.0,
+            "lead_days": {
+              "min": null,
+              "median": null,
+              "mean": null,
+              "max": null
+            }
+          },
+          "demand_surge": {
+            "labeled": 1,
+            "detected": 1,
+            "detection_rate": 1.0,
+            "lead_days": {
+              "min": 44,
+              "median": 44,
+              "mean": 44,
+              "max": 44
+            }
+          },
+          "supply_halt": {
+            "labeled": 1,
+            "detected": 0,
+            "detection_rate": 0.0,
+            "lead_days": {
+              "min": null,
+              "median": null,
+              "mean": null,
+              "max": null
+            }
+          }
+        },
+        "counts": {
+          "labeled": 4,
+          "normal": 120,
+          "detected": 1,
+          "false_positives": 72
+        }
+      },
+      "threshold_warning": {
+        "alert_grades": [
+          "위험",
+          "경고"
+        ],
+        "detection_rate": 0.0,
+        "lead_days": {
+          "min": null,
+          "median": null,
+          "mean": null,
+          "max": null
+        },
+        "false_positive_rate": 0.09166666666666666,
+        "by_type": {
+          "composite": {
+            "labeled": 1,
+            "detected": 0,
+            "detection_rate": 0.0,
+            "lead_days": {
+              "min": null,
+              "median": null,
+              "mean": null,
+              "max": null
+            }
+          },
+          "delivery_delay": {
+            "labeled": 1,
+            "detected": 0,
+            "detection_rate": 0.0,
+            "lead_days": {
+              "min": null,
+              "median": null,
+              "mean": null,
+              "max": null
+            }
+          },
+          "demand_surge": {
+            "labeled": 1,
+            "detected": 0,
+            "detection_rate": 0.0,
+            "lead_days": {
+              "min": null,
+              "median": null,
+              "mean": null,
+              "max": null
+            }
+          },
+          "supply_halt": {
+            "labeled": 1,
+            "detected": 0,
+            "detection_rate": 0.0,
+            "lead_days": {
+              "min": null,
+              "median": null,
+              "mean": null,
+              "max": null
+            }
+          }
+        },
+        "counts": {
+          "labeled": 4,
+          "normal": 120,
+          "detected": 0,
+          "false_positives": 11
+        }
+      },
+      "threshold_danger": {
+        "alert_grades": [
+          "위험"
+        ],
+        "detection_rate": 0.0,
+        "lead_days": {
+          "min": null,
+          "median": null,
+          "mean": null,
+          "max": null
+        },
+        "false_positive_rate": 0.0,
+        "by_type": {
+          "composite": {
+            "labeled": 1,
+            "detected": 0,
+            "detection_rate": 0.0,
+            "lead_days": {
+              "min": null,
+              "median": null,
+              "mean": null,
+              "max": null
+            }
+          },
+          "delivery_delay": {
+            "labeled": 1,
+            "detected": 0,
+            "detection_rate": 0.0,
+            "lead_days": {
+              "min": null,
+              "median": null,
+              "mean": null,
+              "max": null
+            }
+          },
+          "demand_surge": {
+            "labeled": 1,
+            "detected": 0,
+            "detection_rate": 0.0,
+            "lead_days": {
+              "min": null,
+              "median": null,
+              "mean": null,
+              "max": null
+            }
+          },
+          "supply_halt": {
+            "labeled": 1,
+            "detected": 0,
+            "detection_rate": 0.0,
+            "lead_days": {
+              "min": null,
+              "median": null,
+              "mean": null,
+              "max": null
+            }
+          }
+        },
+        "counts": {
+          "labeled": 4,
+          "normal": 120,
+          "detected": 0,
+          "false_positives": 0
+        }
+      }
+    },
+    "sweep": {
+      "start": "2026-07-01",
+      "end": "2026-08-01",
+      "days": 32
+    }
+  }
+}
