@@ -140,6 +140,166 @@
           "safe_overdue_count": 8
         }
       }
+    },
+    {
+      "seed": 20260911,
+      "db_file": "blind_20260911.db",
+      "db_sha256": "68fa593423032309fed235dcae3f66265324c1de9dc7736ae1e78ec60ca38470",
+      "labels_file": "blind_20260911.labels.json",
+      "labels_sha256": "cac9f161a750bb0107694282bcb8284df41fa87639849039dc9cb4dc1eecaad3",
+      "content_hash": "96316ece4d20e5281a72df8a818f78827dbbb7f89c261489114889874fd68464",
+      "params_summary": {
+        "seed": 20260911,
+        "base_date": "2026-08-01",
+        "item_count": 124,
+        "scenario_item_count": 4,
+        "scenario_type_counts": {
+          "demand_surge": 1,
+          "supply_halt": 1,
+          "delivery_delay": 1,
+          "composite": 1
+        },
+        "has_delayed_arrival_arm": true,
+        "attempts_used": 1,
+        "decoy_counts": {
+          "candidate_count": 120,
+          "eligible_count": 0,
+          "minor_delay_count": 0,
+          "safe_overdue_count": 0
+        },
+        "observable_window": {
+          "start": "2026-07-01",
+          "end": "2026-08-31"
+        }
+      }
+    },
+    {
+      "seed": 20260912,
+      "db_file": "blind_20260912.db",
+      "db_sha256": "90fb717fb4358924644801ea02e2bf1cf0e9ff729710302964d21e8a8b8365f6",
+      "labels_file": "blind_20260912.labels.json",
+      "labels_sha256": "7039a0f4382efe119c49f00bf557ede8d65d6fd61ad11db187a78a0a050595b3",
+      "content_hash": "41e7c393c4c6d58ef408eca5ee8bb4b5fd73fb48892d839ad61e9b786381cafe",
+      "params_summary": {
+        "seed": 20260912,
+        "base_date": "2026-08-01",
+        "item_count": 124,
+        "scenario_item_count": 4,
+        "scenario_type_counts": {
+          "demand_surge": 1,
+          "supply_halt": 1,
+          "delivery_delay": 1,
+          "composite": 1
+        },
+        "has_delayed_arrival_arm": false,
+        "attempts_used": 6,
+        "decoy_counts": {
+          "candidate_count": 120,
+          "eligible_count": 0,
+          "minor_delay_count": 0,
+          "safe_overdue_count": 0
+        },
+        "observable_window": {
+          "start": "2026-07-01",
+          "end": "2026-08-31"
+        }
+      }
+    },
+    {
+      "seed": 20260913,
+      "db_file": "blind_20260913.db",
+      "db_sha256": "63d73b29279d594a531f8e3c268c4251768769437a5dc588214fd744525e0e60",
+      "labels_file": "blind_20260913.labels.json",
+      "labels_sha256": "86f158f49679180884dff6d6537afddc1a72bbc5c19c3612e0771dd436979faa",
+      "content_hash": "4efd2b3be638b2a7e10f0fc559a8a47147428d0f746f7f6d6fa38795503915b5",
+      "params_summary": {
+        "seed": 20260913,
+        "base_date": "2026-08-01",
+        "item_count": 124,
+        "scenario_item_count": 4,
+        "scenario_type_counts": {
+          "demand_surge": 1,
+          "supply_halt": 1,
+          "delivery_delay": 1,
+          "composite": 1
+        },
+        "has_delayed_arrival_arm": false,
+        "attempts_used": 2,
+        "decoy_counts": {
+          "candidate_count": 120,
+          "eligible_count": 0,
+          "minor_delay_count": 0,
+          "safe_overdue_count": 0
+        },
+        "observable_window": {
+          "start": "2026-07-01",
+          "end": "2026-08-31"
+        }
+      }
+    },
+    {
+      "seed": 20260914,
+      "db_file": "blind_20260914.db",
+      "db_sha256": "2accca140eef2918381abccf4868b268f11e34ac938d921ba2e8dbcd998731e5",
+      "labels_file": "blind_20260914.labels.json",
+      "labels_sha256": "dedd81a1c37a6d7135a9d2c83f4fd28acc1321fb871aa99f06cfd5051a7e1005",
+      "content_hash": "aad28f0bed8b89b6a8307280b9b944f95aacd92a58f9b4ae48486621ff93d034",
+      "params_summary": {
+        "seed": 20260914,
+        "base_date": "2026-08-01",
+        "item_count": 124,
+        "scenario_item_count": 4,
+        "scenario_type_counts": {
+          "demand_surge": 1,
+          "supply_halt": 1,
+          "delivery_delay": 1,
+          "composite": 1
+        },
+        "has_delayed_arrival_arm": true,
+        "attempts_used": 5,
+        "decoy_counts": {
+          "candidate_count": 120,
+          "eligible_count": 0,
+          "minor_delay_count": 0,
+          "safe_overdue_count": 0
+        },
+        "observable_window": {
+          "start": "2026-07-01",
+          "end": "2026-08-31"
+        }
+      }
+    },
+    {
+      "seed": 20260915,
+      "db_file": "blind_20260915.db",
+      "db_sha256": "03f14cc541b89eb83aa0ea10c0f13c11159ea0d0c17b210fc5a12510068afa42",
+      "labels_file": "blind_20260915.labels.json",
+      "labels_sha256": "91333ccaf607237d3e09a299fc2965fc33e534da6230fbaed22b28aca4466e1b",
+      "content_hash": "4bc5893ad5523245f912877167a0d6e9f9af73d6b0c2a64ddab8c822dcea43e5",
+      "params_summary": {
+        "seed": 20260915,
+        "base_date": "2026-08-01",
+        "item_count": 124,
+        "scenario_item_count": 4,
+        "scenario_type_counts": {
+          "demand_surge": 1,
+          "supply_halt": 1,
+          "delivery_delay": 1,
+          "composite": 1
+        },
+        "has_delayed_arrival_arm": false,
+        "attempts_used": 8,
+        "decoy_counts": {
+          "candidate_count": 120,
+          "eligible_count": 0,
+          "minor_delay_count": 0,
+          "safe_overdue_count": 0
+        },
+        "observable_window": {
+          "start": "2026-07-01",
+          "end": "2026-08-31"
+        }
+      }
     }
   ],
   "predictions": {
@@ -171,5 +331,57 @@
         "sha256": "a2f035e2b6ae409d54cabfa97ee74ac463d7e16fc5a86a5b49ab05c06d049374"
       }
     ]
+  },
+  "round2": {
+    "task": "S-30c",
+    "note": "2차 블라인드(시드 사전 등록). 1차(S-30) 기록은 그대로 보존한다 — runs의 seed 20260901~20260905와 최상위 predictions 절이 1차 것이다.",
+    "seeds": [
+      20260911,
+      20260912,
+      20260913,
+      20260914,
+      20260915
+    ],
+    "sweep": {
+      "start": "2026-07-01",
+      "end": "2026-08-01"
+    },
+    "params_ref": "config/analytics_params.toml",
+    "design_fixes": [
+      "배치 구간 ↔ 측정 창 결합: 라벨 품절일이 [2026-07-01, 2026-08-31] 안에 들 때까지 재추첨(blind_ranges.yaml measurement_window + inject.assert_labels_observable).",
+      "scenario_start_offset_days_range -240~-30 → -52~-16, max_generation_attempts 20 → 40.",
+      "미끼 적격성 통일: 두 미끼 모두 스윕 구간 최저 커버리지 > 44 품목만 (base_date 한 점 측정 폐기). 현재 카탈로그에서는 적격 0건이라 미끼 미주입.",
+      "채점기 진단: unscoreable_labels(스윕 시작 이전 품절 라벨) 카운터·목록 + within_horizon 하한. 채점 산식 자체는 무변경."
+    ],
+    "predictions": {
+      "recorded_at": "2026-08-21T03:57:42+00:00",
+      "files": [
+        {
+          "seed": 20260911,
+          "pred_file": "blind_20260911.pred.json",
+          "sha256": "8f048b6b977b82d1653549255aabed88154e60329dd3fd3f49f9511dfdeceb7b"
+        },
+        {
+          "seed": 20260912,
+          "pred_file": "blind_20260912.pred.json",
+          "sha256": "6d8bfc9b0301d1a1c47e640fe8dfffd23a31782435221ba044dfad263b8fbc09"
+        },
+        {
+          "seed": 20260913,
+          "pred_file": "blind_20260913.pred.json",
+          "sha256": "9e5d6504f532289cfce777b94328ca4f3bab8d64b9c60844fecd9738a77db51a"
+        },
+        {
+          "seed": 20260914,
+          "pred_file": "blind_20260914.pred.json",
+          "sha256": "f66ed71f2d245fd69edb9907579e98a5e40661821346be81ee47543d9e091136"
+        },
+        {
+          "seed": 20260915,
+          "pred_file": "blind_20260915.pred.json",
+          "sha256": "671487babb6080a2725cbb33d02ed0459e54926c681f768a0fd5d67cecafa88c"
+        }
+      ]
+    }
   }
 }
