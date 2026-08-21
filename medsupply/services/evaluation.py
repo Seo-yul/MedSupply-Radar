@@ -22,10 +22,13 @@ history.load_history의 data_version 관례와 동일한 형태를 따른다: `c
 from __future__ import annotations
 
 import json
+import sqlite3
 from pathlib import Path
 
 import streamlit as st
 import yaml
+
+from medsupply import settings
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 
@@ -46,6 +49,11 @@ REPORT_PATHS: dict[str, Path] = {
 #: 경로 1:1)와 처리가 달라 별도 상수로 분리한다.
 EVAL_RESULTS_DIR: Path = REPO_ROOT / "eval" / "results"
 EVAL_CONFIG_PATH: Path = REPO_ROOT / "eval" / "config.yaml"
+
+#: LLM 호출 캐시 DB(medsupply/llm/cache.py가 스키마·기본 경로의 원천). settings.LLM_CACHE_PATH를
+#: 그대로 재노출하는 모듈 상수다 — REPORT_PATHS 등과 동일하게 여기서 이름을 가져야 테스트가
+#: (settings가 아니라) 이 모듈 속성을 monkeypatch해 격리할 수 있다(Task X-1).
+LLM_CACHE_PATH: Path = settings.LLM_CACHE_PATH
 
 
 def _mtime_or_none(path: Path | None) -> float | None:
@@ -93,13 +101,16 @@ def _load_eval_config() -> dict:
 
 
 def current_report_mtimes() -> tuple:
-    """REPORT_PATHS 전부 + eval/config.yaml + eval/results/ 최신 파일의 mtime을 모은
-    튜플 — load_eval_reports 호출부(뷰)가 매번 새로 계산해 인자로 넘기는 캐시 무효화
-    신호다(services.history.load_history의 data_version 인자와 동일한 역할). 이 함수
-    자체는 캐시되지 않는다 — 매 호출마다 디스크를 다시 stat해야 신호로서 의미가 있다.
+    """REPORT_PATHS 전부 + eval/config.yaml + eval/results/ 최신 파일 + LLM_CACHE_PATH의
+    mtime을 모은 튜플 — load_eval_reports·load_llm_usage 호출부(뷰)가 매번 새로 계산해
+    인자로 넘기는 캐시 무효화 신호다(services.history.load_history의 data_version
+    인자와 동일한 역할). 이 함수 자체는 캐시되지 않는다 — 매 호출마다 디스크를 다시
+    stat해야 신호로서 의미가 있다.
 
     파일이 없으면 그 자리는 None(부재 자체도 신호가 되도록 — 파일이 새로 생기면
-    None -> 실수로 바뀌어 캐시 키가 달라지고 캐시가 자동으로 무효화된다).
+    None -> 실수로 바뀌어 캐시 키가 달라지고 캐시가 자동으로 무효화된다). LLM_CACHE_PATH도
+    같은 규칙(Task X-1) — 캐시 DB가 새로 생기거나 갱신되면 이 튜플이 바뀌어
+    load_llm_usage의 @st.cache_data가 무효화된다.
     """
     latest_result = _latest_eval_result_path()
     return (
@@ -107,6 +118,7 @@ def current_report_mtimes() -> tuple:
         _mtime_or_none(EVAL_CONFIG_PATH),
         str(latest_result) if latest_result is not None else None,
         _mtime_or_none(latest_result),
+        _mtime_or_none(LLM_CACHE_PATH),
     )
 
 
@@ -131,3 +143,118 @@ def load_eval_reports(mtimes: tuple = ()) -> dict:
         _load_json_file(latest_result_path) if latest_result_path is not None else {"exists": False}
     )
     return reports
+
+
+# ---------------------------------------------------------------------------
+# LLM 사용량·추정 비용(Task X-1) — settings.LLM_CACHE_PATH(llm_cache 테이블) 집계.
+# 이 테이블의 행 1개 = 실제 과금 호출 1건(캐시 적중은 새 행을 만들지 않는다 — client.py의
+# cache_get 히트 경로는 cache_put을 호출하지 않는다). 현재 이 DB는 존재하지 않는다(키
+# 미설정) — 부재가 기본 경로이므로 load_llm_usage는 파일이 없으면 아무것도 만들지 않고
+# {"available": False}만 반환한다(init_cache를 호출하지 않는다 — 호출하면 조회만으로
+# 빈 DB 파일이 생겨버려 "부재가 기본"이라는 브리프 원칙이 깨진다).
+# ---------------------------------------------------------------------------
+
+#: (input_usd, output_usd) per 1M tokens — 2026-08 공표가 기준, 변동 가능(브리프 §단가표).
+#: 화면에는 이 기준 시점을 tiny 캡션으로 명시한다(views/evaluation.py).
+_PRICE_PER_MTOK: dict[str, tuple[float, float]] = {
+    "claude-opus-5": (5.0, 25.0),
+    "gpt-5": (1.25, 10.0),
+}
+
+
+def _price_for_model(model: str) -> tuple[float, float] | None:
+    """model_used에 대한 (input_usd, output_usd) 단가. 정확히 일치하지 않으면 스냅샷 ID
+    변형(예: "claude-opus-5-2026-01-15" -> "claude-opus-5")을 대비해 _PRICE_PER_MTOK
+    키 접두 일치로 폴백한다. 그래도 없으면 None — 단가를 추측하지 않는다(브리프)."""
+    if model in _PRICE_PER_MTOK:
+        return _PRICE_PER_MTOK[model]
+    for known_model, price in _PRICE_PER_MTOK.items():
+        if model.startswith(known_model):
+            return price
+    return None
+
+
+def _estimate_cost_usd(model: str, in_tokens: int, out_tokens: int) -> float | None:
+    price = _price_for_model(model)
+    if price is None:
+        return None
+    input_usd_per_mtok, output_usd_per_mtok = price
+    return (in_tokens / 1_000_000) * input_usd_per_mtok + (out_tokens / 1_000_000) * output_usd_per_mtok
+
+
+@st.cache_data
+def load_llm_usage(mtimes: tuple = ()) -> dict:
+    """LLM_CACHE_PATH(llm_cache 테이블)를 task×model_used로 집계한다.
+
+    반환:
+    - 파일 부재: {"available": False}(브리프 — 키 미설정 시 기본 경로).
+    - 연결·조회 실패(손상 DB): {"available": False, "error": str(exc)} — 예외를 전파하지
+      않는다(load_eval_reports의 손상 파일 격리와 동일한 이 모듈의 불변식).
+    - 정상: {"available": True, "rows": [{"task", "model", "calls", "in_tokens",
+      "out_tokens", "est_cost_usd"|None}, ...](task×model 오름차순), "totals": {같은 4개
+      키의 합 — est_cost_usd는 단가를 아는 행이 하나도 없으면 None}, "generated_basis":
+      "누적 호출 N건"}.
+
+    mtimes는 다른 로더와 동일하게 캐시 무효화 신호 전용(current_report_mtimes()가
+    LLM_CACHE_PATH의 mtime을 포함해 계산한 값을 호출부가 넘긴다) — 조회 내용에는 쓰지
+    않는다. 파일이 없을 때 init_cache를 호출하지 않는다 — 조회만으로 빈 캐시 DB가
+    생기면 "부재가 기본"이라는 브리프 원칙이 깨진다.
+    """
+    del mtimes  # 캐시 키 무효화 전용 — 조회 조건에는 쓰지 않는다.
+
+    if not LLM_CACHE_PATH.exists():
+        return {"available": False}
+
+    try:
+        conn = sqlite3.connect(LLM_CACHE_PATH)
+        try:
+            db_rows = conn.execute("SELECT task, model_used, usage_json FROM llm_cache").fetchall()
+        finally:
+            conn.close()
+    except sqlite3.Error as exc:
+        return {"available": False, "error": str(exc)}
+
+    groups: dict[tuple[str, str], dict] = {}
+    for task, model_used, usage_json in db_rows:
+        try:
+            usage = json.loads(usage_json)
+        except ValueError:
+            usage = {}
+        in_tokens = int(usage.get("input_tokens") or 0)
+        out_tokens = int(usage.get("output_tokens") or 0)
+        group = groups.setdefault(
+            (task, model_used),
+            {"task": task, "model": model_used, "calls": 0, "in_tokens": 0, "out_tokens": 0},
+        )
+        group["calls"] += 1
+        group["in_tokens"] += in_tokens
+        group["out_tokens"] += out_tokens
+
+    rows = []
+    total_calls = total_in_tokens = total_out_tokens = 0
+    total_cost = 0.0
+    cost_known = False
+    for key in sorted(groups):
+        group = groups[key]
+        cost = _estimate_cost_usd(group["model"], group["in_tokens"], group["out_tokens"])
+        rows.append({**group, "est_cost_usd": cost})
+        total_calls += group["calls"]
+        total_in_tokens += group["in_tokens"]
+        total_out_tokens += group["out_tokens"]
+        if cost is not None:
+            cost_known = True
+            total_cost += cost
+
+    totals = {
+        "calls": total_calls,
+        "in_tokens": total_in_tokens,
+        "out_tokens": total_out_tokens,
+        "est_cost_usd": total_cost if cost_known else None,
+    }
+
+    return {
+        "available": True,
+        "rows": rows,
+        "totals": totals,
+        "generated_basis": f"누적 호출 {total_calls}건",
+    }

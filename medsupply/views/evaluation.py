@@ -25,6 +25,21 @@ from medsupply.ui.components import header
 
 _PENDING_BADGE = '<span class="badge inactive">실측 전</span>'
 
+#: LLM 사용량·추정 비용 카드(Task X-1) 전용 — "실측 전"과 같은 badge inactive 클래스를
+#: 재사용하되, 이 카드 고유의 안내 문구를 담는다(review.py의 "조건 불일치" badge와 동일한
+#: "클래스는 재사용, 문구는 자유" 선례).
+_LLM_USAGE_UNAVAILABLE_BADGE = (
+    '<span class="badge inactive">LLM 호출 기록 없음 — 키 설정 후 파이프라인 실행 시 집계된다.</span>'
+)
+
+#: llm_cache.task → 한글 라벨(브리프 §산출물). 미지 값은 원문을 그대로 노출한다
+#: (_task_label의 dict.get 폴백).
+_TASK_LABELS = {
+    "notice_extract": "공고 추출",
+    "risk_explain": "원인 설명",
+    "judge": "judge 채점",
+}
+
 
 def _is_available(entry: dict) -> bool:
     """entry가 evaluation_service.load_eval_reports의 리포트별 반환 형태일 때 실제로
@@ -44,6 +59,23 @@ def _raw(value: object, suffix: str = "") -> str:
 
 def _score_row(label: str, value: str) -> str:
     return f'<div class="score"><span>{label}</span><strong>{value}</strong></div>'
+
+
+def _task_label(task: str) -> str:
+    return _TASK_LABELS.get(task, task)
+
+
+def _cost_text(value: float | None) -> str:
+    return f"${value:.2f}" if value is not None else "-"
+
+
+def _usage_row_html(row: dict) -> str:
+    label = f"{_task_label(row['task'])} · {row['model']}"
+    value = (
+        f"{row['calls']}회 · 입력 {row['in_tokens']:,} · 출력 {row['out_tokens']:,}"
+        f" · {_cost_text(row['est_cost_usd'])}"
+    )
+    return _score_row(label, value)
 
 
 # ---------------------------------------------------------------------------
@@ -237,7 +269,34 @@ def _render_platform_section(reports: dict) -> None:
 # ---------------------------------------------------------------------------
 
 
-def _render_llm_section(reports: dict) -> None:
+def _render_llm_usage_card(llm_usage: dict) -> None:
+    """LLM 사용량·추정 비용 카드(Task X-1) — llm_cache 실적은 사실 그대로, 비용은
+    "추정"임을 tiny 캡션에 명시한다. 캐시 DB 부재(키 미설정 기본 경로)·손상 두 경우 모두
+    llm_usage["available"]가 False라 이 뷰는 둘을 구분하지 않고 동일한 badge로 렌더한다
+    (다른 블록의 _is_available 관례와 동일)."""
+    st.markdown('<br><div class="panel-sub">LLM 사용량·추정 비용</div>', unsafe_allow_html=True)
+
+    if not llm_usage.get("available"):
+        st.markdown(
+            f'<div class="panel-sub">{_LLM_USAGE_UNAVAILABLE_BADGE}</div>', unsafe_allow_html=True
+        )
+        return
+
+    rows_html = "".join(_usage_row_html(row) for row in llm_usage["rows"])
+    totals = llm_usage["totals"]
+    totals_value = (
+        f"{totals['calls']}회 · 입력 {totals['in_tokens']:,} · 출력 {totals['out_tokens']:,}"
+        f" · {_cost_text(totals['est_cost_usd'])}"
+    )
+    st.markdown(rows_html + _score_row("합계", totals_value), unsafe_allow_html=True)
+    st.markdown(
+        f'<div class="tiny">{llm_usage["generated_basis"]} · 추정치 — 단가 2026-08 기준,'
+        " 캐시 적중 재사용은 과금·집계 제외. 실청구는 프로바이더 콘솔 참조.</div>",
+        unsafe_allow_html=True,
+    )
+
+
+def _render_llm_section(reports: dict, llm_usage: dict) -> None:
     extraction = reports["extraction_accuracy"]
     eval_config = reports["eval_config"]
     eval_latest = reports["eval_latest_result"]
@@ -275,6 +334,7 @@ def _render_llm_section(reports: dict) -> None:
             unsafe_allow_html=True,
         )
 
+    _render_llm_usage_card(llm_usage)
     st.markdown("</div>", unsafe_allow_html=True)
 
 
@@ -289,7 +349,9 @@ def render() -> None:
         "공고 추출·수요예측·플랫폼 검증·LLM judge의 실측 리포트를 그대로 보여줍니다.",
         "AI 평가",
     )
-    reports = evaluation_service.load_eval_reports(evaluation_service.current_report_mtimes())
+    mtimes = evaluation_service.current_report_mtimes()
+    reports = evaluation_service.load_eval_reports(mtimes)
+    llm_usage = evaluation_service.load_llm_usage(mtimes)
 
     row1_left, row1_right = st.columns(2)
     with row1_left:
@@ -301,4 +363,4 @@ def render() -> None:
     with row2_left:
         _render_platform_section(reports)
     with row2_right:
-        _render_llm_section(reports)
+        _render_llm_section(reports, llm_usage)
