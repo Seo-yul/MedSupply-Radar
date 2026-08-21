@@ -220,10 +220,16 @@ class TestConfigYaml:
         assert mapping["openai"]["model"]
 
     def test_dataset_section(self):
+        """content_hash는 S-18 시점엔 자리만 잡아 둔 null이었으나, S-26(eval/build_cases.py)
+        실행으로 케이스 파일 sha256이 채워졌다(eval/cases/eval_cases_v1.json 실 산출물과의
+        일치 여부는 tests/eval/test_build_cases.py::TestRealArtifactsConsistency 몫)."""
         cfg = _load_config()
         assert cfg["dataset"]["cases"] == 40
         assert cfg["dataset"]["pilot"] == 4
-        assert cfg["dataset"]["content_hash"] is None
+        content_hash = cfg["dataset"]["content_hash"]
+        assert isinstance(content_hash, str)
+        assert len(content_hash) == 64
+        assert all(c in "0123456789abcdef" for c in content_hash)
 
 
 # ---------------------------------------------------------------------------

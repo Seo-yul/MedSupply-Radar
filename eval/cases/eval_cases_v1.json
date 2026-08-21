@@ -1,0 +1,1826 @@
+{
+  "meta": {
+    "dataset_version": "eval_cases_v1",
+    "built_from_run": "2026-08-01#6ec9bf05",
+    "dataset_content_hash": "c34bf4cb9215e1ba4b7a21c9d0f1d7236e2164ae08b630bf54fdf82d4c2f6483",
+    "params_hash": "6ec9bf05",
+    "case_count": 40,
+    "pilot_ids": [
+      "ITM-0001",
+      "ITM-0004",
+      "ITM-0006",
+      "ITM-0036"
+    ]
+  },
+  "cases": [
+    {
+      "case_id": "EC-ITM-0001",
+      "item_id": "ITM-0001",
+      "run_id": "2026-08-01#6ec9bf05",
+      "is_pilot": true,
+      "evidence": {
+        "item_id": "ITM-0001",
+        "item_name": "아세트아미노펜정 500mg",
+        "ingredient_name_kr": "아세트아미노펜",
+        "as_of": "2026-08-01",
+        "run_id": "2026-08-01#6ec9bf05",
+        "grade": "주의",
+        "score": 20,
+        "risk_type": "general",
+        "days_to_stockout": 27,
+        "depletion_date": "2026-08-28",
+        "current_stock": 92.0,
+        "avg_daily_usage": 62.3,
+        "usage_change_pct": 67.9,
+        "anomalies": [],
+        "escalated_by_notice": false,
+        "active_notices": [],
+        "next_shipment": {
+          "expected_date": "2026-08-02",
+          "qty": 1500
+        },
+        "substitutes_same_condition": [
+          {
+            "item_id": "ITM-0002",
+            "item_name": "대한아세트아미노펜정 500mg",
+            "supplier": "대한제약",
+            "current_stock": 1139
+          },
+          {
+            "item_id": "ITM-0003",
+            "item_name": "유니아세트아미노펜정 500mg",
+            "supplier": "유니메드",
+            "current_stock": 837
+          }
+        ],
+        "evidence_refs": [
+          "risk:2026-08-01#6ec9bf05",
+          "usage:recent28",
+          "stock:current",
+          "shipment:1366",
+          "substitute:ITM-0002",
+          "substitute:ITM-0003"
+        ]
+      },
+      "history": []
+    },
+    {
+      "case_id": "EC-ITM-0004",
+      "item_id": "ITM-0004",
+      "run_id": "2026-08-01#6ec9bf05",
+      "is_pilot": true,
+      "evidence": {
+        "item_id": "ITM-0004",
+        "item_name": "아세트아미노펜서방정 650mg",
+        "ingredient_name_kr": "아세트아미노펜",
+        "as_of": "2026-08-01",
+        "run_id": "2026-08-01#6ec9bf05",
+        "grade": "주의",
+        "score": 20,
+        "risk_type": "general",
+        "days_to_stockout": 19,
+        "depletion_date": "2026-08-20",
+        "current_stock": 247.0,
+        "avg_daily_usage": 13.8,
+        "usage_change_pct": 8.7,
+        "anomalies": [],
+        "escalated_by_notice": false,
+        "active_notices": [],
+        "next_shipment": null,
+        "substitutes_same_condition": [],
+        "evidence_refs": [
+          "risk:2026-08-01#6ec9bf05",
+          "usage:recent28",
+          "stock:current"
+        ]
+      },
+      "history": []
+    },
+    {
+      "case_id": "EC-ITM-0006",
+      "item_id": "ITM-0006",
+      "run_id": "2026-08-01#6ec9bf05",
+      "is_pilot": true,
+      "evidence": {
+        "item_id": "ITM-0006",
+        "item_name": "서울아세트아미노펜시럽 160mg/5mL",
+        "ingredient_name_kr": "아세트아미노펜",
+        "as_of": "2026-08-01",
+        "run_id": "2026-08-01#6ec9bf05",
+        "grade": "주의",
+        "score": 20,
+        "risk_type": "general",
+        "days_to_stockout": 23,
+        "depletion_date": "2026-08-24",
+        "current_stock": 128.0,
+        "avg_daily_usage": 5.6,
+        "usage_change_pct": -5.1,
+        "anomalies": [],
+        "escalated_by_notice": false,
+        "active_notices": [],
+        "next_shipment": null,
+        "substitutes_same_condition": [
+          {
+            "item_id": "ITM-0005",
+            "item_name": "그린아세트아미노펜시럽 160mg/5mL",
+            "supplier": "그린바이오",
+            "current_stock": 151
+          }
+        ],
+        "evidence_refs": [
+          "risk:2026-08-01#6ec9bf05",
+          "usage:recent28",
+          "stock:current",
+          "substitute:ITM-0005"
+        ]
+      },
+      "history": []
+    },
+    {
+      "case_id": "EC-ITM-0009",
+      "item_id": "ITM-0009",
+      "run_id": "2026-08-01#6ec9bf05",
+      "is_pilot": false,
+      "evidence": {
+        "item_id": "ITM-0009",
+        "item_name": "미래이부프로펜정 200mg",
+        "ingredient_name_kr": "이부프로펜",
+        "as_of": "2026-08-01",
+        "run_id": "2026-08-01#6ec9bf05",
+        "grade": "주의",
+        "score": 20,
+        "risk_type": "general",
+        "days_to_stockout": 28,
+        "depletion_date": "2026-08-29",
+        "current_stock": 1717.0,
+        "avg_daily_usage": 66.0,
+        "usage_change_pct": 56.0,
+        "anomalies": [],
+        "escalated_by_notice": false,
+        "active_notices": [],
+        "next_shipment": null,
+        "substitutes_same_condition": [
+          {
+            "item_id": "ITM-0008",
+            "item_name": "대한이부프로펜정 200mg",
+            "supplier": "대한제약",
+            "current_stock": 1090
+          }
+        ],
+        "evidence_refs": [
+          "risk:2026-08-01#6ec9bf05",
+          "usage:recent28",
+          "stock:current",
+          "substitute:ITM-0008"
+        ]
+      },
+      "history": []
+    },
+    {
+      "case_id": "EC-ITM-0010",
+      "item_id": "ITM-0010",
+      "run_id": "2026-08-01#6ec9bf05",
+      "is_pilot": false,
+      "evidence": {
+        "item_id": "ITM-0010",
+        "item_name": "그린이부프로펜시럽 100mg/5mL",
+        "ingredient_name_kr": "이부프로펜",
+        "as_of": "2026-08-01",
+        "run_id": "2026-08-01#6ec9bf05",
+        "grade": "주의",
+        "score": 20,
+        "risk_type": "general",
+        "days_to_stockout": 25,
+        "depletion_date": "2026-08-26",
+        "current_stock": 179.0,
+        "avg_daily_usage": 7.2,
+        "usage_change_pct": -2.7,
+        "anomalies": [],
+        "escalated_by_notice": false,
+        "active_notices": [],
+        "next_shipment": null,
+        "substitutes_same_condition": [],
+        "evidence_refs": [
+          "risk:2026-08-01#6ec9bf05",
+          "usage:recent28",
+          "stock:current"
+        ]
+      },
+      "history": []
+    },
+    {
+      "case_id": "EC-ITM-0012",
+      "item_id": "ITM-0012",
+      "run_id": "2026-08-01#6ec9bf05",
+      "is_pilot": false,
+      "evidence": {
+        "item_id": "ITM-0012",
+        "item_name": "누리덱시부프로펜시럽 100mg/5mL",
+        "ingredient_name_kr": "덱시부프로펜",
+        "as_of": "2026-08-01",
+        "run_id": "2026-08-01#6ec9bf05",
+        "grade": "주의",
+        "score": 20,
+        "risk_type": "general",
+        "days_to_stockout": 24,
+        "depletion_date": "2026-08-25",
+        "current_stock": 164.0,
+        "avg_daily_usage": 7.5,
+        "usage_change_pct": 0.0,
+        "anomalies": [],
+        "escalated_by_notice": false,
+        "active_notices": [],
+        "next_shipment": null,
+        "substitutes_same_condition": [
+          {
+            "item_id": "ITM-0011",
+            "item_name": "덱시부프로펜시럽",
+            "supplier": "한빛제약",
+            "current_stock": 110
+          }
+        ],
+        "evidence_refs": [
+          "risk:2026-08-01#6ec9bf05",
+          "usage:recent28",
+          "stock:current",
+          "substitute:ITM-0011"
+        ]
+      },
+      "history": []
+    },
+    {
+      "case_id": "EC-ITM-0013",
+      "item_id": "ITM-0013",
+      "run_id": "2026-08-01#6ec9bf05",
+      "is_pilot": false,
+      "evidence": {
+        "item_id": "ITM-0013",
+        "item_name": "한빛덱시부프로펜정 300mg",
+        "ingredient_name_kr": "덱시부프로펜",
+        "as_of": "2026-08-01",
+        "run_id": "2026-08-01#6ec9bf05",
+        "grade": "주의",
+        "score": 20,
+        "risk_type": "general",
+        "days_to_stockout": 26,
+        "depletion_date": "2026-08-27",
+        "current_stock": 1170.0,
+        "avg_daily_usage": 47.4,
+        "usage_change_pct": 6.0,
+        "anomalies": [],
+        "escalated_by_notice": false,
+        "active_notices": [],
+        "next_shipment": null,
+        "substitutes_same_condition": [],
+        "evidence_refs": [
+          "risk:2026-08-01#6ec9bf05",
+          "usage:recent28",
+          "stock:current"
+        ]
+      },
+      "history": []
+    },
+    {
+      "case_id": "EC-ITM-0019",
+      "item_id": "ITM-0019",
+      "run_id": "2026-08-01#6ec9bf05",
+      "is_pilot": false,
+      "evidence": {
+        "item_id": "ITM-0019",
+        "item_name": "아목시실린캡슐 500mg",
+        "ingredient_name_kr": "아목시실린",
+        "as_of": "2026-08-01",
+        "run_id": "2026-08-01#6ec9bf05",
+        "grade": "주의",
+        "score": 20,
+        "risk_type": "general",
+        "days_to_stockout": 20,
+        "depletion_date": "2026-08-21",
+        "current_stock": 950.0,
+        "avg_daily_usage": 45.1,
+        "usage_change_pct": 30.3,
+        "anomalies": [],
+        "escalated_by_notice": false,
+        "active_notices": [],
+        "next_shipment": null,
+        "substitutes_same_condition": [
+          {
+            "item_id": "ITM-0020",
+            "item_name": "대한목시실캡슐 500mg",
+            "supplier": "대한제약",
+            "current_stock": 2165
+          },
+          {
+            "item_id": "ITM-0021",
+            "item_name": "미래아목시실린캡슐 500mg",
+            "supplier": "미래바이오",
+            "current_stock": 211
+          }
+        ],
+        "evidence_refs": [
+          "risk:2026-08-01#6ec9bf05",
+          "usage:recent28",
+          "stock:current",
+          "substitute:ITM-0020",
+          "substitute:ITM-0021"
+        ]
+      },
+      "history": []
+    },
+    {
+      "case_id": "EC-ITM-0027",
+      "item_id": "ITM-0027",
+      "run_id": "2026-08-01#6ec9bf05",
+      "is_pilot": false,
+      "evidence": {
+        "item_id": "ITM-0027",
+        "item_name": "대한세프트리악손주 1g",
+        "ingredient_name_kr": "세프트리악손",
+        "as_of": "2026-08-01",
+        "run_id": "2026-08-01#6ec9bf05",
+        "grade": "주의",
+        "score": 20,
+        "risk_type": "general",
+        "days_to_stockout": 15,
+        "depletion_date": "2026-08-16",
+        "current_stock": 107.0,
+        "avg_daily_usage": 7.1,
+        "usage_change_pct": 0.0,
+        "anomalies": [],
+        "escalated_by_notice": false,
+        "active_notices": [],
+        "next_shipment": null,
+        "substitutes_same_condition": [
+          {
+            "item_id": "ITM-0026",
+            "item_name": "세프트리악손주 1g",
+            "supplier": "메디팜",
+            "current_stock": 443
+          },
+          {
+            "item_id": "ITM-0028",
+            "item_name": "한결세프트리악손주 1g",
+            "supplier": "한결바이오",
+            "current_stock": 302
+          }
+        ],
+        "evidence_refs": [
+          "risk:2026-08-01#6ec9bf05",
+          "usage:recent28",
+          "stock:current",
+          "substitute:ITM-0026",
+          "substitute:ITM-0028"
+        ]
+      },
+      "history": []
+    },
+    {
+      "case_id": "EC-ITM-0036",
+      "item_id": "ITM-0036",
+      "run_id": "2026-08-01#6ec9bf05",
+      "is_pilot": true,
+      "evidence": {
+        "item_id": "ITM-0036",
+        "item_name": "메디메로페넴주 500mg",
+        "ingredient_name_kr": "메로페넴",
+        "as_of": "2026-08-01",
+        "run_id": "2026-08-01#6ec9bf05",
+        "grade": "경고",
+        "score": 53,
+        "risk_type": "delivery_delay",
+        "days_to_stockout": 8,
+        "depletion_date": "2026-08-09",
+        "current_stock": 74.0,
+        "avg_daily_usage": 10.2,
+        "usage_change_pct": -2.9,
+        "anomalies": [
+          {
+            "kind": "receipt_delay",
+            "detected_on": "2026-08-01",
+            "metric": 4.0,
+            "detail": "입고 예정 2026-07-28 대비 4일 지연 (예정 수량 420)"
+          }
+        ],
+        "escalated_by_notice": false,
+        "active_notices": [],
+        "next_shipment": {
+          "expected_date": "2026-08-02",
+          "qty": 420
+        },
+        "substitutes_same_condition": [
+          {
+            "item_id": "ITM-0037",
+            "item_name": "한결메로페넴주 500mg",
+            "supplier": "한결바이오",
+            "current_stock": 78
+          }
+        ],
+        "evidence_refs": [
+          "risk:2026-08-01#6ec9bf05",
+          "usage:recent28",
+          "stock:current",
+          "anomaly:1:receipt_delay",
+          "shipment:1260",
+          "substitute:ITM-0037"
+        ]
+      },
+      "history": []
+    },
+    {
+      "case_id": "EC-ITM-0037",
+      "item_id": "ITM-0037",
+      "run_id": "2026-08-01#6ec9bf05",
+      "is_pilot": false,
+      "evidence": {
+        "item_id": "ITM-0037",
+        "item_name": "한결메로페넴주 500mg",
+        "ingredient_name_kr": "메로페넴",
+        "as_of": "2026-08-01",
+        "run_id": "2026-08-01#6ec9bf05",
+        "grade": "주의",
+        "score": 20,
+        "risk_type": "general",
+        "days_to_stockout": 19,
+        "depletion_date": "2026-08-20",
+        "current_stock": 78.0,
+        "avg_daily_usage": 4.2,
+        "usage_change_pct": -4.5,
+        "anomalies": [],
+        "escalated_by_notice": false,
+        "active_notices": [],
+        "next_shipment": null,
+        "substitutes_same_condition": [
+          {
+            "item_id": "ITM-0036",
+            "item_name": "메디메로페넴주 500mg",
+            "supplier": "메디팜",
+            "current_stock": 74
+          }
+        ],
+        "evidence_refs": [
+          "risk:2026-08-01#6ec9bf05",
+          "usage:recent28",
+          "stock:current",
+          "substitute:ITM-0036"
+        ]
+      },
+      "history": []
+    },
+    {
+      "case_id": "EC-ITM-0039",
+      "item_id": "ITM-0039",
+      "run_id": "2026-08-01#6ec9bf05",
+      "is_pilot": false,
+      "evidence": {
+        "item_id": "ITM-0039",
+        "item_name": "대한반코마이신주 500mg",
+        "ingredient_name_kr": "반코마이신",
+        "as_of": "2026-08-01",
+        "run_id": "2026-08-01#6ec9bf05",
+        "grade": "위험",
+        "score": 100,
+        "risk_type": "delivery_delay",
+        "days_to_stockout": 0,
+        "depletion_date": "2026-08-01",
+        "current_stock": 0.0,
+        "avg_daily_usage": 6.1,
+        "usage_change_pct": 17.3,
+        "anomalies": [
+          {
+            "kind": "usage_drop",
+            "detected_on": "2026-08-01",
+            "metric": -1.0,
+            "detail": "최근 7일 평균 0.0가 기준 28일 평균 7.8 대비 100% 감소"
+          },
+          {
+            "kind": "receipt_delay",
+            "detected_on": "2026-08-01",
+            "metric": 14.0,
+            "detail": "입고 예정 2026-07-18 대비 14일 지연 (예정 수량 200)"
+          },
+          {
+            "kind": "receipt_delay",
+            "detected_on": "2026-08-01",
+            "metric": 11.0,
+            "detail": "입고 예정 2026-07-21 대비 11일 지연 (예정 수량 200)"
+          },
+          {
+            "kind": "receipt_delay",
+            "detected_on": "2026-08-01",
+            "metric": 8.0,
+            "detail": "입고 예정 2026-07-24 대비 8일 지연 (예정 수량 200)"
+          },
+          {
+            "kind": "receipt_delay",
+            "detected_on": "2026-08-01",
+            "metric": 5.0,
+            "detail": "입고 예정 2026-07-27 대비 5일 지연 (예정 수량 200)"
+          }
+        ],
+        "escalated_by_notice": false,
+        "active_notices": [],
+        "next_shipment": {
+          "expected_date": "2026-08-02",
+          "qty": 200
+        },
+        "substitutes_same_condition": [
+          {
+            "item_id": "ITM-0040",
+            "item_name": "누리반코마이신주 500mg",
+            "supplier": "누리팜",
+            "current_stock": 187
+          }
+        ],
+        "evidence_refs": [
+          "risk:2026-08-01#6ec9bf05",
+          "usage:recent28",
+          "stock:current",
+          "anomaly:1:usage_drop",
+          "anomaly:2:receipt_delay",
+          "anomaly:3:receipt_delay",
+          "anomaly:4:receipt_delay",
+          "anomaly:5:receipt_delay",
+          "shipment:1382",
+          "substitute:ITM-0040"
+        ]
+      },
+      "history": []
+    },
+    {
+      "case_id": "EC-ITM-0041",
+      "item_id": "ITM-0041",
+      "run_id": "2026-08-01#6ec9bf05",
+      "is_pilot": false,
+      "evidence": {
+        "item_id": "ITM-0041",
+        "item_name": "유니레보플록사신정 500mg",
+        "ingredient_name_kr": "레보플록사신",
+        "as_of": "2026-08-01",
+        "run_id": "2026-08-01#6ec9bf05",
+        "grade": "주의",
+        "score": 20,
+        "risk_type": "general",
+        "days_to_stockout": 21,
+        "depletion_date": "2026-08-22",
+        "current_stock": 200.0,
+        "avg_daily_usage": 9.5,
+        "usage_change_pct": 3.3,
+        "anomalies": [],
+        "escalated_by_notice": false,
+        "active_notices": [],
+        "next_shipment": null,
+        "substitutes_same_condition": [
+          {
+            "item_id": "ITM-0042",
+            "item_name": "서울레보플록사신정 500mg",
+            "supplier": "서울파마",
+            "current_stock": 716
+          }
+        ],
+        "evidence_refs": [
+          "risk:2026-08-01#6ec9bf05",
+          "usage:recent28",
+          "stock:current",
+          "substitute:ITM-0042"
+        ]
+      },
+      "history": []
+    },
+    {
+      "case_id": "EC-ITM-0044",
+      "item_id": "ITM-0044",
+      "run_id": "2026-08-01#6ec9bf05",
+      "is_pilot": false,
+      "evidence": {
+        "item_id": "ITM-0044",
+        "item_name": "그린아지트로마이신정 250mg",
+        "ingredient_name_kr": "아지트로마이신",
+        "as_of": "2026-08-01",
+        "run_id": "2026-08-01#6ec9bf05",
+        "grade": "주의",
+        "score": 20,
+        "risk_type": "general",
+        "days_to_stockout": 28,
+        "depletion_date": "2026-08-29",
+        "current_stock": 218.0,
+        "avg_daily_usage": 43.8,
+        "usage_change_pct": 74.5,
+        "anomalies": [],
+        "escalated_by_notice": false,
+        "active_notices": [],
+        "next_shipment": {
+          "expected_date": "2026-08-03",
+          "qty": 1100
+        },
+        "substitutes_same_condition": [
+          {
+            "item_id": "ITM-0045",
+            "item_name": "미래아지트로마이신정 250mg",
+            "supplier": "미래바이오",
+            "current_stock": 201
+          }
+        ],
+        "evidence_refs": [
+          "risk:2026-08-01#6ec9bf05",
+          "usage:recent28",
+          "stock:current",
+          "shipment:1217",
+          "substitute:ITM-0045"
+        ]
+      },
+      "history": []
+    },
+    {
+      "case_id": "EC-ITM-0045",
+      "item_id": "ITM-0045",
+      "run_id": "2026-08-01#6ec9bf05",
+      "is_pilot": false,
+      "evidence": {
+        "item_id": "ITM-0045",
+        "item_name": "미래아지트로마이신정 250mg",
+        "ingredient_name_kr": "아지트로마이신",
+        "as_of": "2026-08-01",
+        "run_id": "2026-08-01#6ec9bf05",
+        "grade": "주의",
+        "score": 20,
+        "risk_type": "general",
+        "days_to_stockout": 16,
+        "depletion_date": "2026-08-17",
+        "current_stock": 201.0,
+        "avg_daily_usage": 13.4,
+        "usage_change_pct": 3.1,
+        "anomalies": [],
+        "escalated_by_notice": false,
+        "active_notices": [],
+        "next_shipment": null,
+        "substitutes_same_condition": [
+          {
+            "item_id": "ITM-0044",
+            "item_name": "그린아지트로마이신정 250mg",
+            "supplier": "그린바이오",
+            "current_stock": 218
+          }
+        ],
+        "evidence_refs": [
+          "risk:2026-08-01#6ec9bf05",
+          "usage:recent28",
+          "stock:current",
+          "substitute:ITM-0044"
+        ]
+      },
+      "history": []
+    },
+    {
+      "case_id": "EC-ITM-0048",
+      "item_id": "ITM-0048",
+      "run_id": "2026-08-01#6ec9bf05",
+      "is_pilot": false,
+      "evidence": {
+        "item_id": "ITM-0048",
+        "item_name": "서울아토르바스타틴정 10mg",
+        "ingredient_name_kr": "아토르바스타틴",
+        "as_of": "2026-08-01",
+        "run_id": "2026-08-01#6ec9bf05",
+        "grade": "주의",
+        "score": 20,
+        "risk_type": "general",
+        "days_to_stockout": 15,
+        "depletion_date": "2026-08-16",
+        "current_stock": 417.0,
+        "avg_daily_usage": 28.3,
+        "usage_change_pct": 0.0,
+        "anomalies": [],
+        "escalated_by_notice": false,
+        "active_notices": [],
+        "next_shipment": null,
+        "substitutes_same_condition": [
+          {
+            "item_id": "ITM-0046",
+            "item_name": "아토르바스타틴정 10mg",
+            "supplier": "메디팜",
+            "current_stock": 818
+          },
+          {
+            "item_id": "ITM-0047",
+            "item_name": "유니아토르바스타틴정 10mg",
+            "supplier": "유니메드",
+            "current_stock": 692
+          }
+        ],
+        "evidence_refs": [
+          "risk:2026-08-01#6ec9bf05",
+          "usage:recent28",
+          "stock:current",
+          "substitute:ITM-0046",
+          "substitute:ITM-0047"
+        ]
+      },
+      "history": []
+    },
+    {
+      "case_id": "EC-ITM-0050",
+      "item_id": "ITM-0050",
+      "run_id": "2026-08-01#6ec9bf05",
+      "is_pilot": false,
+      "evidence": {
+        "item_id": "ITM-0050",
+        "item_name": "대한아토르바스타틴정 20mg",
+        "ingredient_name_kr": "아토르바스타틴",
+        "as_of": "2026-08-01",
+        "run_id": "2026-08-01#6ec9bf05",
+        "grade": "주의",
+        "score": 20,
+        "risk_type": "general",
+        "days_to_stockout": 28,
+        "depletion_date": "2026-08-29",
+        "current_stock": 1066.0,
+        "avg_daily_usage": 37.2,
+        "usage_change_pct": -3.1,
+        "anomalies": [],
+        "escalated_by_notice": false,
+        "active_notices": [],
+        "next_shipment": null,
+        "substitutes_same_condition": [
+          {
+            "item_id": "ITM-0049",
+            "item_name": "메디아토르바스타틴정 20mg",
+            "supplier": "메디팜",
+            "current_stock": 407
+          }
+        ],
+        "evidence_refs": [
+          "risk:2026-08-01#6ec9bf05",
+          "usage:recent28",
+          "stock:current",
+          "substitute:ITM-0049"
+        ]
+      },
+      "history": []
+    },
+    {
+      "case_id": "EC-ITM-0051",
+      "item_id": "ITM-0051",
+      "run_id": "2026-08-01#6ec9bf05",
+      "is_pilot": false,
+      "evidence": {
+        "item_id": "ITM-0051",
+        "item_name": "유니로수바스타틴정 10mg",
+        "ingredient_name_kr": "로수바스타틴",
+        "as_of": "2026-08-01",
+        "run_id": "2026-08-01#6ec9bf05",
+        "grade": "주의",
+        "score": 20,
+        "risk_type": "general",
+        "days_to_stockout": 18,
+        "depletion_date": "2026-08-19",
+        "current_stock": 473.0,
+        "avg_daily_usage": 26.0,
+        "usage_change_pct": -1.1,
+        "anomalies": [],
+        "escalated_by_notice": false,
+        "active_notices": [],
+        "next_shipment": null,
+        "substitutes_same_condition": [
+          {
+            "item_id": "ITM-0052",
+            "item_name": "미래로수바스타틴정 10mg",
+            "supplier": "미래바이오",
+            "current_stock": 192
+          }
+        ],
+        "evidence_refs": [
+          "risk:2026-08-01#6ec9bf05",
+          "usage:recent28",
+          "stock:current",
+          "substitute:ITM-0052"
+        ]
+      },
+      "history": []
+    },
+    {
+      "case_id": "EC-ITM-0052",
+      "item_id": "ITM-0052",
+      "run_id": "2026-08-01#6ec9bf05",
+      "is_pilot": false,
+      "evidence": {
+        "item_id": "ITM-0052",
+        "item_name": "미래로수바스타틴정 10mg",
+        "ingredient_name_kr": "로수바스타틴",
+        "as_of": "2026-08-01",
+        "run_id": "2026-08-01#6ec9bf05",
+        "grade": "주의",
+        "score": 20,
+        "risk_type": "general",
+        "days_to_stockout": 22,
+        "depletion_date": "2026-08-23",
+        "current_stock": 192.0,
+        "avg_daily_usage": 8.5,
+        "usage_change_pct": 1.2,
+        "anomalies": [],
+        "escalated_by_notice": false,
+        "active_notices": [],
+        "next_shipment": null,
+        "substitutes_same_condition": [
+          {
+            "item_id": "ITM-0051",
+            "item_name": "유니로수바스타틴정 10mg",
+            "supplier": "유니메드",
+            "current_stock": 473
+          }
+        ],
+        "evidence_refs": [
+          "risk:2026-08-01#6ec9bf05",
+          "usage:recent28",
+          "stock:current",
+          "substitute:ITM-0051"
+        ]
+      },
+      "history": []
+    },
+    {
+      "case_id": "EC-ITM-0054",
+      "item_id": "ITM-0054",
+      "run_id": "2026-08-01#6ec9bf05",
+      "is_pilot": false,
+      "evidence": {
+        "item_id": "ITM-0054",
+        "item_name": "대한암로디핀정 5mg",
+        "ingredient_name_kr": "암로디핀",
+        "as_of": "2026-08-01",
+        "run_id": "2026-08-01#6ec9bf05",
+        "grade": "주의",
+        "score": 20,
+        "risk_type": "general",
+        "days_to_stockout": 21,
+        "depletion_date": "2026-08-22",
+        "current_stock": 638.0,
+        "avg_daily_usage": 33.9,
+        "usage_change_pct": -4.5,
+        "anomalies": [],
+        "escalated_by_notice": false,
+        "active_notices": [],
+        "next_shipment": null,
+        "substitutes_same_condition": [
+          {
+            "item_id": "ITM-0053",
+            "item_name": "한빛암로디핀정 5mg",
+            "supplier": "한빛제약",
+            "current_stock": 1717
+          },
+          {
+            "item_id": "ITM-0055",
+            "item_name": "누리암로디핀정 5mg",
+            "supplier": "누리팜",
+            "current_stock": 700
+          }
+        ],
+        "evidence_refs": [
+          "risk:2026-08-01#6ec9bf05",
+          "usage:recent28",
+          "stock:current",
+          "substitute:ITM-0053",
+          "substitute:ITM-0055"
+        ]
+      },
+      "history": []
+    },
+    {
+      "case_id": "EC-ITM-0055",
+      "item_id": "ITM-0055",
+      "run_id": "2026-08-01#6ec9bf05",
+      "is_pilot": false,
+      "evidence": {
+        "item_id": "ITM-0055",
+        "item_name": "누리암로디핀정 5mg",
+        "ingredient_name_kr": "암로디핀",
+        "as_of": "2026-08-01",
+        "run_id": "2026-08-01#6ec9bf05",
+        "grade": "주의",
+        "score": 20,
+        "risk_type": "general",
+        "days_to_stockout": 25,
+        "depletion_date": "2026-08-26",
+        "current_stock": 700.0,
+        "avg_daily_usage": 27.1,
+        "usage_change_pct": 0.7,
+        "anomalies": [],
+        "escalated_by_notice": false,
+        "active_notices": [],
+        "next_shipment": null,
+        "substitutes_same_condition": [
+          {
+            "item_id": "ITM-0053",
+            "item_name": "한빛암로디핀정 5mg",
+            "supplier": "한빛제약",
+            "current_stock": 1717
+          },
+          {
+            "item_id": "ITM-0054",
+            "item_name": "대한암로디핀정 5mg",
+            "supplier": "대한제약",
+            "current_stock": 638
+          }
+        ],
+        "evidence_refs": [
+          "risk:2026-08-01#6ec9bf05",
+          "usage:recent28",
+          "stock:current",
+          "substitute:ITM-0053",
+          "substitute:ITM-0054"
+        ]
+      },
+      "history": []
+    },
+    {
+      "case_id": "EC-ITM-0057",
+      "item_id": "ITM-0057",
+      "run_id": "2026-08-01#6ec9bf05",
+      "is_pilot": false,
+      "evidence": {
+        "item_id": "ITM-0057",
+        "item_name": "유니로사르탄정 50mg",
+        "ingredient_name_kr": "로사르탄",
+        "as_of": "2026-08-01",
+        "run_id": "2026-08-01#6ec9bf05",
+        "grade": "주의",
+        "score": 20,
+        "risk_type": "general",
+        "days_to_stockout": 15,
+        "depletion_date": "2026-08-16",
+        "current_stock": 390.0,
+        "avg_daily_usage": 28.6,
+        "usage_change_pct": -0.7,
+        "anomalies": [],
+        "escalated_by_notice": false,
+        "active_notices": [],
+        "next_shipment": null,
+        "substitutes_same_condition": [
+          {
+            "item_id": "ITM-0058",
+            "item_name": "서울로사르탄정 50mg",
+            "supplier": "서울파마",
+            "current_stock": 138
+          }
+        ],
+        "evidence_refs": [
+          "risk:2026-08-01#6ec9bf05",
+          "usage:recent28",
+          "stock:current",
+          "substitute:ITM-0058"
+        ]
+      },
+      "history": []
+    },
+    {
+      "case_id": "EC-ITM-0058",
+      "item_id": "ITM-0058",
+      "run_id": "2026-08-01#6ec9bf05",
+      "is_pilot": false,
+      "evidence": {
+        "item_id": "ITM-0058",
+        "item_name": "서울로사르탄정 50mg",
+        "ingredient_name_kr": "로사르탄",
+        "as_of": "2026-08-01",
+        "run_id": "2026-08-01#6ec9bf05",
+        "grade": "위험",
+        "score": 78,
+        "risk_type": "delivery_delay",
+        "days_to_stockout": 7,
+        "depletion_date": "2026-08-08",
+        "current_stock": 138.0,
+        "avg_daily_usage": 23.4,
+        "usage_change_pct": 27.2,
+        "anomalies": [
+          {
+            "kind": "receipt_delay",
+            "detected_on": "2026-08-01",
+            "metric": 12.0,
+            "detail": "입고 예정 2026-07-20 대비 12일 지연 (예정 수량 600)"
+          }
+        ],
+        "escalated_by_notice": false,
+        "active_notices": [],
+        "next_shipment": {
+          "expected_date": "2026-08-02",
+          "qty": 900
+        },
+        "substitutes_same_condition": [
+          {
+            "item_id": "ITM-0057",
+            "item_name": "유니로사르탄정 50mg",
+            "supplier": "유니메드",
+            "current_stock": 390
+          }
+        ],
+        "evidence_refs": [
+          "risk:2026-08-01#6ec9bf05",
+          "usage:recent28",
+          "stock:current",
+          "anomaly:1:receipt_delay",
+          "shipment:1390",
+          "substitute:ITM-0057"
+        ]
+      },
+      "history": []
+    },
+    {
+      "case_id": "EC-ITM-0059",
+      "item_id": "ITM-0059",
+      "run_id": "2026-08-01#6ec9bf05",
+      "is_pilot": false,
+      "evidence": {
+        "item_id": "ITM-0059",
+        "item_name": "대한비소프롤롤정 2.5mg",
+        "ingredient_name_kr": "비소프롤롤",
+        "as_of": "2026-08-01",
+        "run_id": "2026-08-01#6ec9bf05",
+        "grade": "주의",
+        "score": 20,
+        "risk_type": "general",
+        "days_to_stockout": 28,
+        "depletion_date": "2026-08-29",
+        "current_stock": 292.0,
+        "avg_daily_usage": 11.0,
+        "usage_change_pct": -9.1,
+        "anomalies": [],
+        "escalated_by_notice": false,
+        "active_notices": [],
+        "next_shipment": null,
+        "substitutes_same_condition": [
+          {
+            "item_id": "ITM-0060",
+            "item_name": "미래비소프롤롤정 2.5mg",
+            "supplier": "미래바이오",
+            "current_stock": 793
+          }
+        ],
+        "evidence_refs": [
+          "risk:2026-08-01#6ec9bf05",
+          "usage:recent28",
+          "stock:current",
+          "substitute:ITM-0060"
+        ]
+      },
+      "history": []
+    },
+    {
+      "case_id": "EC-ITM-0060",
+      "item_id": "ITM-0060",
+      "run_id": "2026-08-01#6ec9bf05",
+      "is_pilot": false,
+      "evidence": {
+        "item_id": "ITM-0060",
+        "item_name": "미래비소프롤롤정 2.5mg",
+        "ingredient_name_kr": "비소프롤롤",
+        "as_of": "2026-08-01",
+        "run_id": "2026-08-01#6ec9bf05",
+        "grade": "주의",
+        "score": 20,
+        "risk_type": "general",
+        "days_to_stockout": 29,
+        "depletion_date": "2026-08-30",
+        "current_stock": 793.0,
+        "avg_daily_usage": 26.4,
+        "usage_change_pct": -1.5,
+        "anomalies": [],
+        "escalated_by_notice": false,
+        "active_notices": [],
+        "next_shipment": null,
+        "substitutes_same_condition": [
+          {
+            "item_id": "ITM-0059",
+            "item_name": "대한비소프롤롤정 2.5mg",
+            "supplier": "대한제약",
+            "current_stock": 292
+          }
+        ],
+        "evidence_refs": [
+          "risk:2026-08-01#6ec9bf05",
+          "usage:recent28",
+          "stock:current",
+          "substitute:ITM-0059"
+        ]
+      },
+      "history": []
+    },
+    {
+      "case_id": "EC-ITM-0063",
+      "item_id": "ITM-0063",
+      "run_id": "2026-08-01#6ec9bf05",
+      "is_pilot": false,
+      "evidence": {
+        "item_id": "ITM-0063",
+        "item_name": "메디푸로세미드주 20mg/2mL",
+        "ingredient_name_kr": "푸로세미드",
+        "as_of": "2026-08-01",
+        "run_id": "2026-08-01#6ec9bf05",
+        "grade": "주의",
+        "score": 20,
+        "risk_type": "general",
+        "days_to_stockout": 29,
+        "depletion_date": "2026-08-30",
+        "current_stock": 257.0,
+        "avg_daily_usage": 9.4,
+        "usage_change_pct": -2.1,
+        "anomalies": [],
+        "escalated_by_notice": false,
+        "active_notices": [],
+        "next_shipment": null,
+        "substitutes_same_condition": [],
+        "evidence_refs": [
+          "risk:2026-08-01#6ec9bf05",
+          "usage:recent28",
+          "stock:current"
+        ]
+      },
+      "history": []
+    },
+    {
+      "case_id": "EC-ITM-0064",
+      "item_id": "ITM-0064",
+      "run_id": "2026-08-01#6ec9bf05",
+      "is_pilot": false,
+      "evidence": {
+        "item_id": "ITM-0064",
+        "item_name": "한빛니트로글리세린정 0.6mg",
+        "ingredient_name_kr": "니트로글리세린",
+        "as_of": "2026-08-01",
+        "run_id": "2026-08-01#6ec9bf05",
+        "grade": "주의",
+        "score": 20,
+        "risk_type": "general",
+        "days_to_stockout": 16,
+        "depletion_date": "2026-08-17",
+        "current_stock": 240.0,
+        "avg_daily_usage": 15.5,
+        "usage_change_pct": 0.0,
+        "anomalies": [],
+        "escalated_by_notice": false,
+        "active_notices": [],
+        "next_shipment": null,
+        "substitutes_same_condition": [],
+        "evidence_refs": [
+          "risk:2026-08-01#6ec9bf05",
+          "usage:recent28",
+          "stock:current"
+        ]
+      },
+      "history": []
+    },
+    {
+      "case_id": "EC-ITM-0065",
+      "item_id": "ITM-0065",
+      "run_id": "2026-08-01#6ec9bf05",
+      "is_pilot": false,
+      "evidence": {
+        "item_id": "ITM-0065",
+        "item_name": "한결니트로글리세린패치 5mg",
+        "ingredient_name_kr": "니트로글리세린",
+        "as_of": "2026-08-01",
+        "run_id": "2026-08-01#6ec9bf05",
+        "grade": "위험",
+        "score": 86,
+        "risk_type": "delivery_delay",
+        "days_to_stockout": 2,
+        "depletion_date": "2026-08-03",
+        "current_stock": 4.0,
+        "avg_daily_usage": 2.2,
+        "usage_change_pct": 4.8,
+        "anomalies": [
+          {
+            "kind": "receipt_delay",
+            "detected_on": "2026-08-01",
+            "metric": 6.0,
+            "detail": "입고 예정 2026-07-26 대비 6일 지연 (예정 수량 90)"
+          },
+          {
+            "kind": "receipt_delay",
+            "detected_on": "2026-08-01",
+            "metric": 3.0,
+            "detail": "입고 예정 2026-07-29 대비 3일 지연 (예정 수량 90)"
+          }
+        ],
+        "escalated_by_notice": false,
+        "active_notices": [],
+        "next_shipment": {
+          "expected_date": "2026-08-04",
+          "qty": 90
+        },
+        "substitutes_same_condition": [],
+        "evidence_refs": [
+          "risk:2026-08-01#6ec9bf05",
+          "usage:recent28",
+          "stock:current",
+          "anomaly:1:receipt_delay",
+          "anomaly:2:receipt_delay",
+          "shipment:1301"
+        ]
+      },
+      "history": []
+    },
+    {
+      "case_id": "EC-ITM-0066",
+      "item_id": "ITM-0066",
+      "run_id": "2026-08-01#6ec9bf05",
+      "is_pilot": false,
+      "evidence": {
+        "item_id": "ITM-0066",
+        "item_name": "유니오메프라졸캡슐 20mg",
+        "ingredient_name_kr": "오메프라졸",
+        "as_of": "2026-08-01",
+        "run_id": "2026-08-01#6ec9bf05",
+        "grade": "주의",
+        "score": 20,
+        "risk_type": "general",
+        "days_to_stockout": 18,
+        "depletion_date": "2026-08-19",
+        "current_stock": 712.0,
+        "avg_daily_usage": 42.0,
+        "usage_change_pct": -4.8,
+        "anomalies": [],
+        "escalated_by_notice": false,
+        "active_notices": [],
+        "next_shipment": null,
+        "substitutes_same_condition": [
+          {
+            "item_id": "ITM-0067",
+            "item_name": "서울오메프라졸캡슐 20mg",
+            "supplier": "서울파마",
+            "current_stock": 1162
+          }
+        ],
+        "evidence_refs": [
+          "risk:2026-08-01#6ec9bf05",
+          "usage:recent28",
+          "stock:current",
+          "substitute:ITM-0067"
+        ]
+      },
+      "history": []
+    },
+    {
+      "case_id": "EC-ITM-0068",
+      "item_id": "ITM-0068",
+      "run_id": "2026-08-01#6ec9bf05",
+      "is_pilot": false,
+      "evidence": {
+        "item_id": "ITM-0068",
+        "item_name": "메디에스오메프라졸주 40mg",
+        "ingredient_name_kr": "에스오메프라졸",
+        "as_of": "2026-08-01",
+        "run_id": "2026-08-01#6ec9bf05",
+        "grade": "주의",
+        "score": 28,
+        "risk_type": "delivery_delay",
+        "days_to_stockout": 22,
+        "depletion_date": "2026-08-23",
+        "current_stock": 161.0,
+        "avg_daily_usage": 7.8,
+        "usage_change_pct": -7.1,
+        "anomalies": [
+          {
+            "kind": "receipt_delay",
+            "detected_on": "2026-08-01",
+            "metric": 8.0,
+            "detail": "입고 예정 2026-07-24 대비 8일 지연 (예정 수량 280)"
+          }
+        ],
+        "escalated_by_notice": false,
+        "active_notices": [],
+        "next_shipment": null,
+        "substitutes_same_condition": [
+          {
+            "item_id": "ITM-0069",
+            "item_name": "한결에스오메프라졸주 40mg",
+            "supplier": "한결바이오",
+            "current_stock": 75
+          }
+        ],
+        "evidence_refs": [
+          "risk:2026-08-01#6ec9bf05",
+          "usage:recent28",
+          "stock:current",
+          "anomaly:1:receipt_delay",
+          "substitute:ITM-0069"
+        ]
+      },
+      "history": [
+        {
+          "created_at": "2026-05-08T08:50:00",
+          "action_type": "입고 재확인",
+          "note": "입고 예정일 경과 확인 후 물류사에 통관 지연 사유와 확정 입고일 재확인",
+          "status": "완료"
+        }
+      ]
+    },
+    {
+      "case_id": "EC-ITM-0069",
+      "item_id": "ITM-0069",
+      "run_id": "2026-08-01#6ec9bf05",
+      "is_pilot": false,
+      "evidence": {
+        "item_id": "ITM-0069",
+        "item_name": "한결에스오메프라졸주 40mg",
+        "ingredient_name_kr": "에스오메프라졸",
+        "as_of": "2026-08-01",
+        "run_id": "2026-08-01#6ec9bf05",
+        "grade": "주의",
+        "score": 20,
+        "risk_type": "general",
+        "days_to_stockout": 17,
+        "depletion_date": "2026-08-18",
+        "current_stock": 75.0,
+        "avg_daily_usage": 5.0,
+        "usage_change_pct": -2.0,
+        "anomalies": [],
+        "escalated_by_notice": false,
+        "active_notices": [],
+        "next_shipment": null,
+        "substitutes_same_condition": [
+          {
+            "item_id": "ITM-0068",
+            "item_name": "메디에스오메프라졸주 40mg",
+            "supplier": "메디팜",
+            "current_stock": 161
+          }
+        ],
+        "evidence_refs": [
+          "risk:2026-08-01#6ec9bf05",
+          "usage:recent28",
+          "stock:current",
+          "substitute:ITM-0068"
+        ]
+      },
+      "history": []
+    },
+    {
+      "case_id": "EC-ITM-0070",
+      "item_id": "ITM-0070",
+      "run_id": "2026-08-01#6ec9bf05",
+      "is_pilot": false,
+      "evidence": {
+        "item_id": "ITM-0070",
+        "item_name": "유니에스오메프라졸정 20mg",
+        "ingredient_name_kr": "에스오메프라졸",
+        "as_of": "2026-08-01",
+        "run_id": "2026-08-01#6ec9bf05",
+        "grade": "주의",
+        "score": 20,
+        "risk_type": "general",
+        "days_to_stockout": 18,
+        "depletion_date": "2026-08-19",
+        "current_stock": 441.0,
+        "avg_daily_usage": 25.1,
+        "usage_change_pct": -2.7,
+        "anomalies": [],
+        "escalated_by_notice": false,
+        "active_notices": [],
+        "next_shipment": null,
+        "substitutes_same_condition": [],
+        "evidence_refs": [
+          "risk:2026-08-01#6ec9bf05",
+          "usage:recent28",
+          "stock:current"
+        ]
+      },
+      "history": []
+    },
+    {
+      "case_id": "EC-ITM-0072",
+      "item_id": "ITM-0072",
+      "run_id": "2026-08-01#6ec9bf05",
+      "is_pilot": false,
+      "evidence": {
+        "item_id": "ITM-0072",
+        "item_name": "미래판토프라졸정 40mg",
+        "ingredient_name_kr": "판토프라졸",
+        "as_of": "2026-08-01",
+        "run_id": "2026-08-01#6ec9bf05",
+        "grade": "주의",
+        "score": 20,
+        "risk_type": "general",
+        "days_to_stockout": 18,
+        "depletion_date": "2026-08-19",
+        "current_stock": 515.0,
+        "avg_daily_usage": 28.5,
+        "usage_change_pct": -1.0,
+        "anomalies": [],
+        "escalated_by_notice": false,
+        "active_notices": [],
+        "next_shipment": null,
+        "substitutes_same_condition": [
+          {
+            "item_id": "ITM-0071",
+            "item_name": "대한판토프라졸정 40mg",
+            "supplier": "대한제약",
+            "current_stock": 1183
+          }
+        ],
+        "evidence_refs": [
+          "risk:2026-08-01#6ec9bf05",
+          "usage:recent28",
+          "stock:current",
+          "substitute:ITM-0071"
+        ]
+      },
+      "history": []
+    },
+    {
+      "case_id": "EC-ITM-0075",
+      "item_id": "ITM-0075",
+      "run_id": "2026-08-01#6ec9bf05",
+      "is_pilot": false,
+      "evidence": {
+        "item_id": "ITM-0075",
+        "item_name": "메디온단세트론주 8mg/4mL",
+        "ingredient_name_kr": "온단세트론",
+        "as_of": "2026-08-01",
+        "run_id": "2026-08-01#6ec9bf05",
+        "grade": "주의",
+        "score": 20,
+        "risk_type": "general",
+        "days_to_stockout": 18,
+        "depletion_date": "2026-08-19",
+        "current_stock": 192.0,
+        "avg_daily_usage": 11.6,
+        "usage_change_pct": 0.0,
+        "anomalies": [],
+        "escalated_by_notice": false,
+        "active_notices": [],
+        "next_shipment": null,
+        "substitutes_same_condition": [
+          {
+            "item_id": "ITM-0076",
+            "item_name": "한결온단세트론주 8mg/4mL",
+            "supplier": "한결바이오",
+            "current_stock": 83
+          }
+        ],
+        "evidence_refs": [
+          "risk:2026-08-01#6ec9bf05",
+          "usage:recent28",
+          "stock:current",
+          "substitute:ITM-0076"
+        ]
+      },
+      "history": []
+    },
+    {
+      "case_id": "EC-ITM-0076",
+      "item_id": "ITM-0076",
+      "run_id": "2026-08-01#6ec9bf05",
+      "is_pilot": false,
+      "evidence": {
+        "item_id": "ITM-0076",
+        "item_name": "한결온단세트론주 8mg/4mL",
+        "ingredient_name_kr": "온단세트론",
+        "as_of": "2026-08-01",
+        "run_id": "2026-08-01#6ec9bf05",
+        "grade": "주의",
+        "score": 20,
+        "risk_type": "general",
+        "days_to_stockout": 21,
+        "depletion_date": "2026-08-22",
+        "current_stock": 83.0,
+        "avg_daily_usage": 4.1,
+        "usage_change_pct": 0.0,
+        "anomalies": [],
+        "escalated_by_notice": false,
+        "active_notices": [],
+        "next_shipment": null,
+        "substitutes_same_condition": [
+          {
+            "item_id": "ITM-0075",
+            "item_name": "메디온단세트론주 8mg/4mL",
+            "supplier": "메디팜",
+            "current_stock": 192
+          }
+        ],
+        "evidence_refs": [
+          "risk:2026-08-01#6ec9bf05",
+          "usage:recent28",
+          "stock:current",
+          "substitute:ITM-0075"
+        ]
+      },
+      "history": []
+    },
+    {
+      "case_id": "EC-ITM-0077",
+      "item_id": "ITM-0077",
+      "run_id": "2026-08-01#6ec9bf05",
+      "is_pilot": false,
+      "evidence": {
+        "item_id": "ITM-0077",
+        "item_name": "메트포르민정 500mg",
+        "ingredient_name_kr": "메트포르민",
+        "as_of": "2026-08-01",
+        "run_id": "2026-08-01#6ec9bf05",
+        "grade": "주의",
+        "score": 20,
+        "risk_type": "general",
+        "days_to_stockout": 15,
+        "depletion_date": "2026-08-16",
+        "current_stock": 401.0,
+        "avg_daily_usage": 26.7,
+        "usage_change_pct": 0.8,
+        "anomalies": [],
+        "escalated_by_notice": false,
+        "active_notices": [],
+        "next_shipment": null,
+        "substitutes_same_condition": [
+          {
+            "item_id": "ITM-0078",
+            "item_name": "대한메트포르민정 500mg",
+            "supplier": "대한제약",
+            "current_stock": 773
+          },
+          {
+            "item_id": "ITM-0079",
+            "item_name": "미래메트포르민정 500mg",
+            "supplier": "미래바이오",
+            "current_stock": 1110
+          }
+        ],
+        "evidence_refs": [
+          "risk:2026-08-01#6ec9bf05",
+          "usage:recent28",
+          "stock:current",
+          "substitute:ITM-0078",
+          "substitute:ITM-0079"
+        ]
+      },
+      "history": []
+    },
+    {
+      "case_id": "EC-ITM-0093",
+      "item_id": "ITM-0093",
+      "run_id": "2026-08-01#6ec9bf05",
+      "is_pilot": false,
+      "evidence": {
+        "item_id": "ITM-0093",
+        "item_name": "메디로라제팜주 4mg/2mL",
+        "ingredient_name_kr": "로라제팜",
+        "as_of": "2026-08-01",
+        "run_id": "2026-08-01#6ec9bf05",
+        "grade": "위험",
+        "score": 100,
+        "risk_type": "delivery_delay",
+        "days_to_stockout": 0,
+        "depletion_date": "2026-08-01",
+        "current_stock": 0.0,
+        "avg_daily_usage": 2.1,
+        "usage_change_pct": -22.2,
+        "anomalies": [
+          {
+            "kind": "usage_drop",
+            "detected_on": "2026-08-01",
+            "metric": -1.0,
+            "detail": "최근 7일 평균 0.0가 기준 28일 평균 3.0 대비 100% 감소"
+          },
+          {
+            "kind": "receipt_delay",
+            "detected_on": "2026-08-01",
+            "metric": 13.0,
+            "detail": "입고 예정 2026-07-19 대비 13일 지연 (예정 수량 100)"
+          },
+          {
+            "kind": "receipt_delay",
+            "detected_on": "2026-08-01",
+            "metric": 8.0,
+            "detail": "입고 예정 2026-07-24 대비 8일 지연 (예정 수량 100)"
+          },
+          {
+            "kind": "receipt_delay",
+            "detected_on": "2026-08-01",
+            "metric": 3.0,
+            "detail": "입고 예정 2026-07-29 대비 3일 지연 (예정 수량 100)"
+          }
+        ],
+        "escalated_by_notice": false,
+        "active_notices": [],
+        "next_shipment": {
+          "expected_date": "2026-08-03",
+          "qty": 100
+        },
+        "substitutes_same_condition": [],
+        "evidence_refs": [
+          "risk:2026-08-01#6ec9bf05",
+          "usage:recent28",
+          "stock:current",
+          "anomaly:1:usage_drop",
+          "anomaly:2:receipt_delay",
+          "anomaly:3:receipt_delay",
+          "anomaly:4:receipt_delay",
+          "shipment:1402"
+        ]
+      },
+      "history": []
+    },
+    {
+      "case_id": "EC-ITM-0098",
+      "item_id": "ITM-0098",
+      "run_id": "2026-08-01#6ec9bf05",
+      "is_pilot": false,
+      "evidence": {
+        "item_id": "ITM-0098",
+        "item_name": "한결생리식염주사액 0.9%/500mL",
+        "ingredient_name_kr": "염화나트륨",
+        "as_of": "2026-08-01",
+        "run_id": "2026-08-01#6ec9bf05",
+        "grade": "위험",
+        "score": 86,
+        "risk_type": "delivery_delay",
+        "days_to_stockout": 0,
+        "depletion_date": "2026-08-01",
+        "current_stock": 0.0,
+        "avg_daily_usage": 3.4,
+        "usage_change_pct": 6.2,
+        "anomalies": [
+          {
+            "kind": "receipt_delay",
+            "detected_on": "2026-08-01",
+            "metric": 8.0,
+            "detail": "입고 예정 2026-07-24 대비 8일 지연 (예정 수량 120)"
+          },
+          {
+            "kind": "receipt_delay",
+            "detected_on": "2026-08-01",
+            "metric": 5.0,
+            "detail": "입고 예정 2026-07-27 대비 5일 지연 (예정 수량 120)"
+          }
+        ],
+        "escalated_by_notice": false,
+        "active_notices": [],
+        "next_shipment": {
+          "expected_date": "2026-08-02",
+          "qty": 120
+        },
+        "substitutes_same_condition": [
+          {
+            "item_id": "ITM-0099",
+            "item_name": "누리생리식염주사액 0.9%/500mL",
+            "supplier": "누리팜",
+            "current_stock": 49
+          }
+        ],
+        "evidence_refs": [
+          "risk:2026-08-01#6ec9bf05",
+          "usage:recent28",
+          "stock:current",
+          "anomaly:1:receipt_delay",
+          "anomaly:2:receipt_delay",
+          "shipment:1289",
+          "substitute:ITM-0099"
+        ]
+      },
+      "history": []
+    },
+    {
+      "case_id": "EC-ITM-0103",
+      "item_id": "ITM-0103",
+      "run_id": "2026-08-01#6ec9bf05",
+      "is_pilot": false,
+      "evidence": {
+        "item_id": "ITM-0103",
+        "item_name": "메디헤파린주 25000IU/5mL",
+        "ingredient_name_kr": "헤파린",
+        "as_of": "2026-08-01",
+        "run_id": "2026-08-01#6ec9bf05",
+        "grade": "위험",
+        "score": 100,
+        "risk_type": "delivery_delay",
+        "days_to_stockout": 0,
+        "depletion_date": "2026-08-01",
+        "current_stock": 0.0,
+        "avg_daily_usage": 2.5,
+        "usage_change_pct": -57.6,
+        "anomalies": [
+          {
+            "kind": "usage_drop",
+            "detected_on": "2026-08-01",
+            "metric": -1.0,
+            "detail": "최근 7일 평균 0.0가 기준 28일 평균 3.9 대비 100% 감소"
+          },
+          {
+            "kind": "receipt_delay",
+            "detected_on": "2026-08-01",
+            "metric": 25.0,
+            "detail": "입고 예정 2026-07-07 대비 25일 지연 (예정 수량 210)"
+          },
+          {
+            "kind": "receipt_delay",
+            "detected_on": "2026-08-01",
+            "metric": 20.0,
+            "detail": "입고 예정 2026-07-12 대비 20일 지연 (예정 수량 210)"
+          },
+          {
+            "kind": "receipt_delay",
+            "detected_on": "2026-08-01",
+            "metric": 15.0,
+            "detail": "입고 예정 2026-07-17 대비 15일 지연 (예정 수량 210)"
+          },
+          {
+            "kind": "receipt_delay",
+            "detected_on": "2026-08-01",
+            "metric": 10.0,
+            "detail": "입고 예정 2026-07-22 대비 10일 지연 (예정 수량 210)"
+          },
+          {
+            "kind": "receipt_delay",
+            "detected_on": "2026-08-01",
+            "metric": 5.0,
+            "detail": "입고 예정 2026-07-27 대비 5일 지연 (예정 수량 210)"
+          }
+        ],
+        "escalated_by_notice": false,
+        "active_notices": [],
+        "next_shipment": {
+          "expected_date": "2026-08-06",
+          "qty": 210
+        },
+        "substitutes_same_condition": [
+          {
+            "item_id": "ITM-0104",
+            "item_name": "대한헤파린주 25000IU/5mL",
+            "supplier": "대한제약",
+            "current_stock": 135
+          }
+        ],
+        "evidence_refs": [
+          "risk:2026-08-01#6ec9bf05",
+          "usage:recent28",
+          "stock:current",
+          "anomaly:1:usage_drop",
+          "anomaly:2:receipt_delay",
+          "anomaly:3:receipt_delay",
+          "anomaly:4:receipt_delay",
+          "anomaly:5:receipt_delay",
+          "anomaly:6:receipt_delay",
+          "shipment:1276",
+          "substitute:ITM-0104"
+        ]
+      },
+      "history": []
+    },
+    {
+      "case_id": "EC-ITM-0107",
+      "item_id": "ITM-0107",
+      "run_id": "2026-08-01#6ec9bf05",
+      "is_pilot": false,
+      "evidence": {
+        "item_id": "ITM-0107",
+        "item_name": "유니클로피도그렐정 75mg",
+        "ingredient_name_kr": "클로피도그렐",
+        "as_of": "2026-08-01",
+        "run_id": "2026-08-01#6ec9bf05",
+        "grade": "위험",
+        "score": 86,
+        "risk_type": "delivery_delay",
+        "days_to_stockout": 0,
+        "depletion_date": "2026-08-01",
+        "current_stock": 0.0,
+        "avg_daily_usage": 28.2,
+        "usage_change_pct": -33.6,
+        "anomalies": [
+          {
+            "kind": "usage_drop",
+            "detected_on": "2026-08-01",
+            "metric": -1.0,
+            "detail": "최근 7일 평균 0.0가 기준 28일 평균 38.3 대비 100% 감소"
+          },
+          {
+            "kind": "receipt_delay",
+            "detected_on": "2026-08-01",
+            "metric": 16.0,
+            "detail": "입고 예정 2026-07-16 대비 16일 지연 (예정 수량 1200)"
+          }
+        ],
+        "escalated_by_notice": false,
+        "active_notices": [],
+        "next_shipment": {
+          "expected_date": "2026-08-03",
+          "qty": 1500
+        },
+        "substitutes_same_condition": [
+          {
+            "item_id": "ITM-0108",
+            "item_name": "서울클로피도그렐정 75mg",
+            "supplier": "서울파마",
+            "current_stock": 167
+          }
+        ],
+        "evidence_refs": [
+          "risk:2026-08-01#6ec9bf05",
+          "usage:recent28",
+          "stock:current",
+          "anomaly:1:usage_drop",
+          "anomaly:2:receipt_delay",
+          "shipment:1414",
+          "substitute:ITM-0108"
+        ]
+      },
+      "history": []
+    }
+  ]
+}
