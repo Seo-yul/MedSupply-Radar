@@ -268,14 +268,19 @@ def run_experiment(
     prompt_version: str,
     dataset_path: str | Path = DEFAULT_DATASET_PATH,
     limit: int | None = None,
+    pilot_only: bool = False,
     force_refresh: bool = False,
 ) -> dict:
     """케이스셋(dataset_path)을 순회해 eval/results/{name}.jsonl을 기록하고 요약 dict를
     반환한다.
 
-    limit은 파일럿(4건) 등 소규모 실행용 — dataset의 케이스 목록 선두 limit개만 처리한다
-    (S-26의 is_pilot 플래그와는 별개다 — 특정 파일럿 케이스만 골라 돌리고 싶다면 호출부가
-    dataset을 직접 필터링해 별도 파일로 넘기면 된다).
+    pilot_only=True면 dataset의 case["is_pilot"]가 True인 케이스만 먼저 남긴다(S-26이 고른
+    파일럿 4건 — 픽스 라운드 1: limit만으로는 "케이스 목록 선두 N개"가 실제 파일럿 4건과
+    어긋날 수 있음이 실측 확인됐다. 예: 표준 스냅샷에서 선두 4건은 {ITM-0001, 0004, 0006,
+    0009}지만 파일럿 4건은 {ITM-0001, 0004, 0006, 0036} — 유일한 delivery_delay 대표
+    0036이 선두 4건에는 없다). limit은 이 필터링 **다음**에 적용된다 — pilot_only+limit을
+    함께 주면 "필터된 파일럿 목록의 선두 limit개"가 된다. pilot_only=False(기본)면 기존과
+    동일하게 dataset의 케이스 목록 선두 limit개만 처리한다(무회귀).
 
     실패 건은 격리한다 — 케이스 1건에서 예외가 나도 배치 전체가 멈추지 않는다. 실패한
     케이스도 jsonl에 1줄 기록되지만(scores/flags/completeness는 None, "error" 키가 추가된다)
@@ -286,6 +291,8 @@ def run_experiment(
     """
     dataset = json.loads(Path(dataset_path).read_text(encoding="utf-8"))
     cases = dataset["cases"]
+    if pilot_only:
+        cases = [case for case in cases if case.get("is_pilot")]
     if limit is not None:
         cases = cases[:limit]
 

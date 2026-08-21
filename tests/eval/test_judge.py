@@ -493,6 +493,68 @@ class TestRunExperiment:
         recorded_ids = [json.loads(line)["case_id"] for line in lines]
         assert recorded_ids == ["EC-ITM-0001", "EC-ITM-0002", "EC-ITM-0003", "EC-ITM-0004"]
 
+    def test_pilot_only_selects_exactly_the_flagged_pilot_cases_from_real_dataset(self, monkeypatch):
+        """픽스 라운드 1: limit(케이스 목록 선두 N개)만으로는 실 표준 스냅샷의 파일럿 4건
+        {ITM-0001, 0004, 0006, 0036}을 재현하지 못한다(선두 4건은 {..., 0009}로 delivery_delay
+        대표 0036을 놓친다) — pilot_only=True는 is_pilot 플래그로 직접 필터해 그 4건을
+        정확히 골라야 한다."""
+        self._mock_explain_ok(monkeypatch)
+        recorded: list[str] = []
+
+        def fake_judge(case, generation, **kw):
+            recorded.append(case["case_id"])
+            return _judge_score()
+
+        monkeypatch.setattr(judge_module, "judge_generation", fake_judge)
+
+        summary = run_experiment("real-pilot-only", prompt_version="v1", pilot_only=True)
+
+        assert summary["cases"] == 4
+        assert summary["judged"] == 4
+        assert sorted(recorded) == ["EC-ITM-0001", "EC-ITM-0004", "EC-ITM-0006", "EC-ITM-0036"]
+
+    def test_pilot_only_combined_with_limit_applies_limit_after_filtering(self, monkeypatch, tmp_path):
+        cases = [
+            _case(case_id="EC-ITM-0001", item_id="ITM-0001", is_pilot=True, evidence=_evidence_dict(item_id="ITM-0001")),
+            _case(case_id="EC-ITM-0002", item_id="ITM-0002", is_pilot=False, evidence=_evidence_dict(item_id="ITM-0002")),
+            _case(case_id="EC-ITM-0003", item_id="ITM-0003", is_pilot=True, evidence=_evidence_dict(item_id="ITM-0003")),
+            _case(case_id="EC-ITM-0004", item_id="ITM-0004", is_pilot=False, evidence=_evidence_dict(item_id="ITM-0004")),
+            _case(case_id="EC-ITM-0005", item_id="ITM-0005", is_pilot=True, evidence=_evidence_dict(item_id="ITM-0005")),
+        ]
+        dataset_path = _write_dataset(tmp_path, cases)
+        self._mock_explain_ok(monkeypatch)
+        recorded: list[str] = []
+
+        def fake_judge(case, generation, **kw):
+            recorded.append(case["case_id"])
+            return _judge_score()
+
+        monkeypatch.setattr(judge_module, "judge_generation", fake_judge)
+
+        summary = run_experiment(
+            "pilot-limit-combo", prompt_version="v1", dataset_path=dataset_path, pilot_only=True, limit=2
+        )
+
+        assert summary["cases"] == 2
+        # 필터(파일럿 3건: 0001·0003·0005) 다음에 limit=2 — 0005는 파일럿이지만 밀려 제외되고,
+        # 비파일럿 0002·0004는애초에 후보에서 배제된다.
+        assert recorded == ["EC-ITM-0001", "EC-ITM-0003"]
+
+    def test_pilot_only_false_default_is_unchanged_behavior(self, monkeypatch, tmp_path):
+        """무회귀 확인 — pilot_only를 아예 넘기지 않으면 기존과 완전히 동일하게 목록 선두
+        limit개(파일럿 여부 무관)를 그대로 처리한다."""
+        cases = [
+            _case(case_id="EC-ITM-0001", item_id="ITM-0001", is_pilot=False, evidence=_evidence_dict(item_id="ITM-0001")),
+            _case(case_id="EC-ITM-0002", item_id="ITM-0002", is_pilot=False, evidence=_evidence_dict(item_id="ITM-0002")),
+        ]
+        dataset_path = _write_dataset(tmp_path, cases)
+        self._mock_explain_ok(monkeypatch)
+        monkeypatch.setattr(judge_module, "judge_generation", lambda case, generation, **kw: _judge_score())
+
+        summary = run_experiment("no-pilot-only-run", prompt_version="v1", dataset_path=dataset_path, limit=1)
+
+        assert summary["cases"] == 1  # is_pilot=False뿐이어도 여전히 1건 처리된다
+
     def test_no_limit_processes_all_cases(self, monkeypatch, tmp_path):
         dataset_path = _write_dataset(tmp_path, self._dataset_cases(3))
         self._mock_explain_ok(monkeypatch)
