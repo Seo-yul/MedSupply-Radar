@@ -217,7 +217,7 @@ def is_pending_at(expected_date, actual_date, as_of: date) -> bool   # 예정: �
 ### `medsupply/analytics/params.py` — 파라미터 로더 + 불변 dataclass 6종
 
 ```python
-def load_params(path: str | Path = "config/analytics_params.toml") -> AnalyticsParams
+def load_params(path: str | Path = Path("config/analytics_params.toml")) -> AnalyticsParams
 ```
 TOML 로드 + 검증(범위·미지 키) + `params_hash`(정규화 JSON sha256 앞 8자) 산출. 검증 실패 시
 `ValueError`.
