@@ -5,9 +5,11 @@ judge 실행기(eval/judge.py)는 Task S-27 몫이라 여기서 만들지 않는
 "실행 결과가 옳은가"가 아니라 "S-27 실행기가 조립할 재료가 계약대로 갖춰져 있는가"만 본다:
 스키마 형태, config 필수 키·교차 judge 매핑, 프롬프트 렌더, 목업 픽스처의 판별력 설계.
 
-유일한 예외는 맨 아래 (선택) 실 API 스모크 — API 키가 있을 때만 실제 judge 호출까지
-수행한다. 이 환경(2026-08-21 기준)은 ANTHROPIC_API_KEY·OPENAI_API_KEY가 모두 없어
-skipif로 건너뛴다.
+유일한 예외는 맨 아래 (선택) 실 API 스모크 — API 키와 RUN_LLM_SMOKE=1이 둘 다 있을 때만
+실제 judge 호출까지 수행한다(tests/llm_smoke.skip_unless_real_llm_smoke 공용 게이트).
+키가 없으면 기존대로 skip이고, 이 저장소처럼 로컬 .env에 실제 키가 있어도 RUN_LLM_SMOKE=1
+을 명시하지 않으면 skip이다 — 평범한 pytest tests/ 실행마다 소액 과금이 발생하는 것을
+막기 위한 opt-in이다(코디네이터 지시, 2026-08-22).
 """
 
 from __future__ import annotations
@@ -19,6 +21,8 @@ from pathlib import Path
 import pytest
 import yaml
 from pydantic import ValidationError
+
+from tests.llm_smoke import skip_unless_real_llm_smoke
 
 from eval.schemas import JudgeOutput, JudgeScore
 
@@ -376,7 +380,7 @@ class TestJudgePromptRendering:
 
 
 # ---------------------------------------------------------------------------
-# (선택) 실 API 스모크 — 키가 없으면 CI 안전하게 skip(이 환경은 2026-08-21 기준 키 없음)
+# (선택) 실 API 스모크 — 키 + RUN_LLM_SMOKE=1 둘 다 있을 때만 실행(기본은 skip)
 # ---------------------------------------------------------------------------
 
 _JUDGE_SYSTEM_PREAMBLE = (
@@ -401,10 +405,7 @@ def _render_judge_user_message(case_id: str) -> tuple[str, dict]:
     return rendered, generation
 
 
-@pytest.mark.skipif(
-    not (os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("OPENAI_API_KEY")),
-    reason="ANTHROPIC_API_KEY/OPENAI_API_KEY가 없으면 실제 judge 스모크를 건너뛴다",
-)
+@skip_unless_real_llm_smoke()
 @pytest.mark.parametrize("case_id", ["grounded_concrete", "fabricated_number"])
 def test_smoke_real_judge_matches_expected_range(case_id):
     # cache_key를 넘겨 caching 경로 자체는 계속 행사한다(브리프 지시 — judge_generation과

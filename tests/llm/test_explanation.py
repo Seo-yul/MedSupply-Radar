@@ -11,7 +11,6 @@ TestExplainItem은 fixture_conn(tests/conftest.py) 위에서 explain_item()의 �
 from __future__ import annotations
 
 import json
-import os
 
 import pytest
 
@@ -25,6 +24,7 @@ from medsupply.llm.grounding import collect_risk_evidence
 from medsupply.llm.prompts.loader import PromptTemplate, list_prompts, load_prompt
 from medsupply.llm.schemas import RiskAction, RiskEvidence, RiskExplanation
 from tests.conftest import ITEM_1, ITEM_2, NOTICE_HALT, RUN_TODAY
+from tests.llm_smoke import skip_unless_real_llm_smoke
 
 # --------------------------------------------------------------------------
 # 공용 픽스처 데이터 — ITEM_1/RUN_TODAY(기본 시드)와 정합하는 evidence/explanation.
@@ -507,14 +507,11 @@ class TestRiskExplainPromptV1:
 
 
 # --------------------------------------------------------------------------
-# (선택) 실 API 스모크 — 키가 없으면 CI 안전하게 skip
+# (선택) 실 API 스모크 — 키 + RUN_LLM_SMOKE=1 둘 다 있을 때만 실행(기본은 skip)
 # --------------------------------------------------------------------------
 
 
-@pytest.mark.skipif(
-    not (os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("OPENAI_API_KEY")),
-    reason="ANTHROPIC_API_KEY/OPENAI_API_KEY가 없으면 실제 LLM 설명 생성 스모크를 건너뛴다",
-)
+@skip_unless_real_llm_smoke()
 def test_smoke_real_explanation_for_item1(fixture_conn):
     result = explain_item(fixture_conn, ITEM_1, force_refresh=True)
 

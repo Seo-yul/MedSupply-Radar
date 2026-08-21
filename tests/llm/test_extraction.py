@@ -11,7 +11,6 @@ extract_notice()의 조립 로직만 검증한다.
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
 
 import pytest
@@ -28,6 +27,7 @@ from medsupply.llm.extraction import (
 )
 from medsupply.llm.prompts.loader import PromptTemplate
 from medsupply.llm.schemas import NoticeExtraction
+from tests.llm_smoke import skip_unless_real_llm_smoke
 
 # --------------------------------------------------------------------------
 # 공용 픽스처 데이터
@@ -473,14 +473,11 @@ def test_confidence_threshold_constant_is_zero_point_eight():
 
 
 # --------------------------------------------------------------------------
-# (선택) 실 API 스모크 — 키가 없으면 CI 안전하게 skip
+# (선택) 실 API 스모크 — 키 + RUN_LLM_SMOKE=1 둘 다 있을 때만 실행(기본은 skip)
 # --------------------------------------------------------------------------
 
 
-@pytest.mark.skipif(
-    not (os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("OPENAI_API_KEY")),
-    reason="ANTHROPIC_API_KEY/OPENAI_API_KEY가 없으면 실제 LLM 추출 스모크를 건너뛴다",
-)
+@skip_unless_real_llm_smoke()
 def test_smoke_real_extraction_on_sample_001():
     raw_text = TestVerifyAgainstRealNoticeSample._raw_text(
         TestVerifyAgainstRealNoticeSample.RAW_PATH

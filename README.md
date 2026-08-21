@@ -138,7 +138,13 @@ verify_reproducibility 74초 — 5개 합계 약 106초. 재현된 수치는 §�
 pip install -r requirements-dev.txt   # pytest만 추가로 필요
 .venv/bin/python -m pytest tests/ -q
 ```
-현재 **1297 passed, 4 skipped**.
+현재 **1313 passed, 4 skipped**(4건은 아래 실 API 스모크 — RUN_LLM_SMOKE 미설정 시
+항상 skip).
+
+**실 API 스모크**: judge·추출·설명 생성 각 1~2건은 실제 Anthropic/OpenAI API를 호출한다
+— `ANTHROPIC_API_KEY`/`OPENAI_API_KEY`가 설정돼 있어도 기본은 skip이고,
+`RUN_LLM_SMOKE=1`을 추가로 지정해야만 실행된다(소액 과금 발생, `tests/llm_smoke.py`
+공용 게이트).
 
 **격리 가드**: `tests/test_isolation.py`가 저장소 전역을 ast로 정적 검사해 "로직이 정답을
 볼 수 없다"를 기계적으로 강제한다 — 순방향(`medsupply/`+`app.py`+지정된 `scripts/` 일부는
