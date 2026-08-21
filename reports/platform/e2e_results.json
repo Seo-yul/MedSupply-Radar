@@ -1,0 +1,332 @@
+{
+  "runs": 10,
+  "per_run": [
+    {
+      "run": 1,
+      "steps": {
+        "situation": {
+          "passed": true,
+          "duration_ms": 172.2,
+          "error": null
+        },
+        "workbench": {
+          "passed": true,
+          "duration_ms": 119.4,
+          "error": null
+        },
+        "notices": {
+          "passed": true,
+          "duration_ms": 88.8,
+          "error": null
+        },
+        "action_order": {
+          "passed": true,
+          "duration_ms": 12.9,
+          "error": null
+        },
+        "history_alerts": {
+          "passed": true,
+          "duration_ms": 116.3,
+          "error": null
+        }
+      },
+      "all_passed": true,
+      "duration_ms": 517.9
+    },
+    {
+      "run": 2,
+      "steps": {
+        "situation": {
+          "passed": true,
+          "duration_ms": 68.0,
+          "error": null
+        },
+        "workbench": {
+          "passed": true,
+          "duration_ms": 121.6,
+          "error": null
+        },
+        "notices": {
+          "passed": true,
+          "duration_ms": 52.9,
+          "error": null
+        },
+        "action_order": {
+          "passed": true,
+          "duration_ms": 11.8,
+          "error": null
+        },
+        "history_alerts": {
+          "passed": true,
+          "duration_ms": 114.5,
+          "error": null
+        }
+      },
+      "all_passed": true,
+      "duration_ms": 371.4
+    },
+    {
+      "run": 3,
+      "steps": {
+        "situation": {
+          "passed": true,
+          "duration_ms": 66.5,
+          "error": null
+        },
+        "workbench": {
+          "passed": true,
+          "duration_ms": 76.7,
+          "error": null
+        },
+        "notices": {
+          "passed": true,
+          "duration_ms": 53.0,
+          "error": null
+        },
+        "action_order": {
+          "passed": true,
+          "duration_ms": 11.5,
+          "error": null
+        },
+        "history_alerts": {
+          "passed": true,
+          "duration_ms": 113.2,
+          "error": null
+        }
+      },
+      "all_passed": true,
+      "duration_ms": 323.1
+    },
+    {
+      "run": 4,
+      "steps": {
+        "situation": {
+          "passed": true,
+          "duration_ms": 68.9,
+          "error": null
+        },
+        "workbench": {
+          "passed": true,
+          "duration_ms": 72.3,
+          "error": null
+        },
+        "notices": {
+          "passed": true,
+          "duration_ms": 52.2,
+          "error": null
+        },
+        "action_order": {
+          "passed": true,
+          "duration_ms": 11.8,
+          "error": null
+        },
+        "history_alerts": {
+          "passed": true,
+          "duration_ms": 114.1,
+          "error": null
+        }
+      },
+      "all_passed": true,
+      "duration_ms": 321.9
+    },
+    {
+      "run": 5,
+      "steps": {
+        "situation": {
+          "passed": true,
+          "duration_ms": 67.5,
+          "error": null
+        },
+        "workbench": {
+          "passed": true,
+          "duration_ms": 72.1,
+          "error": null
+        },
+        "notices": {
+          "passed": true,
+          "duration_ms": 54.3,
+          "error": null
+        },
+        "action_order": {
+          "passed": true,
+          "duration_ms": 11.4,
+          "error": null
+        },
+        "history_alerts": {
+          "passed": true,
+          "duration_ms": 119.7,
+          "error": null
+        }
+      },
+      "all_passed": true,
+      "duration_ms": 326.3
+    },
+    {
+      "run": 6,
+      "steps": {
+        "situation": {
+          "passed": true,
+          "duration_ms": 67.4,
+          "error": null
+        },
+        "workbench": {
+          "passed": true,
+          "duration_ms": 75.8,
+          "error": null
+        },
+        "notices": {
+          "passed": true,
+          "duration_ms": 54.1,
+          "error": null
+        },
+        "action_order": {
+          "passed": true,
+          "duration_ms": 12.2,
+          "error": null
+        },
+        "history_alerts": {
+          "passed": true,
+          "duration_ms": 113.6,
+          "error": null
+        }
+      },
+      "all_passed": true,
+      "duration_ms": 325.5
+    },
+    {
+      "run": 7,
+      "steps": {
+        "situation": {
+          "passed": true,
+          "duration_ms": 65.8,
+          "error": null
+        },
+        "workbench": {
+          "passed": true,
+          "duration_ms": 75.5,
+          "error": null
+        },
+        "notices": {
+          "passed": true,
+          "duration_ms": 54.2,
+          "error": null
+        },
+        "action_order": {
+          "passed": true,
+          "duration_ms": 11.4,
+          "error": null
+        },
+        "history_alerts": {
+          "passed": true,
+          "duration_ms": 113.3,
+          "error": null
+        }
+      },
+      "all_passed": true,
+      "duration_ms": 322.6
+    },
+    {
+      "run": 8,
+      "steps": {
+        "situation": {
+          "passed": true,
+          "duration_ms": 69.6,
+          "error": null
+        },
+        "workbench": {
+          "passed": true,
+          "duration_ms": 71.9,
+          "error": null
+        },
+        "notices": {
+          "passed": true,
+          "duration_ms": 53.9,
+          "error": null
+        },
+        "action_order": {
+          "passed": true,
+          "duration_ms": 11.8,
+          "error": null
+        },
+        "history_alerts": {
+          "passed": true,
+          "duration_ms": 114.1,
+          "error": null
+        }
+      },
+      "all_passed": true,
+      "duration_ms": 327.0
+    },
+    {
+      "run": 9,
+      "steps": {
+        "situation": {
+          "passed": true,
+          "duration_ms": 66.5,
+          "error": null
+        },
+        "workbench": {
+          "passed": true,
+          "duration_ms": 71.8,
+          "error": null
+        },
+        "notices": {
+          "passed": true,
+          "duration_ms": 53.0,
+          "error": null
+        },
+        "action_order": {
+          "passed": true,
+          "duration_ms": 12.2,
+          "error": null
+        },
+        "history_alerts": {
+          "passed": true,
+          "duration_ms": 117.0,
+          "error": null
+        }
+      },
+      "all_passed": true,
+      "duration_ms": 322.7
+    },
+    {
+      "run": 10,
+      "steps": {
+        "situation": {
+          "passed": true,
+          "duration_ms": 66.9,
+          "error": null
+        },
+        "workbench": {
+          "passed": true,
+          "duration_ms": 78.4,
+          "error": null
+        },
+        "notices": {
+          "passed": true,
+          "duration_ms": 53.2,
+          "error": null
+        },
+        "action_order": {
+          "passed": true,
+          "duration_ms": 11.8,
+          "error": null
+        },
+        "history_alerts": {
+          "passed": true,
+          "duration_ms": 113.8,
+          "error": null
+        }
+      },
+      "all_passed": true,
+      "duration_ms": 326.7
+    }
+  ],
+  "passed_runs": 10,
+  "verdict": true,
+  "environment": {
+    "llm_keys": false,
+    "python_version": "3.14.6",
+    "platform": "macOS-26.5.2-arm64-arm-64bit-Mach-O"
+  }
+}

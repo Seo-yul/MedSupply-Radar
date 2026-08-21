@@ -194,6 +194,10 @@ SCRIPTS_PATH_TARGETS: dict[Path, tuple[str, ...]] = {
     # 애플리케이션 계층이지만, 시연용 캐시 채우기 목적과 정답 경로는 무관하므로 data/scenarios·
     # ground_truth 둘 다 전면 금지(예외 없음).
     REPO_ROOT / "scripts" / "warm_cache.py": (),
+    # E2E 하니스(Task M-28) — 표준 스냅샷 사본 위에서 화면 렌더·조치/발주 저장 함수를
+    # 직접 호출하는 애플리케이션 계층이지만, 시나리오·정답 경로와는 무관하므로 data/scenarios·
+    # ground_truth 둘 다 전면 금지(예외 없음).
+    REPO_ROOT / "scripts" / "run_e2e.py": (),
 }
 
 FORWARD_PATH_TARGETS = [*FORWARD_TARGETS, *SCRIPTS_PATH_TARGETS]
