@@ -1,0 +1,1557 @@
+{
+  "report": "docs/verification-report.md",
+  "generated_at": "2026-08-21T16:12:36",
+  "checked_by": "scripts/check_report_numbers.py",
+  "summary": {
+    "status": "PASS",
+    "marks": 174,
+    "matched": 174,
+    "mismatches": 0,
+    "unmarked": 0,
+    "skipped_lines": 5,
+    "skipped_tokens": 15,
+    "required_paths": 42,
+    "missing_required_paths": 0
+  },
+  "sources": {
+    "eval/cases/eval_cases_v1.json": {
+      "exists": true,
+      "sha256": "3b040e31c921e17972d1cf455b2d8c987ad2a33287fffd05c34cf3b565f6e094"
+    },
+    "reports/analytics/blind_round1_rescored.json": {
+      "exists": true,
+      "sha256": "a666ef0437e594bc0ae087ea38739b8cea701229f31f9e5ffffcca1c1721b93a"
+    },
+    "reports/analytics/blind_round2_summary.json": {
+      "exists": true,
+      "sha256": "015ab222c6ececcc814898171a27a867e208fdf1fe1d4cc67680635b25bfd0fb"
+    },
+    "reports/analytics/blind_summary.json": {
+      "exists": true,
+      "sha256": "93fb79e6de268bfa600acad7e78474938c82357414d2fd4e142a1fcea9bd89d4"
+    },
+    "reports/analytics/detection_metrics.json": {
+      "exists": true,
+      "sha256": "aac31277a398dfd5cb5773e2a4d944e134ed16236518f4691176568c1e7c3056"
+    },
+    "reports/analytics/forecast_mape.json": {
+      "exists": true,
+      "sha256": "5f409ecfb5618b6487c19b1302362c3a7ad2372c1eb2d6ae6ca6e31ca05cea06"
+    },
+    "reports/platform/e2e_results.json": {
+      "exists": true,
+      "sha256": "98206141490d35db664abeca8d3ebd4867c0c7d963c694042a74256ffb8a7d55"
+    },
+    "reports/platform/perf_results.json": {
+      "exists": true,
+      "sha256": "421c48ed57282eee531fd795f8afd0ff7aee98d718c023bd710d2feb274aa0eb"
+    },
+    "reports/platform/reproducibility.json": {
+      "exists": true,
+      "sha256": "58ff8e024e4cc5e3f28838acaa65fe8eff6691a837077542cb6a22706aa88354"
+    }
+  },
+  "marks": [
+    {
+      "line": 75,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.detection_rate",
+      "literal": "90%",
+      "json_value": 0.9,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 109,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.sweep.days",
+      "literal": "32",
+      "json_value": 32,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 109,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.counts.labeled",
+      "literal": "20",
+      "json_value": 20,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 109,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.counts.normal",
+      "literal": "104",
+      "json_value": 104,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 113,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.counts.labeled",
+      "literal": "20",
+      "json_value": 20,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 113,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.detection_rate",
+      "literal": "90.0%",
+      "json_value": 0.9,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 113,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.counts.detected",
+      "literal": "18",
+      "json_value": 18,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 113,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.counts.labeled",
+      "literal": "20",
+      "json_value": 20,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 113,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.false_positive_rate",
+      "literal": "45.19%",
+      "json_value": 0.4519230769230769,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 113,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.counts.false_positives",
+      "literal": "47",
+      "json_value": 47,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 113,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.counts.normal",
+      "literal": "104",
+      "json_value": 104,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 113,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.lead_days.median",
+      "literal": "26.5",
+      "json_value": 26.5,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 114,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.within_horizon.counts.labeled_in_horizon",
+      "literal": "15",
+      "json_value": 15,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 114,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.within_horizon.threshold_watch.detection_rate",
+      "literal": "93.3%",
+      "json_value": 0.9333333333333333,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 114,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.within_horizon.threshold_watch.counts.detected",
+      "literal": "14",
+      "json_value": 14,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 114,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.within_horizon.threshold_watch.counts.labeled",
+      "literal": "15",
+      "json_value": 15,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 114,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.within_horizon.threshold_watch.false_positive_rate",
+      "literal": "45.19%",
+      "json_value": 0.4519230769230769,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 114,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.within_horizon.threshold_watch.counts.false_positives",
+      "literal": "47",
+      "json_value": 47,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 114,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.within_horizon.threshold_watch.counts.normal",
+      "literal": "104",
+      "json_value": 104,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 114,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.within_horizon.threshold_watch.lead_days.median",
+      "literal": "15.0",
+      "json_value": 15.0,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 115,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.threshold_warning.counts.labeled",
+      "literal": "20",
+      "json_value": 20,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 115,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.threshold_warning.detection_rate",
+      "literal": "65.0%",
+      "json_value": 0.65,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 115,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.threshold_warning.counts.detected",
+      "literal": "13",
+      "json_value": 13,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 115,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.threshold_warning.counts.labeled",
+      "literal": "20",
+      "json_value": 20,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 115,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.threshold_warning.false_positive_rate",
+      "literal": "3.85%",
+      "json_value": 0.038461538461538464,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 115,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.threshold_warning.counts.false_positives",
+      "literal": "4",
+      "json_value": 4,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 115,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.threshold_warning.counts.normal",
+      "literal": "104",
+      "json_value": 104,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 115,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.threshold_warning.lead_days.median",
+      "literal": "10",
+      "json_value": 10,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 116,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.within_horizon.threshold_warning.counts.labeled",
+      "literal": "15",
+      "json_value": 15,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 116,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.within_horizon.threshold_warning.detection_rate",
+      "literal": "66.7%",
+      "json_value": 0.6666666666666666,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 116,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.within_horizon.threshold_warning.counts.detected",
+      "literal": "10",
+      "json_value": 10,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 116,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.within_horizon.threshold_warning.counts.labeled",
+      "literal": "15",
+      "json_value": 15,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 116,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.within_horizon.threshold_warning.false_positive_rate",
+      "literal": "3.85%",
+      "json_value": 0.038461538461538464,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 116,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.within_horizon.threshold_warning.counts.false_positives",
+      "literal": "4",
+      "json_value": 4,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 116,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.within_horizon.threshold_warning.counts.normal",
+      "literal": "104",
+      "json_value": 104,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 116,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.within_horizon.threshold_warning.lead_days.median",
+      "literal": "9.0",
+      "json_value": 9.0,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 117,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.threshold_danger.counts.labeled",
+      "literal": "20",
+      "json_value": 20,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 117,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.threshold_danger.detection_rate",
+      "literal": "45.0%",
+      "json_value": 0.45,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 117,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.threshold_danger.counts.detected",
+      "literal": "9",
+      "json_value": 9,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 117,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.threshold_danger.counts.labeled",
+      "literal": "20",
+      "json_value": 20,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 117,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.threshold_danger.false_positive_rate",
+      "literal": "0.00%",
+      "json_value": 0.0,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 117,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.threshold_danger.counts.false_positives",
+      "literal": "0",
+      "json_value": 0,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 117,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.threshold_danger.counts.normal",
+      "literal": "104",
+      "json_value": 104,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 117,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.threshold_danger.lead_days.median",
+      "literal": "7",
+      "json_value": 7,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 118,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.within_horizon.threshold_danger.counts.labeled",
+      "literal": "15",
+      "json_value": 15,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 118,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.within_horizon.threshold_danger.detection_rate",
+      "literal": "53.3%",
+      "json_value": 0.5333333333333333,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 118,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.within_horizon.threshold_danger.counts.detected",
+      "literal": "8",
+      "json_value": 8,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 118,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.within_horizon.threshold_danger.counts.labeled",
+      "literal": "15",
+      "json_value": 15,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 118,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.within_horizon.threshold_danger.false_positive_rate",
+      "literal": "0.00%",
+      "json_value": 0.0,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 118,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.within_horizon.threshold_danger.counts.false_positives",
+      "literal": "0",
+      "json_value": 0,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 118,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.within_horizon.threshold_danger.counts.normal",
+      "literal": "104",
+      "json_value": 104,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 118,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.within_horizon.threshold_danger.lead_days.median",
+      "literal": "7.0",
+      "json_value": 7.0,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 120,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.danger_precision",
+      "literal": "100.0%",
+      "json_value": 1.0,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 120,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.risk_type_match.overall",
+      "literal": "25.0%",
+      "json_value": 0.25,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 120,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.risk_type_match.counts.matched",
+      "literal": "5",
+      "json_value": 5,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 120,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.risk_type_match.counts.labeled",
+      "literal": "20",
+      "json_value": 20,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 121,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.lead_days.min",
+      "literal": "3",
+      "json_value": 3,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 121,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.lead_days.mean",
+      "literal": "27.56",
+      "json_value": 27.56,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 121,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.lead_days.max",
+      "literal": "75",
+      "json_value": 75,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 124,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.within_horizon.counts.excluded",
+      "literal": "5",
+      "json_value": 5,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 136,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.counts.detected",
+      "literal": "18",
+      "json_value": 18,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 136,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.counts.labeled",
+      "literal": "20",
+      "json_value": 20,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 136,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.counts.false_positives",
+      "literal": "47",
+      "json_value": 47,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 136,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.counts.normal",
+      "literal": "104",
+      "json_value": 104,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 177,
+      "source": "reports/analytics/blind_round1_rescored.json",
+      "path": "meta.hash_verification.status",
+      "literal": "\"PASS\"",
+      "json_value": "PASS",
+      "literal_found_in_line": false
+    },
+    {
+      "line": 178,
+      "source": "reports/analytics/blind_round1_rescored.json",
+      "path": "aggregate.labels_total",
+      "literal": "20",
+      "json_value": 20,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 178,
+      "source": "reports/analytics/blind_round1_rescored.json",
+      "path": "aggregate.within_horizon_current_criterion.labeled_in_horizon",
+      "literal": "5",
+      "json_value": 5,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 179,
+      "source": "reports/analytics/blind_round1_rescored.json",
+      "path": "aggregate.within_horizon_current_criterion.labeled_in_horizon",
+      "literal": "5",
+      "json_value": 5,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 179,
+      "source": "reports/analytics/blind_round1_rescored.json",
+      "path": "aggregate.within_horizon_current_criterion.detected",
+      "literal": "5",
+      "json_value": 5,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 179,
+      "source": "reports/analytics/blind_round1_rescored.json",
+      "path": "aggregate.within_horizon_current_criterion.detection_rate",
+      "literal": "100.0%",
+      "json_value": 1.0,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 181,
+      "source": "reports/analytics/blind_round1_rescored.json",
+      "path": "raw_metrics_identity_check.differing_paths_outside_horizon_view_total",
+      "literal": "0",
+      "json_value": 0,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 183,
+      "source": "reports/analytics/blind_round1_rescored.json",
+      "path": "aggregate.raw_detection_rate_mean",
+      "literal": "35.0%",
+      "json_value": 0.35,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 184,
+      "source": "reports/analytics/blind_round2_summary.json",
+      "path": "aggregate.detection_rate.mean",
+      "literal": "100%",
+      "json_value": 1.0,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 194,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.detection_rate",
+      "literal": "90.0%",
+      "json_value": 0.9,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 194,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.counts.detected",
+      "literal": "18",
+      "json_value": 18,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 194,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.counts.labeled",
+      "literal": "20",
+      "json_value": 20,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 194,
+      "source": "reports/analytics/blind_summary.json",
+      "path": "aggregate.detection_rate.mean",
+      "literal": "35.0%",
+      "json_value": 0.35,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 194,
+      "source": "reports/analytics/blind_round2_summary.json",
+      "path": "aggregate.detection_rate.mean",
+      "literal": "100.0%",
+      "json_value": 1.0,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 195,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.false_positive_rate",
+      "literal": "45.19%",
+      "json_value": 0.4519230769230769,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 195,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.counts.false_positives",
+      "literal": "47",
+      "json_value": 47,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 195,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.counts.normal",
+      "literal": "104",
+      "json_value": 104,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 195,
+      "source": "reports/analytics/blind_summary.json",
+      "path": "aggregate.false_positive_rate.mean",
+      "literal": "55.50%",
+      "json_value": 0.555,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 195,
+      "source": "reports/analytics/blind_round2_summary.json",
+      "path": "aggregate.false_positive_rate.mean",
+      "literal": "44.67%",
+      "json_value": 0.4467,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 196,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.danger_precision",
+      "literal": "100.0%",
+      "json_value": 1.0,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 196,
+      "source": "reports/analytics/blind_summary.json",
+      "path": "aggregate.danger_precision.mean",
+      "literal": "76.67%",
+      "json_value": 0.7667,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 196,
+      "source": "reports/analytics/blind_round2_summary.json",
+      "path": "aggregate.danger_precision.mean",
+      "literal": "100.0%",
+      "json_value": 1.0,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 197,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.lead_days.median",
+      "literal": "26.5",
+      "json_value": 26.5,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 197,
+      "source": "reports/analytics/blind_summary.json",
+      "path": "aggregate.lead_days_median.mean",
+      "literal": "45.5",
+      "json_value": 45.5,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 197,
+      "source": "reports/analytics/blind_round2_summary.json",
+      "path": "aggregate.lead_days_median.mean",
+      "literal": "14.4",
+      "json_value": 14.4,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 198,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.risk_type_match.overall",
+      "literal": "25.0%",
+      "json_value": 0.25,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 198,
+      "source": "reports/analytics/blind_summary.json",
+      "path": "aggregate.risk_type_match_overall.mean",
+      "literal": "20.0%",
+      "json_value": 0.2,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 198,
+      "source": "reports/analytics/blind_round2_summary.json",
+      "path": "aggregate.risk_type_match_overall.mean",
+      "literal": "30.0%",
+      "json_value": 0.3,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 199,
+      "source": "reports/analytics/blind_round1_rescored.json",
+      "path": "aggregate.unscoreable_labels_total",
+      "literal": "12",
+      "json_value": 12,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 199,
+      "source": "reports/analytics/blind_round1_rescored.json",
+      "path": "aggregate.labels_total",
+      "literal": "20",
+      "json_value": 20,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 199,
+      "source": "reports/analytics/blind_round2_summary.json",
+      "path": "aggregate.unscoreable_labels_total",
+      "literal": "0",
+      "json_value": 0,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 199,
+      "source": "reports/analytics/blind_round2_summary.json",
+      "path": "aggregate.labels_total",
+      "literal": "20",
+      "json_value": 20,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 204,
+      "source": "reports/analytics/blind_round2_summary.json",
+      "path": "aggregate.by_type_detected.supply_halt.detected",
+      "literal": "5",
+      "json_value": 5,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 204,
+      "source": "reports/analytics/blind_round2_summary.json",
+      "path": "aggregate.by_type_detected.supply_halt.labeled",
+      "literal": "5",
+      "json_value": 5,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 205,
+      "source": "reports/analytics/blind_round2_summary.json",
+      "path": "aggregate.risk_type_match_overall.mean",
+      "literal": "30.0%",
+      "json_value": 0.3,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 206,
+      "source": "reports/analytics/blind_round2_summary.json",
+      "path": "aggregate.risk_type_match_by_type.supply_halt.matched",
+      "literal": "0",
+      "json_value": 0,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 206,
+      "source": "reports/analytics/blind_round2_summary.json",
+      "path": "aggregate.risk_type_match_by_type.supply_halt.labeled",
+      "literal": "5",
+      "json_value": 5,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 206,
+      "source": "reports/analytics/blind_round2_summary.json",
+      "path": "aggregate.risk_type_match_by_type.composite.matched",
+      "literal": "0",
+      "json_value": 0,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 206,
+      "source": "reports/analytics/blind_round2_summary.json",
+      "path": "aggregate.risk_type_match_by_type.composite.labeled",
+      "literal": "5",
+      "json_value": 5,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 215,
+      "source": "reports/analytics/blind_round1_rescored.json",
+      "path": "aggregate.labels_total",
+      "literal": "20",
+      "json_value": 20,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 215,
+      "source": "reports/analytics/blind_round1_rescored.json",
+      "path": "aggregate.unscoreable_labels_total",
+      "literal": "12",
+      "json_value": 12,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 225,
+      "source": "reports/analytics/blind_round2_summary.json",
+      "path": "aggregate.attempts_used.values[0]",
+      "literal": "1",
+      "json_value": 1,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 225,
+      "source": "reports/analytics/blind_round2_summary.json",
+      "path": "aggregate.attempts_used.values[1]",
+      "literal": "6",
+      "json_value": 6,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 225,
+      "source": "reports/analytics/blind_round2_summary.json",
+      "path": "aggregate.attempts_used.values[2]",
+      "literal": "2",
+      "json_value": 2,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 225,
+      "source": "reports/analytics/blind_round2_summary.json",
+      "path": "aggregate.attempts_used.values[3]",
+      "literal": "5",
+      "json_value": 5,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 225,
+      "source": "reports/analytics/blind_round2_summary.json",
+      "path": "aggregate.attempts_used.values[4]",
+      "literal": "8",
+      "json_value": 8,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 225,
+      "source": "reports/analytics/blind_round2_summary.json",
+      "path": "aggregate.attempts_used.mean",
+      "literal": "4.4",
+      "json_value": 4.4,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 225,
+      "source": "reports/analytics/blind_round2_summary.json",
+      "path": "aggregate.attempts_used.max",
+      "literal": "8",
+      "json_value": 8,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 234,
+      "source": "reports/analytics/blind_round2_summary.json",
+      "path": "aggregate.lead_days_median.mean",
+      "literal": "14.4",
+      "json_value": 14.4,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 234,
+      "source": "reports/analytics/blind_round2_summary.json",
+      "path": "aggregate.labels_total",
+      "literal": "20",
+      "json_value": 20,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 239,
+      "source": "reports/analytics/blind_round2_summary.json",
+      "path": "blind_results[0].by_type.demand_surge.lead_days.min",
+      "literal": "31",
+      "json_value": 31,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 239,
+      "source": "reports/analytics/blind_round2_summary.json",
+      "path": "blind_results[0].by_type.supply_halt.lead_days.min",
+      "literal": "8",
+      "json_value": 8,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 239,
+      "source": "reports/analytics/blind_round2_summary.json",
+      "path": "blind_results[0].by_type.delivery_delay.lead_days.min",
+      "literal": "44",
+      "json_value": 44,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 239,
+      "source": "reports/analytics/blind_round2_summary.json",
+      "path": "blind_results[0].by_type.composite.lead_days.min",
+      "literal": "0",
+      "json_value": 0,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 240,
+      "source": "reports/analytics/blind_round2_summary.json",
+      "path": "blind_results[1].by_type.demand_surge.lead_days.min",
+      "literal": "28",
+      "json_value": 28,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 240,
+      "source": "reports/analytics/blind_round2_summary.json",
+      "path": "blind_results[1].by_type.supply_halt.lead_days.min",
+      "literal": "6",
+      "json_value": 6,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 240,
+      "source": "reports/analytics/blind_round2_summary.json",
+      "path": "blind_results[1].by_type.delivery_delay.lead_days.min",
+      "literal": "12",
+      "json_value": 12,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 240,
+      "source": "reports/analytics/blind_round2_summary.json",
+      "path": "blind_results[1].by_type.composite.lead_days.min",
+      "literal": "3",
+      "json_value": 3,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 241,
+      "source": "reports/analytics/blind_round2_summary.json",
+      "path": "blind_results[2].by_type.demand_surge.lead_days.min",
+      "literal": "25",
+      "json_value": 25,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 241,
+      "source": "reports/analytics/blind_round2_summary.json",
+      "path": "blind_results[2].by_type.supply_halt.lead_days.min",
+      "literal": "7",
+      "json_value": 7,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 241,
+      "source": "reports/analytics/blind_round2_summary.json",
+      "path": "blind_results[2].by_type.delivery_delay.lead_days.min",
+      "literal": "59",
+      "json_value": 59,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 241,
+      "source": "reports/analytics/blind_round2_summary.json",
+      "path": "blind_results[2].by_type.composite.lead_days.min",
+      "literal": "5",
+      "json_value": 5,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 242,
+      "source": "reports/analytics/blind_round2_summary.json",
+      "path": "blind_results[3].by_type.demand_surge.lead_days.min",
+      "literal": "29",
+      "json_value": 29,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 242,
+      "source": "reports/analytics/blind_round2_summary.json",
+      "path": "blind_results[3].by_type.supply_halt.lead_days.min",
+      "literal": "9",
+      "json_value": 9,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 242,
+      "source": "reports/analytics/blind_round2_summary.json",
+      "path": "blind_results[3].by_type.delivery_delay.lead_days.min",
+      "literal": "32",
+      "json_value": 32,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 242,
+      "source": "reports/analytics/blind_round2_summary.json",
+      "path": "blind_results[3].by_type.composite.lead_days.min",
+      "literal": "4",
+      "json_value": 4,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 243,
+      "source": "reports/analytics/blind_round2_summary.json",
+      "path": "blind_results[4].by_type.demand_surge.lead_days.min",
+      "literal": "26",
+      "json_value": 26,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 243,
+      "source": "reports/analytics/blind_round2_summary.json",
+      "path": "blind_results[4].by_type.supply_halt.lead_days.min",
+      "literal": "8",
+      "json_value": 8,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 243,
+      "source": "reports/analytics/blind_round2_summary.json",
+      "path": "blind_results[4].by_type.delivery_delay.lead_days.min",
+      "literal": "9",
+      "json_value": 9,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 243,
+      "source": "reports/analytics/blind_round2_summary.json",
+      "path": "blind_results[4].by_type.composite.lead_days.min",
+      "literal": "5",
+      "json_value": 5,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 245,
+      "source": "reports/analytics/blind_round2_summary.json",
+      "path": "blind_results[0].by_type.composite.lead_days.min",
+      "literal": "0",
+      "json_value": 0,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 246,
+      "source": "reports/analytics/blind_round2_summary.json",
+      "path": "blind_results[0].by_type.composite.lead_days.min",
+      "literal": "0",
+      "json_value": 0,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 248,
+      "source": "reports/analytics/blind_round2_summary.json",
+      "path": "aggregate.detection_rate.mean",
+      "literal": "100%",
+      "json_value": 1.0,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 252,
+      "source": "reports/analytics/blind_round2_summary.json",
+      "path": "aggregate.false_positive_rate.mean",
+      "literal": "44.67%",
+      "json_value": 0.4467,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 252,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.false_positive_rate",
+      "literal": "45.19%",
+      "json_value": 0.4519230769230769,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 257,
+      "source": "reports/analytics/blind_round2_summary.json",
+      "path": "comparison.false_positive_rate.delta_round2_minus_standard",
+      "literal": "-0.52%p",
+      "json_value": -0.0052,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 260,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.sweep.days",
+      "literal": "32",
+      "json_value": 32,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 261,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.threshold_warning.false_positive_rate",
+      "literal": "3.85%",
+      "json_value": 0.038461538461538464,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 277,
+      "source": "reports/analytics/forecast_mape.json",
+      "path": "horizon_days",
+      "literal": "14",
+      "json_value": 14,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 278,
+      "source": "reports/analytics/forecast_mape.json",
+      "path": "overall.items_evaluated",
+      "literal": "248",
+      "json_value": 248,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 282,
+      "source": "reports/analytics/forecast_mape.json",
+      "path": "overall.ses_mape_mean",
+      "literal": "32.05%",
+      "json_value": 0.3205,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 282,
+      "source": "reports/analytics/forecast_mape.json",
+      "path": "overall.sma_mape_mean",
+      "literal": "31.25%",
+      "json_value": 0.3125,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 283,
+      "source": "reports/analytics/forecast_mape.json",
+      "path": "overall.ses_mape_median",
+      "literal": "31.25%",
+      "json_value": 0.3125,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 283,
+      "source": "reports/analytics/forecast_mape.json",
+      "path": "overall.sma_mape_median",
+      "literal": "30.61%",
+      "json_value": 0.3061,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 285,
+      "source": "reports/analytics/forecast_mape.json",
+      "path": "overall.baseline_improved",
+      "literal": "-2.56%p",
+      "json_value": -0.0256,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 286,
+      "source": "reports/analytics/forecast_mape.json",
+      "path": "overall.ses_win_rate",
+      "literal": "33.06%",
+      "json_value": 0.33064516129032256,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 302,
+      "source": "reports/platform/e2e_results.json",
+      "path": "runs",
+      "literal": "10",
+      "json_value": 10,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 302,
+      "source": "reports/platform/e2e_results.json",
+      "path": "passed_runs",
+      "literal": "10",
+      "json_value": 10,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 302,
+      "source": "reports/platform/e2e_results.json",
+      "path": "runs",
+      "literal": "10",
+      "json_value": 10,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 302,
+      "source": "reports/platform/e2e_results.json",
+      "path": "verdict",
+      "literal": "true",
+      "json_value": true,
+      "literal_found_in_line": false
+    },
+    {
+      "line": 309,
+      "source": "reports/platform/perf_results.json",
+      "path": "repeats",
+      "literal": "30",
+      "json_value": 30,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 314,
+      "source": "reports/platform/perf_results.json",
+      "path": "targets.list_items.p95_ms",
+      "literal": "0.7",
+      "json_value": 0.7,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 315,
+      "source": "reports/platform/perf_results.json",
+      "path": "targets.load_overview.p95_ms",
+      "literal": "4.8",
+      "json_value": 4.8,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 316,
+      "source": "reports/platform/perf_results.json",
+      "path": "targets.load_item_detail.p95_ms",
+      "literal": "2.7",
+      "json_value": 2.7,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 317,
+      "source": "reports/platform/perf_results.json",
+      "path": "targets.assess_snapshot.p95_ms",
+      "literal": "416.5",
+      "json_value": 416.5,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 318,
+      "source": "reports/platform/perf_results.json",
+      "path": "targets.notice_detail_sweep.p95_ms",
+      "literal": "0.3",
+      "json_value": 0.3,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 321,
+      "source": "reports/platform/perf_results.json",
+      "path": "verdict",
+      "literal": "true",
+      "json_value": true,
+      "literal_found_in_line": false
+    },
+    {
+      "line": 325,
+      "source": "reports/platform/reproducibility.json",
+      "path": "runs",
+      "literal": "5",
+      "json_value": 5,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 331,
+      "source": "reports/platform/reproducibility.json",
+      "path": "generation.runs",
+      "literal": "5",
+      "json_value": 5,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 331,
+      "source": "reports/platform/reproducibility.json",
+      "path": "generation.identical",
+      "literal": "true",
+      "json_value": true,
+      "literal_found_in_line": false
+    },
+    {
+      "line": 331,
+      "source": "reports/platform/reproducibility.json",
+      "path": "generation.anchor_match",
+      "literal": "true",
+      "json_value": true,
+      "literal_found_in_line": false
+    },
+    {
+      "line": 332,
+      "source": "reports/platform/reproducibility.json",
+      "path": "batch.runs",
+      "literal": "5",
+      "json_value": 5,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 332,
+      "source": "reports/platform/reproducibility.json",
+      "path": "batch.row_count",
+      "literal": "124",
+      "json_value": 124,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 332,
+      "source": "reports/platform/reproducibility.json",
+      "path": "batch.identical",
+      "literal": "true",
+      "json_value": true,
+      "literal_found_in_line": false
+    },
+    {
+      "line": 333,
+      "source": "reports/platform/reproducibility.json",
+      "path": "detection.runs",
+      "literal": "5",
+      "json_value": 5,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 333,
+      "source": "reports/platform/reproducibility.json",
+      "path": "detection.identical",
+      "literal": "true",
+      "json_value": true,
+      "literal_found_in_line": false
+    },
+    {
+      "line": 333,
+      "source": "reports/platform/reproducibility.json",
+      "path": "detection.db_unchanged",
+      "literal": "true",
+      "json_value": true,
+      "literal_found_in_line": false
+    },
+    {
+      "line": 335,
+      "source": "reports/platform/reproducibility.json",
+      "path": "generation.runs",
+      "literal": "5",
+      "json_value": 5,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 337,
+      "source": "reports/platform/reproducibility.json",
+      "path": "generation.anchor_match",
+      "literal": "true",
+      "json_value": true,
+      "literal_found_in_line": false
+    },
+    {
+      "line": 349,
+      "source": "eval/cases/eval_cases_v1.json",
+      "path": "meta.case_count",
+      "literal": "40",
+      "json_value": 40,
+      "literal_found_in_line": true
+    }
+  ],
+  "mismatches": [],
+  "unmarked": [],
+  "skips": [
+    {
+      "line": 67,
+      "reason": "사전 등록된 채택 기준값(동결 전 캘리브레이션 기록 — 측정 JSON에 없다)",
+      "tokens": [
+        "100%"
+      ]
+    },
+    {
+      "line": 69,
+      "reason": "동결 전 기준선 구성의 값(§2.3 여정표와 동일 출처 — 캘리브레이션 기록)",
+      "tokens": [
+        "100%",
+        "100%"
+      ]
+    },
+    {
+      "line": 134,
+      "reason": "동결 전 캘리브레이션 기록의 중간 구성 — 현행 측정 JSON에 없는 값이다",
+      "tokens": [
+        "104",
+        "104",
+        "20",
+        "20"
+      ]
+    },
+    {
+      "line": 135,
+      "reason": "동결 전 캘리브레이션 기록의 중간 구성 — 현행 측정 JSON에 없는 값이다",
+      "tokens": [
+        "104",
+        "20",
+        "20",
+        "91"
+      ]
+    },
+    {
+      "line": 245,
+      "reason": "위 표의 마킹된 20개 값에서 계산한 분포(중앙값·3일 이하 건수) — 합산값 자체는 JSON에 없다",
+      "tokens": [
+        "2",
+        "20",
+        "3",
+        "9.0"
+      ]
+    }
+  ],
+  "allowed_tokens_by_rule": {
+    "code_span": 8,
+    "heading_number": 23,
+    "html_comment": 195,
+    "identifier": 2,
+    "iso_date": 18,
+    "ko_ordinal": 40,
+    "list_number": 13,
+    "percentile_label": 0,
+    "section_ref": 12,
+    "seed": 5,
+    "table_separator": 0
+  },
+  "required_paths": {
+    "declared": [
+      "reports/analytics/detection_metrics.json:results.detection_rate",
+      "reports/analytics/detection_metrics.json:results.false_positive_rate",
+      "reports/analytics/detection_metrics.json:results.lead_days.median",
+      "reports/analytics/detection_metrics.json:results.danger_precision",
+      "reports/analytics/detection_metrics.json:results.counts.detected",
+      "reports/analytics/detection_metrics.json:results.counts.labeled",
+      "reports/analytics/detection_metrics.json:results.counts.false_positives",
+      "reports/analytics/detection_metrics.json:results.counts.normal",
+      "reports/analytics/detection_metrics.json:results.threshold_warning.detection_rate",
+      "reports/analytics/detection_metrics.json:results.threshold_warning.false_positive_rate",
+      "reports/analytics/detection_metrics.json:results.within_horizon.threshold_watch.detection_rate",
+      "reports/analytics/detection_metrics.json:results.risk_type_match.overall",
+      "reports/analytics/forecast_mape.json:overall.ses_mape_mean",
+      "reports/analytics/forecast_mape.json:overall.sma_mape_mean",
+      "reports/analytics/forecast_mape.json:overall.baseline_improved",
+      "reports/analytics/forecast_mape.json:overall.ses_win_rate",
+      "reports/analytics/blind_summary.json:aggregate.detection_rate.mean",
+      "reports/analytics/blind_summary.json:aggregate.false_positive_rate.mean",
+      "reports/analytics/blind_summary.json:aggregate.lead_days_median.mean",
+      "reports/analytics/blind_summary.json:aggregate.risk_type_match_overall.mean",
+      "reports/analytics/blind_round1_rescored.json:aggregate.within_horizon_current_criterion.detected",
+      "reports/analytics/blind_round1_rescored.json:aggregate.within_horizon_current_criterion.labeled_in_horizon",
+      "reports/analytics/blind_round1_rescored.json:aggregate.unscoreable_labels_total",
+      "reports/analytics/blind_round1_rescored.json:raw_metrics_identity_check.differing_paths_outside_horizon_view_total",
+      "reports/analytics/blind_round2_summary.json:aggregate.detection_rate.mean",
+      "reports/analytics/blind_round2_summary.json:aggregate.false_positive_rate.mean",
+      "reports/analytics/blind_round2_summary.json:aggregate.lead_days_median.mean",
+      "reports/analytics/blind_round2_summary.json:aggregate.risk_type_match_overall.mean",
+      "reports/analytics/blind_round2_summary.json:aggregate.unscoreable_labels_total",
+      "reports/analytics/blind_round2_summary.json:aggregate.attempts_used.mean",
+      "reports/platform/e2e_results.json:runs",
+      "reports/platform/e2e_results.json:passed_runs",
+      "reports/platform/perf_results.json:targets.assess_snapshot.p95_ms",
+      "reports/platform/perf_results.json:targets.load_overview.p95_ms",
+      "reports/platform/perf_results.json:targets.list_items.p95_ms",
+      "reports/platform/perf_results.json:targets.load_item_detail.p95_ms",
+      "reports/platform/perf_results.json:targets.notice_detail_sweep.p95_ms",
+      "reports/platform/reproducibility.json:runs",
+      "reports/platform/reproducibility.json:generation.identical",
+      "reports/platform/reproducibility.json:batch.identical",
+      "reports/platform/reproducibility.json:detection.identical",
+      "reports/platform/reproducibility.json:generation.anchor_match"
+    ],
+    "missing": []
+  }
+}

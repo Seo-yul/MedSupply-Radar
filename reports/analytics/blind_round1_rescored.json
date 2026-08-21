@@ -1,0 +1,199 @@
+{
+  "meta": {
+    "task": "S-32",
+    "purpose": "감사 리뷰 W2 — 1차 블라인드 봉인 예측을 수정 없이 현행 채점기(S-30c에서 지평 하한이 추가된 measure_detection)로 재채점해, 1차와 2차의 감지율 차이가 탐지기 성능 차이가 아니라 라벨 배치 차이임을 같은 예측 파일 위에서 보인다.",
+    "method": "각 시드마다 `python scripts/measure_detection.py --score data/blind/tmp/predictions/blind_<seed>.pred.json --labels data/blind/sealed/blind_<seed>.labels.json --out <tmp>/blind_<seed>_rescored.json` 를 실행한 뒤 그 결과를 모아 이 파일을 만들었다. 예측 파일·봉인 라벨·1차 원본 metrics 파일은 어느 것도 수정하지 않았다(읽기 전용).",
+    "generated_at": "2026-08-21T15:50:10",
+    "measured_by": "scripts/measure_detection.py (--score 재실행)",
+    "config_hash": "6ec9bf05",
+    "params_ref": "config/analytics_params.toml",
+    "sweep": {
+      "start": "2026-07-01",
+      "end": "2026-08-01",
+      "days": 32
+    },
+    "criterion": {
+      "recorded_in_round1_files": "stockout_date <= sweep_end + grade.watch_days",
+      "current": "sweep_start <= stockout_date <= sweep_end + grade.watch_days",
+      "note": "하한(sweep_start <= stockout_date)은 S-30c B에서 추가됐다. 채점 산식 (first_alert <= stockout_date)과 감지율·오탐률의 정의는 무변경이며, 바뀐 것은 '이 스윕이 맞힐 기회가 있었던 라벨'을 고르는 뷰의 기준뿐이다."
+    },
+    "hash_verification": {
+      "status": "PASS",
+      "predictions_vs_manifest": "5/5 일치",
+      "sealed_labels_vs_manifest": "5/5 일치",
+      "manifest_sections": [
+        "predictions.files[].sha256",
+        "runs[].labels_sha256"
+      ],
+      "detail": "재채점 전에 디스크상 예측 파일 5개의 sha256이 커밋된 manifest.json의 predictions 절과, 봉인 라벨 5개의 sha256이 runs 절의 labels_sha256과 각각 5/5 일치함을 확인했다."
+    },
+    "round1_originals_unmodified": "reports/analytics/blind_summary.json·blind_2026090*_metrics.json은 이 태스크에서 읽기만 했다(무수정). 이 파일은 별도 신규 산출물이다."
+  },
+  "raw_metrics_identity_check": {
+    "question": "같은 예측 파일을 현행 채점기로 다시 채점하면 1차 raw 수치가 달라지는가?",
+    "answer": "아니오 — 지평 뷰(within_horizon)와 신규 진단(unscoreable_labels) 밖에서 차이 0건.",
+    "method": "1차 원본 metrics의 results와 재채점 results를 재귀 전수 비교",
+    "differing_paths_outside_horizon_view_total": 0,
+    "per_seed": [
+      {
+        "seed": 20260901,
+        "compared_file": "reports/analytics/blind_20260901_metrics.json",
+        "differing_paths_total": 16,
+        "differing_paths_outside_horizon_view": []
+      },
+      {
+        "seed": 20260902,
+        "compared_file": "reports/analytics/blind_20260902_metrics.json",
+        "differing_paths_total": 16,
+        "differing_paths_outside_horizon_view": []
+      },
+      {
+        "seed": 20260903,
+        "compared_file": "reports/analytics/blind_20260903_metrics.json",
+        "differing_paths_total": 17,
+        "differing_paths_outside_horizon_view": []
+      },
+      {
+        "seed": 20260904,
+        "compared_file": "reports/analytics/blind_20260904_metrics.json",
+        "differing_paths_total": 19,
+        "differing_paths_outside_horizon_view": []
+      },
+      {
+        "seed": 20260905,
+        "compared_file": "reports/analytics/blind_20260905_metrics.json",
+        "differing_paths_total": 20,
+        "differing_paths_outside_horizon_view": []
+      }
+    ],
+    "meaning": "감지율·오탐률·선행일수·최고등급 정밀도·by_type·risk_type 일치율·문턱별 지표가 전부 1차 공표값과 비트 단위로 같다. 즉 탐지기·문턱·채점 산식은 두 회차 사이에 아무것도 바뀌지 않았다."
+  },
+  "per_seed": [
+    {
+      "seed": 20260901,
+      "prediction_file": "data/blind/tmp/predictions/blind_20260901.pred.json",
+      "prediction_sha256": "da38fb613c23fccc8f056dff4e1bf2a39a6a835e4edd9222f80b4ac8f375606f",
+      "labels_sha256": "f2c6598aca99e6cf1acb5146ed6e8cb83c7e1a505381e58fe7ae7d0c703b7381",
+      "dataset_content_hash": "f7bb9cac8535a2f1b5bb89c08f6f41b1a1c684f086a13d13ea43369a659fcb3b",
+      "raw_detection_rate": 0.25,
+      "raw_false_positive_rate": 0.575,
+      "unscoreable_labels": 2,
+      "within_horizon_current_criterion": {
+        "labeled_in_horizon": 1,
+        "excluded": 3,
+        "detected": 1,
+        "detection_rate": 1.0,
+        "lead_days": {
+          "min": 34,
+          "median": 34,
+          "mean": 34,
+          "max": 34
+        }
+      }
+    },
+    {
+      "seed": 20260902,
+      "prediction_file": "data/blind/tmp/predictions/blind_20260902.pred.json",
+      "prediction_sha256": "4b651b06fdb969f2a7d24d9038828cfc6b66f3666b0b86d1ea832a37ab7a18d2",
+      "labels_sha256": "6f728273b8991fea099075ac26a04512a0c410c59e3a6551e427b6e454bd2afc",
+      "dataset_content_hash": "110a442d1a3084f1838631bd427a149efaa190c57e582a60e26843b2caaa1f2b",
+      "raw_detection_rate": 0.5,
+      "raw_false_positive_rate": 0.5583333333333333,
+      "unscoreable_labels": 2,
+      "within_horizon_current_criterion": {
+        "labeled_in_horizon": 1,
+        "excluded": 3,
+        "detected": 1,
+        "detection_rate": 1.0,
+        "lead_days": {
+          "min": 43,
+          "median": 43,
+          "mean": 43,
+          "max": 43
+        }
+      }
+    },
+    {
+      "seed": 20260903,
+      "prediction_file": "data/blind/tmp/predictions/blind_20260903.pred.json",
+      "prediction_sha256": "0d015a63e37efc51f3813a17be382a27c0731cd6e57c32892d19187bb9ba14e1",
+      "labels_sha256": "b10be0315a3040c25a2f5db18484345a2d7cc7df6c0117f5c7a80d410f0a65b8",
+      "dataset_content_hash": "cfdd2fbce2e122f256908a9d6fe82b37e126eb6a6594eefaf30f51838825b13b",
+      "raw_detection_rate": 0.5,
+      "raw_false_positive_rate": 0.475,
+      "unscoreable_labels": 2,
+      "within_horizon_current_criterion": {
+        "labeled_in_horizon": 1,
+        "excluded": 3,
+        "detected": 1,
+        "detection_rate": 1.0,
+        "lead_days": {
+          "min": 31,
+          "median": 31,
+          "mean": 31,
+          "max": 31
+        }
+      }
+    },
+    {
+      "seed": 20260904,
+      "prediction_file": "data/blind/tmp/predictions/blind_20260904.pred.json",
+      "prediction_sha256": "0423d85d3ae89199c57bb953ec3dbab89518e6934a2239ba5ecbc713134134a6",
+      "labels_sha256": "647997dd8a34565fdc90821b8719325a09562a993ed5faed51a022da1a4d36a9",
+      "dataset_content_hash": "ea7fdd6e39ff84cb3d1e1da697ded607ac7ad8e8717852cc83f67cdd5376d7ac",
+      "raw_detection_rate": 0.25,
+      "raw_false_positive_rate": 0.6,
+      "unscoreable_labels": 3,
+      "within_horizon_current_criterion": {
+        "labeled_in_horizon": 1,
+        "excluded": 3,
+        "detected": 1,
+        "detection_rate": 1.0,
+        "lead_days": {
+          "min": 44,
+          "median": 44,
+          "mean": 44,
+          "max": 44
+        }
+      }
+    },
+    {
+      "seed": 20260905,
+      "prediction_file": "data/blind/tmp/predictions/blind_20260905.pred.json",
+      "prediction_sha256": "a2f035e2b6ae409d54cabfa97ee74ac463d7e16fc5a86a5b49ab05c06d049374",
+      "labels_sha256": "0b63451945f2affdde6ba59c14f4194ce8b66fe8d7f6c16d55b43c3029c97456",
+      "dataset_content_hash": "a073c102491183bc5729abbcb2462b630babb07d91dabcee6a6925bc8e603622",
+      "raw_detection_rate": 0.25,
+      "raw_false_positive_rate": 0.5666666666666667,
+      "unscoreable_labels": 3,
+      "within_horizon_current_criterion": {
+        "labeled_in_horizon": 1,
+        "excluded": 3,
+        "detected": 1,
+        "detection_rate": 1.0,
+        "lead_days": {
+          "min": 32,
+          "median": 32,
+          "mean": 32,
+          "max": 32
+        }
+      }
+    }
+  ],
+  "aggregate": {
+    "raw_detection_rate_mean": 0.35,
+    "unscoreable_labels_total": 12,
+    "labels_total": 20,
+    "within_horizon_current_criterion": {
+      "labeled_in_horizon": 5,
+      "detected": 5,
+      "detection_rate": 1.0
+    }
+  },
+  "interpretation": "현행 지평 기준으로 1차 라벨 20건 중 측정 창 안에 있던 것은 5건이고, 1차의 봉인 예측은 그 5건을 5/5 감지했다. 같은 예측이 raw 기준으로는 35.0%(7/20)로 집계된다 — 차이는 전적으로 분모에 남은 채점 불가 라벨 12건에서 나온다. 2차의 감지율 100%(20/20)는 이 5/5와 같은 성질의 수치이며, 탐지기가 좋아져서 오른 값이 아니다.",
+  "cautions": [
+    "이 파일은 1차 회차의 재채점 결과일 뿐 새 회차가 아니다 — 예측은 1차 봉인분 그대로이고 라벨도 1차 봉인분 그대로다.",
+    "지평 내 표본은 5건(시드당 1건)으로 매우 작다. 5/5를 '이 조건에서는 항상 잡는다'로 일반화하지 말 것.",
+    "raw 헤드라인(35.0%·55.5%)은 이 재채점으로 대체되지 않는다 — 1차 공표값은 그대로 유지된다."
+  ]
+}

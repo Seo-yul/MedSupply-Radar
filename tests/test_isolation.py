@@ -240,6 +240,12 @@ SCRIPTS_PATH_TARGETS: dict[Path, tuple[str, ...]] = {
     # 어디에도 "ground_truth" 리터럴이 없음을 tests/platform/test_reproducibility_harness.py
     # 의 --help 스모크 테스트로도 재확인한다).
     REPO_ROOT / "scripts" / "verify_reproducibility.py": ("data/scenarios",),
+    # 검증 리포트 수치 대조 CLI(Task S-32) — docs/verification-report.md의 마킹을
+    # reports/의 측정 JSON과 대조한다. medsupply·scripts.datagen·scripts.measure_detection
+    # 어느 것도 import하지 않고(순수 텍스트·JSON 처리), 읽는 경로는 문서와 reports/ 산출물
+    # 뿐이다. 정답 경로는 예외 없이 전면 금지 — 대조 대상 JSON 경로는 전부 md의 마킹 주석과
+    # REQUIRED_PATHS 상수에 reports/... 형태로만 적혀 있고, 라벨·시나리오 파일은 열지 않는다.
+    REPO_ROOT / "scripts" / "check_report_numbers.py": (),
 }
 
 FORWARD_PATH_TARGETS = [*FORWARD_TARGETS, *SCRIPTS_PATH_TARGETS]
