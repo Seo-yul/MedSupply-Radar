@@ -1,0 +1,57 @@
+{
+  "measured_at": "2026-08-21T11:27:29",
+  "runs": 5,
+  "generation": {
+    "runs": 5,
+    "identical": true,
+    "mutual_identical": true,
+    "hashes": [
+      "c34bf4cb9215e1ba4b7a21c9d0f1d7236e2164ae08b630bf54fdf82d4c2f6483",
+      "c34bf4cb9215e1ba4b7a21c9d0f1d7236e2164ae08b630bf54fdf82d4c2f6483",
+      "c34bf4cb9215e1ba4b7a21c9d0f1d7236e2164ae08b630bf54fdf82d4c2f6483",
+      "c34bf4cb9215e1ba4b7a21c9d0f1d7236e2164ae08b630bf54fdf82d4c2f6483",
+      "c34bf4cb9215e1ba4b7a21c9d0f1d7236e2164ae08b630bf54fdf82d4c2f6483"
+    ],
+    "anchor_hash": "c34bf4cb9215e1ba4b7a21c9d0f1d7236e2164ae08b630bf54fdf82d4c2f6483",
+    "anchor_match": true,
+    "mismatch": null
+  },
+  "batch": {
+    "runs": 5,
+    "identical": true,
+    "run_ids": [
+      "2026-08-01#6ec9bf05",
+      "2026-08-01#6ec9bf05",
+      "2026-08-01#6ec9bf05",
+      "2026-08-01#6ec9bf05",
+      "2026-08-01#6ec9bf05"
+    ],
+    "row_count": 124,
+    "digests": [
+      "0429f0986e91f27c228bb2768dc5d1f4067290c8562520dd4e3dffe350f18fce",
+      "0429f0986e91f27c228bb2768dc5d1f4067290c8562520dd4e3dffe350f18fce",
+      "0429f0986e91f27c228bb2768dc5d1f4067290c8562520dd4e3dffe350f18fce",
+      "0429f0986e91f27c228bb2768dc5d1f4067290c8562520dd4e3dffe350f18fce",
+      "0429f0986e91f27c228bb2768dc5d1f4067290c8562520dd4e3dffe350f18fce"
+    ],
+    "mismatch": null
+  },
+  "detection": {
+    "runs": 5,
+    "identical": true,
+    "digests": [
+      "f37f838f5d23bbe23ed23a87c8cf0cbc79ed4376a19cf2b4e5209017fa535bdb",
+      "f37f838f5d23bbe23ed23a87c8cf0cbc79ed4376a19cf2b4e5209017fa535bdb",
+      "f37f838f5d23bbe23ed23a87c8cf0cbc79ed4376a19cf2b4e5209017fa535bdb",
+      "f37f838f5d23bbe23ed23a87c8cf0cbc79ed4376a19cf2b4e5209017fa535bdb",
+      "f37f838f5d23bbe23ed23a87c8cf0cbc79ed4376a19cf2b4e5209017fa535bdb"
+    ],
+    "db_unchanged": true,
+    "mismatch": null
+  },
+  "verdict": true,
+  "environment": {
+    "python_version": "3.14.6",
+    "platform": "macOS-26.5.2-arm64-arm-64bit-Mach-O"
+  }
+}

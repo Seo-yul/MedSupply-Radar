@@ -211,6 +211,18 @@ SCRIPTS_PATH_TARGETS: dict[Path, tuple[str, ...]] = {
     # docstring은 검사 대상에서 항상 제외된다). data/scenarios 예외도 두지 않는다(시나리오
     # config를 읽지 않는다 — 라벨은 blind.py가 뽑은 결정적 config에서 나온다).
     REPO_ROOT / "scripts" / "generate_blind.py": (),
+    # 재현성 5회 subprocess 검증 하니스(Task S-23) — generate_dataset.py·load_notices.py·
+    # run_risk_batch.py·measure_detection.py를 전부 subprocess로만 호출한다(어느 것도
+    # import하지 않음 — medsupply·scripts.datagen·scripts.measure_detection 전부 미import).
+    # data/scenarios는 표준 시나리오 config(scenario_config.yaml, 생성 재현 1단계)와 봉인
+    # 앵커 파일(standard_snapshot.sha256, content_hash 대조 기준) 경로 참조 목적으로만
+    # 허용(generate_dataset.py·validate_dataset.py와 동일 사유). ground_truth는 예외 없이
+    # 금지 — 정답 라벨 경로는 --labels CLI 인자로 호출부가 넘긴 값을 그대로
+    # measure_detection.py subprocess에 전달만 할 뿐, 이 파일 자체는 그 경로를 코드 값으로
+    # 갖지 않고 내용도 전혀 열지 않는다(순수 위임 호출 — 모듈 docstring·CLI help 문자열
+    # 어디에도 "ground_truth" 리터럴이 없음을 tests/platform/test_reproducibility_harness.py
+    # 의 --help 스모크 테스트로도 재확인한다).
+    REPO_ROOT / "scripts" / "verify_reproducibility.py": ("data/scenarios",),
 }
 
 FORWARD_PATH_TARGETS = [*FORWARD_TARGETS, *SCRIPTS_PATH_TARGETS]
