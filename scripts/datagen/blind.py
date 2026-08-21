@@ -1,0 +1,505 @@
+"""블라인드 평가 스냅샷 생성기 — data/scenarios/blind_ranges.yaml의 구간에서 seed로
+결정적 파라미터를 뽑아 기존 datagen 표준 생성 경로(baseline·inject·labels·config)를
+그대로 재사용해 스냅샷을 만들고, 라벨을 봉인 규약에 따라 격리한다(Task S-22).
+
+**격리 원칙**: baseline.py·inject.py·config.py·labels.py와 동일하게 이 모듈도 `medsupply`
+패키지를 일절 import하지 않는다. `data/blind` 경로 리터럴은 이 모듈과
+scripts/generate_blind.py 안에서만 쓴다(tests/test_isolation.py의 순방향 검사 대상은
+scripts/datagen/를 애초에 스캔하지 않으므로 이 경로 리터럴이 걸릴 일이 없다).
+
+**표준 경로 재사용, 로직 미복제**: 실제 베이스라인 생성·시나리오 재시뮬레이션·해시·라벨
+도출은 전부 baseline.generate_baseline·inject.inject_scenarios·labels.derive_labels가
+그대로 수행한다. 이 모듈이 새로 만드는 것은 (1) 범위 YAML에서 결정적으로 뽑은
+ScenarioConfig 조립, (2) inject_scenarios 결과를 봉인 규약(sealed 라벨 + manifest)으로
+감싸는 오케스트레이션뿐이다. inject_scenarios·validate_scenario_config에는 유형당
+시나리오 1개(표준 최소 4개 미만)를 허용하기 위한 매개변수(min_scenarios_per_type/
+min_per_type)만 추가했다 — 기본값은 종전과 동일해 표준 20건 config의 검증 결과는
+바뀌지 않는다.
+
+**out DB 무흔적**: 시나리오 파라미터·scenario_id는 out DB에 전혀 기록되지 않는다(라벨은
+sealed/로만 나간다) — schema.sql 자체가 'scenario' 컬럼을 갖지 않으므로(기존 원칙)
+validate_dataset.check_no_scenario_columns가 그대로 통과한다.
+"""
+
+from __future__ import annotations
+
+import dataclasses
+import hashlib
+import json
+import random
+import sqlite3
+import tempfile
+from dataclasses import dataclass
+from datetime import date, timedelta
+from pathlib import Path
+from typing import Any
+
+import yaml
+
+from scripts.datagen import baseline, config, inject
+from scripts.datagen import labels as labels_mod
+from scripts.datagen.config import ALLOWED_TYPES, Scenario, ScenarioConfig
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+DEFAULT_RANGES_PATH = REPO_ROOT / "data" / "scenarios" / "blind_ranges.yaml"
+DEFAULT_BLIND_DIR = REPO_ROOT / "data" / "blind"
+DEFAULT_SEALED_DIR = DEFAULT_BLIND_DIR / "sealed"
+DEFAULT_MANIFEST_PATH = DEFAULT_BLIND_DIR / "manifest.json"
+DEFAULT_ACTION_HISTORY_SEED_PATH = baseline.DEFAULT_REFERENCE_DIR / "action_history_seed.csv"
+
+#: composite가 아닌, 단독으로 뽑을 수 있는 유형 3종(순서 고정 — 품목 배정 순서와 일치).
+_STANDALONE_TYPES: tuple[str, ...] = ("demand_surge", "supply_halt", "delivery_delay")
+
+#: 유형별 앵커 파라미터 키(config.ANCHOR_DATE_KEYS와 동일 — 여기서 재정의하지 않고 그대로
+#: 참조하면 config.py 쪽 정의가 바뀔 때 자동으로 맞물린다).
+_ANCHOR_KEY = config.ANCHOR_DATE_KEYS
+
+
+# ---------------------------------------------------------------------------
+# 범위 YAML 로딩 · 서브시드
+# ---------------------------------------------------------------------------
+
+
+def load_ranges(path: str | Path = DEFAULT_RANGES_PATH) -> dict[str, Any]:
+    """blind_ranges.yaml을 PyYAML safe_load로 읽는다(scenario_config.yaml 로더와 동일 방식)."""
+    path = Path(path)
+    with path.open("r", encoding="utf-8") as f:
+        return yaml.safe_load(f)
+
+
+def blind_subseed(seed: int, purpose: str) -> int:
+    """블라인드 파라미터 뽑기 서브시드 = sha256(f"{seed}:blind:{purpose}") 앞 8자리 hex.
+
+    baseline.item_subseed·inject.injection_subseed와 동일한 서브시드 관례(브리프: "서브시드
+    관례 재사용")를 새 네임스페이스("blind")로 적용한 것 — 파라미터 뽑기는 베이스라인
+    노이즈·주입 효과와 다른 관심사라 별도 네임스페이스를 쓴다.
+    """
+    digest = hashlib.sha256(f"{seed}:blind:{purpose}".encode("utf-8")).hexdigest()
+    return int(digest[:8], 16)
+
+
+# ---------------------------------------------------------------------------
+# 파라미터 뽑기(유형별) — 순수 함수, I/O 없음
+# ---------------------------------------------------------------------------
+
+
+def _sample_anchor_date(
+    rng: random.Random, offset_range: dict[str, int], base_date: date
+) -> tuple[date, int]:
+    offset = rng.randint(int(offset_range["min"]), int(offset_range["max"]))
+    return base_date + timedelta(days=offset), offset
+
+
+def _build_type_params(
+    type_: str,
+    ranges: dict[str, Any],
+    rng: random.Random,
+    base_date: date,
+    *,
+    allow_arrives_late: bool,
+) -> dict[str, Any]:
+    """단일 유형 params dict를 뽑는다(composite의 sub_scenario에도 재사용).
+
+    rng는 호출부가 유형별로 독립된 서브시드 스트림을 넘긴다 — 같은 유형이 standalone과
+    composite sub_scenario 양쪽에 쓰이면 같은 스트림을 이어서 소비한다(둘 다 결정적이며
+    서로 다른 값이 나오는 것이 의도다 — 서로 다른 품목의 서로 다른 시나리오 인스턴스).
+    """
+    offset_range = ranges["scenario_start_offset_days_range"]
+    anchor, _offset = _sample_anchor_date(rng, offset_range, base_date)
+
+    if type_ == "demand_surge":
+        r = ranges["demand_surge"]
+        ramp_days = rng.randint(int(r["ramp_days_range"]["min"]), int(r["ramp_days_range"]["max"]))
+        peak = round(
+            rng.uniform(float(r["peak_multiplier_range"]["min"]), float(r["peak_multiplier_range"]["max"])),
+            2,
+        )
+        return {
+            "surge_start_date": anchor.isoformat(),
+            "ramp_days": ramp_days,
+            "peak_multiplier": peak,
+            "sustain": bool(r["sustain"]),
+        }
+
+    if type_ == "supply_halt":
+        r = ranges["supply_halt"]
+        duration = rng.randint(
+            int(r["halt_duration_days_range"]["min"]), int(r["halt_duration_days_range"]["max"])
+        )
+        indefinite = rng.random() < float(r["indefinite_restart_probability"])
+        restart = None if indefinite else (anchor + timedelta(days=duration)).isoformat()
+        params: dict[str, Any] = {
+            "halt_start_date": anchor.isoformat(),
+            "expected_restart_date": restart,
+        }
+        if rng.random() < float(r["demand_shift_probability"]):
+            shift = round(
+                rng.uniform(
+                    float(r["demand_shift_multiplier_range"]["min"]),
+                    float(r["demand_shift_multiplier_range"]["max"]),
+                ),
+                2,
+            )
+            params["demand_shift_multiplier"] = shift
+        return params
+
+    if type_ == "delivery_delay":
+        r = ranges["delivery_delay"]
+        delay_days = rng.randint(int(r["delay_days_range"]["min"]), int(r["delay_days_range"]["max"]))
+        qty_ratio = round(
+            rng.uniform(float(r["qty_ratio_range"]["min"]), float(r["qty_ratio_range"]["max"])), 2
+        )
+        params = {
+            "expected_date": anchor.isoformat(),
+            "delay_days": delay_days,
+            "qty_ratio": qty_ratio,
+        }
+        if allow_arrives_late and rng.random() < float(r["arrives_late_probability"]):
+            params["arrives_late"] = True
+        return params
+
+    raise ValueError(f"알 수 없는 시나리오 유형: {type_!r}")
+
+
+def _load_item_ids(items_csv: str | Path) -> list[str]:
+    # config._load_item_ids는 set을 반환한다(순서 비결정) — 여기서는 정렬해 재사용,
+    # random.sample에 결정적 순서의 시퀀스를 넘기기 위함이다.
+    return sorted(config._load_item_ids(items_csv))
+
+
+def build_blind_config(
+    ranges: dict[str, Any],
+    seed: int,
+    base_date: date,
+    *,
+    items_csv: str | Path,
+    attempt: int = 0,
+) -> ScenarioConfig:
+    """블라인드 시나리오 config를 결정적으로 조립한다(순수 함수, I/O는 items_csv 읽기뿐).
+
+    유형 4종 각 1개(demand_surge·supply_halt·delivery_delay·composite), 서로 다른 품목
+    4개. composite는 ranges["compound"]["allowed_pairs"] 중 하나를 뽑아 그 두 하위 유형의
+    params를 각 유형의 독립 서브시드 스트림에서 이어 뽑는다. attempt는 물리적 무효과로
+    재시도할 때만 바뀌는 서브시드 네임스페이스 접두어다(같은 seed라도 attempt가 다르면
+    다른 조합이 나온다 — generate_blind의 재시도 루프가 사용).
+    """
+    timeline_start = base_date - timedelta(days=364)
+    all_item_ids = _load_item_ids(items_csv)
+    if len(all_item_ids) < 4:
+        raise ValueError(f"품목이 4개 미만이라 유형당 1개씩 배정할 수 없다: {len(all_item_ids)}")
+
+    ns = f"a{attempt}"
+    rng_items = random.Random(blind_subseed(seed, f"{ns}:item_selection"))
+    rng_by_type = {
+        t: random.Random(blind_subseed(seed, f"{ns}:{t}")) for t in _STANDALONE_TYPES
+    }
+    rng_compound = random.Random(blind_subseed(seed, f"{ns}:compound_pair"))
+
+    chosen_items = rng_items.sample(all_item_ids, 4)
+    item_by_type = dict(zip(_STANDALONE_TYPES, chosen_items[:3]))
+    composite_item = chosen_items[3]
+
+    scenarios: list[Scenario] = []
+    for type_ in _STANDALONE_TYPES:
+        params = _build_type_params(
+            type_, ranges, rng_by_type[type_], base_date, allow_arrives_late=True
+        )
+        scenarios.append(
+            Scenario(
+                scenario_id=f"BLIND-{type_.upper()}",
+                item_id=item_by_type[type_],
+                type=type_,
+                reference=f"블라인드 평가 스냅샷(seed={seed}, attempt={attempt}) — {type_}",
+                params=params,
+            )
+        )
+
+    pair = tuple(rng_compound.choice(ranges["compound"]["allowed_pairs"]))
+    sub_scenarios = [
+        {
+            "type": sub_type,
+            "params": _build_type_params(
+                sub_type,
+                ranges,
+                rng_by_type[sub_type],
+                base_date,
+                allow_arrives_late=False,
+            ),
+        }
+        for sub_type in pair
+    ]
+    scenarios.append(
+        Scenario(
+            scenario_id="BLIND-COMPOSITE",
+            item_id=composite_item,
+            type="composite",
+            reference=f"블라인드 평가 스냅샷(seed={seed}, attempt={attempt}) — composite{pair}",
+            params={"sub_scenarios": sub_scenarios},
+        )
+    )
+
+    return ScenarioConfig(
+        version=1,
+        base_date=base_date.isoformat(),
+        timeline_start=timeline_start.isoformat(),
+        scenarios=tuple(scenarios),
+    )
+
+
+def _validate_normal_item_count(ranges: dict[str, Any], total_items: int) -> None:
+    """카탈로그 크기 가드레일(item_allocation.normal_item_count_range) — 서브셋을 하지
+    않으므로(전체 카탈로그 재사용) 매 attempt 동일하다. 재시도로 해결될 문제가 아니라
+    range 밖이면 즉시 실패한다."""
+    per_type = int(ranges["item_allocation"]["scenario_items_per_type"])
+    scenario_items = per_type * len(ALLOWED_TYPES)  # 4유형 × 유형당 품목 수
+    normal_count = total_items - scenario_items
+    band = ranges["item_allocation"]["normal_item_count_range"]
+    if not (int(band["min"]) <= normal_count <= int(band["max"])):
+        raise ValueError(
+            f"정상 품목 수({normal_count})가 blind_ranges.yaml의 normal_item_count_range"
+            f"({band['min']}~{band['max']}) 밖이다 — 카탈로그 크기가 바뀌었는지 확인해야 한다"
+        )
+
+
+# ---------------------------------------------------------------------------
+# ScenarioConfig → YAML 직렬화(inject_scenarios는 경로만 받으므로 임시 파일에 쓴다)
+# ---------------------------------------------------------------------------
+
+
+def _scenario_to_dict(sc: Scenario) -> dict[str, Any]:
+    return {
+        "scenario_id": sc.scenario_id,
+        "item_id": sc.item_id,
+        "type": sc.type,
+        "reference": sc.reference,
+        "params": sc.params,
+    }
+
+
+def scenario_config_to_dict(cfg: ScenarioConfig) -> dict[str, Any]:
+    return {
+        "version": cfg.version,
+        "base_date": cfg.base_date,
+        "timeline_start": cfg.timeline_start,
+        "scenarios": [_scenario_to_dict(sc) for sc in cfg.scenarios],
+    }
+
+
+def write_scenario_config_yaml(cfg: ScenarioConfig, dest: str | Path) -> None:
+    dest = Path(dest)
+    dest.write_text(
+        yaml.safe_dump(scenario_config_to_dict(cfg), allow_unicode=True, sort_keys=False),
+        encoding="utf-8",
+    )
+
+
+# ---------------------------------------------------------------------------
+# 대응 이력 시드 적재(표준 generate_dataset.py의 apply_history_seed와 동일 책임).
+#
+# scripts/generate_dataset.py를 import하지 않는다 — scripts/datagen/은 scripts/ 상위
+# 계층에 의존하지 않는다(의존 방향 유지, 브리프 "scripts/datagen/ 계층" 원칙). 대신 같은
+# 재사용 가능 원시 함수(inject.load_action_history_seed·baseline.compute_content_hash)로
+# 동일 동작을 이 계층 안에서 재구성한다 — generate_dataset.apply_history_seed와 동작은
+# 같지만 코드를 공유하지 않는 것은 로직 복제가 아니라 계층 경계 유지다(둘 다 3~4줄짜리
+# 얇은 오케스트레이션이고, 실제 로직은 두 원시 함수에 있다).
+# ---------------------------------------------------------------------------
+
+
+def _apply_action_history_seed(out_path: Path, csv_path: Path) -> str:
+    conn = sqlite3.connect(out_path)
+    try:
+        inject.load_action_history_seed(conn, csv_path)
+        new_hash = baseline.compute_content_hash(conn)
+        with conn:
+            conn.execute("UPDATE meta SET value = ? WHERE key = 'content_hash'", (new_hash,))
+    finally:
+        conn.close()
+    return new_hash
+
+
+# ---------------------------------------------------------------------------
+# sha256 · manifest 읽기/쓰기(append, 결정적 정렬 — seed 오름차순, upsert)
+# ---------------------------------------------------------------------------
+
+
+def _sha256_file(path: str | Path) -> str:
+    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+
+def load_manifest(path: str | Path) -> dict[str, Any]:
+    path = Path(path)
+    if not path.exists():
+        return {"version": 1, "runs": []}
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def upsert_manifest_entry(manifest: dict[str, Any], entry: dict[str, Any]) -> dict[str, Any]:
+    """entry를 seed 기준으로 upsert(동일 seed면 교체)하고 seed 오름차순으로 정렬해
+    반환한다(순수 함수 — 호출부가 파일에 쓴다)."""
+    runs = [r for r in manifest.get("runs", []) if r["seed"] != entry["seed"]]
+    runs.append(entry)
+    runs.sort(key=lambda r: r["seed"])
+    return {"version": manifest.get("version", 1), "runs": runs}
+
+
+def write_manifest(path: str | Path, manifest: dict[str, Any]) -> None:
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def _has_delayed_arrival(out_path: Path) -> bool:
+    conn = sqlite3.connect(out_path)
+    try:
+        row = conn.execute(
+            "SELECT COUNT(*) FROM incoming_shipments"
+            " WHERE actual_date IS NOT NULL AND expected_date IS NOT NULL"
+            " AND actual_date > expected_date"
+        ).fetchone()
+        return bool(row[0])
+    finally:
+        conn.close()
+
+
+# ---------------------------------------------------------------------------
+# 오케스트레이션
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class BlindResult:
+    """generate_blind의 반환값 — CLI 출력·테스트 검증용. 라벨 본문(item_id·날짜 등)은
+    담지 않는다(봉인 규약: 라벨은 sealed_dir의 파일로만 존재)."""
+
+    seed: int
+    summary: baseline.GenerationSummary
+    db_path: Path
+    db_sha256: str
+    labels_path: Path
+    labels_sha256: str
+    has_delayed_arrival: bool
+    attempts_used: int
+    manifest_entry: dict[str, Any]
+
+
+def generate_blind(
+    ranges_path: str | Path,
+    seed: int,
+    base_date: str | date,
+    out_path: str | Path,
+    *,
+    reference_dir: str | Path = baseline.DEFAULT_REFERENCE_DIR,
+    schema_path: str | Path = baseline.DEFAULT_SCHEMA_PATH,
+    sealed_dir: str | Path = DEFAULT_SEALED_DIR,
+    manifest_path: str | Path = DEFAULT_MANIFEST_PATH,
+    action_history_csv: str | Path = DEFAULT_ACTION_HISTORY_SEED_PATH,
+) -> BlindResult:
+    """블라인드 스냅샷 1건을 결정적으로 생성·봉인한다.
+
+    범위 YAML에서 seed로 파라미터를 뽑아(random.Random 서브시드) 기존
+    inject.inject_scenarios(min_scenarios_per_type=1)로 베이스라인+주입+해시+라벨 도출까지
+    전부 위임한 뒤, 대응 이력 시드를 적재하고(표준 전체 빌드와 동일한 책임), 라벨을
+    sealed_dir에 분리 저장하고 manifest_path를 갱신한다.
+
+    out_path에는 라벨·시나리오 흔적이 전혀 남지 않는다(표준 원칙 그대로 — schema.sql에
+    'scenario' 컬럼이 없다). 카탈로그는 서브셋하지 않는다(표준과 동일하게 전체 품목을
+    쓴다 — action_history_seed.csv가 참조하는 8개 품목이 항상 존재해야 하기 때문이다).
+
+    물리적으로 무효과인 조합(임의 품목이라 표준처럼 사람이 미세조정할 수 없다)은
+    ranges["max_generation_attempts"]까지 다른 서브시드 네임스페이스로 재시도한다(같은
+    seed에 대해 재시도 시퀀스 자체가 결정적이라 최종 결과도 seed에 대해 결정적이다).
+    """
+    ranges = load_ranges(ranges_path)
+    base_date_obj = date.fromisoformat(base_date) if isinstance(base_date, str) else base_date
+    out_path = Path(out_path)
+    reference_dir = Path(reference_dir)
+    items_csv_path = reference_dir / "items_master.csv"
+
+    total_items = len(_load_item_ids(items_csv_path))
+    _validate_normal_item_count(ranges, total_items)
+
+    max_attempts = int(ranges.get("max_generation_attempts", 1))
+    summary: baseline.GenerationSummary | None = None
+    labels: list[dict[str, object]] | None = None
+    last_error: ValueError | None = None
+    attempt = 0
+
+    for attempt in range(max_attempts):
+        cfg = build_blind_config(
+            ranges, seed, base_date_obj, items_csv=items_csv_path, attempt=attempt
+        )
+        with tempfile.TemporaryDirectory(prefix="blind-config-") as tmp_dir:
+            config_yaml_path = Path(tmp_dir) / "blind_scenario_config.yaml"
+            write_scenario_config_yaml(cfg, config_yaml_path)
+            try:
+                summary, labels = inject.inject_scenarios(
+                    out_path,
+                    seed=seed,
+                    base_date=base_date_obj,
+                    scenario_config_path=config_yaml_path,
+                    reference_dir=reference_dir,
+                    schema_path=schema_path,
+                    min_scenarios_per_type=1,
+                )
+                last_error = None
+                break
+            except ValueError as exc:
+                last_error = exc
+                continue
+
+    if last_error is not None or summary is None or labels is None:
+        raise ValueError(
+            f"블라인드 시나리오 생성이 {max_attempts}회 재시도 후에도 실패했다"
+            f"(seed={seed}): {last_error}"
+        ) from last_error
+
+    new_hash = _apply_action_history_seed(out_path, Path(action_history_csv))
+    summary = dataclasses.replace(summary, content_hash=new_hash)
+
+    sealed_dir = Path(sealed_dir)
+    sealed_dir.mkdir(parents=True, exist_ok=True)
+    labels_path = sealed_dir / f"{out_path.stem}.labels.json"
+    labels_path.write_text(labels_mod.labels_to_json(labels), encoding="utf-8")
+
+    db_sha256 = _sha256_file(out_path)
+    labels_sha256 = _sha256_file(labels_path)
+    has_delayed_arrival = _has_delayed_arrival(out_path)
+
+    type_counts = {t: 0 for t in ALLOWED_TYPES}
+    for lbl in labels:
+        type_counts[lbl["scenario_type"]] += 1
+
+    params_summary = {
+        "seed": seed,
+        "base_date": base_date_obj.isoformat(),
+        "item_count": summary.item_count,
+        "scenario_item_count": len(labels),
+        "scenario_type_counts": type_counts,
+        "has_delayed_arrival_arm": has_delayed_arrival,
+        "attempts_used": attempt + 1,
+    }
+    entry = {
+        "seed": seed,
+        "db_file": out_path.name,
+        "db_sha256": db_sha256,
+        "labels_file": labels_path.name,
+        "labels_sha256": labels_sha256,
+        "params_summary": params_summary,
+    }
+
+    manifest_path = Path(manifest_path)
+    manifest = load_manifest(manifest_path)
+    manifest = upsert_manifest_entry(manifest, entry)
+    write_manifest(manifest_path, manifest)
+
+    return BlindResult(
+        seed=seed,
+        summary=summary,
+        db_path=out_path,
+        db_sha256=db_sha256,
+        labels_path=labels_path,
+        labels_sha256=labels_sha256,
+        has_delayed_arrival=has_delayed_arrival,
+        attempts_used=attempt + 1,
+        manifest_entry=entry,
+    )

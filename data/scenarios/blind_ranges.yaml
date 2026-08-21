@@ -1,0 +1,90 @@
+# 블라인드 평가 스냅샷 파라미터 "범위" — scripts/generate_blind.py(Task S-22)가 --seed로
+# 이 구간 안에서 random.Random(서브시드)를 결정적으로 뽑는다.
+#
+# scenario_config.yaml(표준, 20건 "값" 고정)과의 차이: 저 파일은 구체적인 값을 고정하지만
+# 이 파일은 "값이 나올 수 있는 구간"만 정의한다 — 실행마다(--seed) 다른 조합이 결정적으로
+# 뽑혀, 채점자가 표준 스냅샷의 파라미터를 암기해 블라인드 스냅샷을 "풀어버리는" 것을
+# 막는다. 모든 구간은 표준값(scenario_config.yaml 실사용 값)을 포함하도록 잡았다.
+#
+# 격리 원칙은 scenario_config.yaml과 동일: medsupply/·app.py는 이 파일을 참조하지 않는다
+# (scripts/datagen/·scripts/generate_blind.py·측정 스크립트만 읽는다).
+version: 1
+
+# ── 품목 배분 ────────────────────────────────────────────────────────────
+# 표준(20건, 유형당 ≥4)과 달리 블라인드는 유형당 시나리오 정확히 1개 — 4유형 × 1 = 시나리오
+# 품목 4개. 나머지는 전부 "정상" 품목이다(품절 신호 없음, 오탐률 측정의 대조군).
+item_allocation:
+  scenario_items_per_type: 1     # 고정값(변경 금지) — 4유형 × 1 = 시나리오 품목 4개.
+  # 정상(비시나리오) 품목 수 허용 범위(가드레일, 뽑기 대상 아님). 블라인드 생성기는
+  # 표준과 동일하게 카탈로그를 서브셋하지 않는다(data/reference/items_master.csv 전량을
+  # baseline.generate_baseline·inject.inject_scenarios의 기존 reference_dir 매개변수로
+  # 그대로 재사용 — action_history_seed.csv가 참조하는 8개 품목이 항상 카탈로그에 있어야
+  # FK가 깨지지 않기 때문이다). 정상 품목 수 = 카탈로그 전체 - 4이며(현재 124개 기준 120),
+  # 이 값이 여전히 타당한 범위인지(카탈로그 크기 변경을 조기 감지) 생성 시점에 검증하는
+  # 가드레일로 이 range를 쓴다 — validate_scenario_config의 MAX_ITEM_RATIO(30%) 상한도
+  # 이 범위의 하한(100)에서조차 4/100=4%로 여유 있게 만족한다.
+  normal_item_count_range: {min: 100, max: 124}
+
+# ── 시나리오 개시일(앵커 날짜) 공통 구간 ───────────────────────────────────
+# demand_surge.surge_start_date · supply_halt.halt_start_date · delivery_delay.expected_date
+# 모두 이 구간에서 뽑는다(config.py의 ANCHOR_DATE_KEYS가 세 유형 모두 동일하게
+# timeline_start~base_date 범위만 요구하므로 공통 구간으로 충분하다). base_date 기준 상대
+# 오프셋(일, 음수=과거)으로 표현해 --base-date가 바뀌어도 그대로 쓸 수 있다. 표준값
+# 예시(SC-001~SC-020)는 전부 -13~-44일 사이라 이 구간에 포함된다. 하한을 -30일로 잡은
+# 이유: supply_halt가 실제로 미이행 발주를 만들려면(효과 없으면 생성기가 명확한 에러로
+# 실패한다 — inject.py의 _assert_effects_effective) 차단 시작 후 재고가 재주문점 밑으로
+# 내려갈 시간이 필요하다(1주차 리뷰 F1 교훈). 임의 품목을 뽑는 블라인드는 표준처럼 품목별
+# 미세조정을 할 수 없으므로 표준보다 넉넉한 여유(최소 30일, 최대 240일)를 둔다.
+scenario_start_offset_days_range: {min: -240, max: -30}
+
+demand_surge:
+  ramp_days_range: {min: 7, max: 21}            # 표준 7~21일 폭과 동일
+  peak_multiplier_range: {min: 1.4, max: 2.6}    # 표준 1.35~2.6 대부분 포함(하한 소폭 상향
+  # — 임의 품목에서도 반사실 대비 사용량 차이가 뚜렷이 잡히도록 여유를 더 뒀다)
+  sustain: true                                  # 표준 5건 전부 sustain=true, 블라인드도 고정
+
+supply_halt:
+  # 차단 길이(halt_start_date~expected_restart_date). expected_restart_date는
+  # base_date 이후여도 무방하다(config.py의 앵커 날짜 범위 검사 대상이 아니다 — null=미정도
+  # 표준처럼 허용).
+  halt_duration_days_range: {min: 30, max: 90}
+  indefinite_restart_probability: 0.3   # 이 확률로 expected_restart_date=null(표준 SC-007·
+  # SC-008처럼 "미정" 케이스도 뽑히게 한다).
+  demand_shift_multiplier_range: {min: 1.1, max: 1.5}   # 표준 SC-006·SC-009·SC-018과 동일 폭
+  demand_shift_probability: 0.6   # 이 확률로만 demand_shift_multiplier를 params에 포함한다
+  # (표준도 5건 중 3건만 이 선택 키를 쓴다 — REQUIRED_PARAM_KEYS에는 없는 선택 항목).
+
+delivery_delay:
+  delay_days_range: {min: 4, max: 15}     # 표준 4~15일과 동일 폭(receipt_delay_days 임계
+  # 3일보다 항상 크게 — medsupply/analytics/anomaly.py detect_receipt_delay 감지 대상권)
+  qty_ratio_range: {min: 0.7, max: 1.0}   # 표준 0.7~1.0과 동일 폭
+  # 지연 '도착' arm(Task S-22 핵심 요건) — 이 확률로 실제 도착(release_day=expected_date+
+  # delay_days에 actual_date가 기록되어 expected_date < actual_date)이 발생한다. 나머지
+  # 확률은 표준과 동일하게 "영구 미이행"(actual_date NULL)으로 남는다. 2주차 리뷰 F6
+  # 이월 요건: 표준 스냅샷은 이 arm이 0건이라 receipt_delay의 as_of 기준 재구성(S-17d,
+  # medsupply/analytics/asof.py)을 실데이터로 검증한 적이 없다 — 이 확률을 0보다 크게
+  # 유지해야 그 공백이 메워진다(0.5 = 매 실행 절반 확률로 도착 arm 관측 가능, 여러 시드에
+  # 걸쳐 최소 1건은 뜨도록 넉넉히 잡음).
+  arrives_late_probability: 0.5
+
+# ── compound(=composite) 조합 규칙 ──────────────────────────────────────
+# sub_scenarios 2개를 표준 config가 실제로 검증한 두 조합 중 하나로만 구성한다(SC-016·017·
+# 019=demand_surge+supply_halt, SC-018·020=supply_halt+delivery_delay). 각 하위 요소는 위
+# 유형별 구간에서 독립적으로 뽑되, delivery_delay 하위 요소는 arrives_late를 뽑지 않는다
+# (halt와 동시에 같은 발주를 겨냥할 때의 상호작용을 구현 범위 밖으로 명시적으로 뺐다 —
+# standalone delivery_delay 유형에서만 지연 도착 arm을 뽑는다. 요건 충족에는 지장 없다:
+# "생성 가능해야 한다"는 조건은 조합이 아니라 4유형 중 1개만 만족해도 된다).
+compound:
+  allowed_pairs:
+    - [demand_surge, supply_halt]
+    - [supply_halt, delivery_delay]
+
+# ── 생성기 안정성 가드 ──────────────────────────────────────────────────
+# 위 구간에서 뽑은 (품목, 파라미터) 조합이 우연히 물리적으로 무효과(예: 임의 품목의 재고
+# 리듬상 halt 기간 중 재주문점 밑으로 안 내려감 — inject.py의 _assert_effects_effective가
+# 명확한 에러로 잡는다)일 수 있다. 표준 config는 품목별로 사람이 강도를 미세조정했지만
+# (1주차 리뷰 F1), 블라인드는 임의 품목이라 그럴 수 없다 — 대신 실패 시 서로 다른
+# 서브시드 네임스페이스("attempt{N}")로 전량 재추첨해 재시도한다(seed 자체는 그대로라
+# 최종 결과는 여전히 그 seed에 대해 결정적이다). 이 상한을 넘겨도 실패하면 명확한
+# 에러로 중단한다(조용한 폴백 없음).
+max_generation_attempts: 20

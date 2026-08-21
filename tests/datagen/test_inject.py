@@ -17,6 +17,7 @@ from datetime import date, timedelta
 from pathlib import Path
 
 import pytest
+import yaml
 
 from scripts.datagen import config as config_mod
 from scripts.datagen import inject
@@ -609,3 +610,262 @@ class TestNoEffectEquivalence:
             assert scen_trunc == base_trunc, item_id
             assert trace.halt_blocked_order_dates == frozenset()
             assert trace.delay_blocked_order_dates == frozenset()
+
+
+# --- 11. S-22: delivery_delay 지연 '도착' arm(arrives_late) ------------------
+
+
+def _synthetic_days() -> list[date]:
+    base = date.fromisoformat(BASE_DATE)
+    start = base - timedelta(days=364)
+    return [start + timedelta(days=i) for i in range(365)]
+
+
+class TestDelayEffectArrivesLate:
+    """2주차 리뷰 F6 이월: 표준 스냅샷은 delivery_delay가 전부 영구 미이행(actual_date가
+    끝까지 NULL)으로만 남아, receipt_delay as_of 수정(S-17d)을 '늦게라도 도착한' 실데이터로
+    검증한 적이 없다. arrives_late=True는 release_day(=expected_date+delay_days)에 실제로
+    입고되어 expected_date < actual_date인 행을 만든다 — 기본값 False는 기존 동작(영구
+    미이행) 그대로다."""
+
+    _ITEM = {
+        "item_id": "ITEM-X", "pack_size": "10", "supplier": "테스트공급사",
+        "atc_code": "A00AA00", "form": "정제",
+    }
+
+    def _natural_first_order(self) -> tuple[date, date]:
+        _stock, shipments, _trunc, _trace = inject.simulate_item_with_scenario(
+            self._ITEM, SEED_A, _synthetic_days()
+        )
+        assert shipments, "테스트 품목에 자연 발주가 없다(픽스처 재검토 필요)"
+        first = shipments[0]
+        return date.fromisoformat(str(first["order_date"])), date.fromisoformat(
+            str(first["expected_date"])
+        )
+
+    def test_arrives_late_default_false_stays_permanently_unfulfilled(self) -> None:
+        """회귀: arrives_late 생략(기본 False)은 기존과 동일하게 영구 미이행이어야 한다."""
+        order_date, expected_date = self._natural_first_order()
+        delay_eff = inject.DelayEffect(
+            order_date=order_date, expected_date=expected_date, delay_days=5, qty_ratio=None,
+        )
+        assert delay_eff.arrives_late is False
+
+        _stock, shipments, _trunc, trace = inject.simulate_item_with_scenario(
+            self._ITEM, SEED_A, _synthetic_days(), delay_effects=(delay_eff,)
+        )
+        row = next(r for r in shipments if r["order_date"] == order_date.isoformat())
+        assert row["actual_date"] is None
+        assert row["actual_qty"] is None
+        assert order_date.isoformat() in trace.delay_blocked_order_dates
+
+    def test_arrives_late_true_records_actual_date_after_expected(self) -> None:
+        order_date, expected_date = self._natural_first_order()
+        delay_days = 5
+        delay_eff = inject.DelayEffect(
+            order_date=order_date, expected_date=expected_date, delay_days=delay_days,
+            qty_ratio=None, arrives_late=True,
+        )
+
+        _stock, shipments, _trunc, trace = inject.simulate_item_with_scenario(
+            self._ITEM, SEED_A, _synthetic_days(), delay_effects=(delay_eff,)
+        )
+        row = next(r for r in shipments if r["order_date"] == order_date.isoformat())
+        assert row["actual_date"] is not None
+        actual = date.fromisoformat(str(row["actual_date"]))
+        assert actual == expected_date + timedelta(days=delay_days)
+        assert actual > expected_date
+        assert row["actual_qty"] == row["expected_qty"]
+        assert row["status"] == "입고 완료"
+        # 자연 도착 판정에도 쓰이는 delay_blocked_order_dates는 여전히 채워진다(도착 여부와
+        # 무관하게 "시나리오가 겨냥한 발주"라는 사실 자체는 변하지 않는다).
+        assert order_date.isoformat() in trace.delay_blocked_order_dates
+
+    def test_arrives_late_true_stock_reflects_the_late_incoming(self) -> None:
+        """자연 도착 arm은 day-loop를 그대로 타므로 재고 궤적에도 반영돼야 한다.
+
+        (a) 원래 예정일(expected_date)에는 아직 도착하지 않아 재고가 무효과(without) 대비
+        낮게 유지되고(막힌 구간의 직접 증거), (b) 실제 도착일(arrival)에는 지연분 전량이
+        incoming_qty에 반영된다. closing_stock을 arrival 시점에서 바로 비교하지 않는 이유:
+        절삭(truncation)이 전혀 없는 구간이면 "언제 credit되든 구간 끝 재고는 산술적으로
+        동일"해질 수 있어(합산 순서 무관) 신뢰할 수 없는 비교다 — 막힌 구간 '내부'에서
+        실제로 재고가 낮아짐을 직접 확인하는 쪽이 항상 성립하는 불변식이다.
+        """
+        order_date, expected_date = self._natural_first_order()
+        delay_days = 5
+        arrival = expected_date + timedelta(days=delay_days)
+        delay_eff = inject.DelayEffect(
+            order_date=order_date, expected_date=expected_date, delay_days=delay_days,
+            qty_ratio=None, arrives_late=True,
+        )
+        stock_with, shipments, _trunc, _trace = inject.simulate_item_with_scenario(
+            self._ITEM, SEED_A, _synthetic_days(), delay_effects=(delay_eff,)
+        )
+        stock_without, _s, _t, _tr = inject.simulate_item_with_scenario(
+            self._ITEM, SEED_A, _synthetic_days()
+        )
+        by_date_with = {r["date"]: r for r in stock_with}
+        by_date_without = {r["date"]: r for r in stock_without}
+        delayed_row = next(r for r in shipments if r["order_date"] == order_date.isoformat())
+
+        # (a) 원래 예정일: without은 이미 입고돼 재고가 뛰지만, with는 아직 막혀 있다.
+        assert by_date_without[expected_date.isoformat()]["incoming_qty"] > 0
+        assert by_date_with[expected_date.isoformat()]["incoming_qty"] == 0
+        assert (
+            by_date_with[expected_date.isoformat()]["closing_stock"]
+            < by_date_without[expected_date.isoformat()]["closing_stock"]
+        )
+
+        # (b) 실제 도착일: 지연분 전량이 incoming_qty로 credit된다.
+        arrival_row = by_date_with[arrival.isoformat()]
+        assert arrival_row["incoming_qty"] == delayed_row["actual_qty"]
+
+
+class TestDeliveryDelayForcedArrivesLate:
+    """강제 생성 arm(자연 발주 후보가 ±7일 밖 — F4)도 arrives_late를 지원해야, 어느 arm이
+    뽑히든 지연 도착 arm이 안정적으로 재현 가능하다."""
+
+    _ITEM_ROW = {
+        "item_id": "ITEM-Y", "pack_size": "10", "supplier": "테스트공급사2",
+        "atc_code": "A00AA00", "form": "정제",
+    }
+
+    def test_forced_order_arrives_late_when_flagged(self) -> None:
+        days = _synthetic_days()
+        timeline_start = days[0]
+        target_expected = timeline_start + timedelta(days=5)
+        delay_days = 6
+
+        sc = config_mod.Scenario(
+            scenario_id="SC-TEST-FORCED",
+            item_id=self._ITEM_ROW["item_id"],
+            type="delivery_delay",
+            reference="테스트",
+            params={
+                "expected_date": target_expected.isoformat(),
+                "delay_days": delay_days,
+                "qty_ratio": 1.0,
+                "arrives_late": True,
+            },
+        )
+        demand_effects, halt_effects, delay_effects, forced_rows, onset = inject._resolve_effects(
+            sc, self._ITEM_ROW, SEED_A, days
+        )
+        assert not demand_effects and not halt_effects
+        assert not delay_effects, "이 케이스는 강제 생성 arm이어야 한다(자연 발주가 없어야 함)"
+        assert len(forced_rows) == 1
+        row = forced_rows[0]
+        assert row["actual_date"] == (target_expected + timedelta(days=delay_days)).isoformat()
+        assert row["actual_qty"] == row["expected_qty"]
+        assert row["status"] == "입고 완료"
+        assert onset == target_expected
+
+    def test_forced_order_without_flag_stays_unfulfilled(self) -> None:
+        """회귀: arrives_late를 안 주면 강제 생성 arm은 기존처럼 영구 미이행이다."""
+        days = _synthetic_days()
+        timeline_start = days[0]
+        target_expected = timeline_start + timedelta(days=5)
+
+        sc = config_mod.Scenario(
+            scenario_id="SC-TEST-FORCED-2",
+            item_id=self._ITEM_ROW["item_id"],
+            type="delivery_delay",
+            reference="테스트",
+            params={"expected_date": target_expected.isoformat(), "delay_days": 6, "qty_ratio": 1.0},
+        )
+        _de, _he, delay_effects, forced_rows, _onset = inject._resolve_effects(
+            sc, self._ITEM_ROW, SEED_A, days
+        )
+        assert not delay_effects
+        assert len(forced_rows) == 1
+        assert forced_rows[0]["actual_date"] is None
+        assert forced_rows[0]["status"] == "입고 예정"
+
+
+# --- 12. S-22: min_scenarios_per_type 매개변수화(플러밍) ---------------------
+
+
+class TestMinScenariosPerTypeOverride:
+    """블라인드 생성기는 유형당 시나리오 1개(표준 최소 4개 미만)로 inject_scenarios
+    전체 오케스트레이션(베이스라인+주입+해시+라벨)을 그대로 재사용해야 한다. 재사용하는
+    (품목, 파라미터) 4쌍은 표준 config의 SC-003·SC-008·SC-011·SC-016과 동일하다 — 이미
+    '실제로 효과가 있다'고 검증된 조합이며, 품목별 시뮬레이션은 서로 독립적이라 20건 중
+    4건만 추려도 동일하게 유효하다."""
+
+    def _small_config_yaml(self, tmp_path: Path) -> Path:
+        content = {
+            "version": 1,
+            "base_date": BASE_DATE,
+            "timeline_start": "2025-08-02",
+            "scenarios": [
+                {
+                    "scenario_id": "TEST-DS", "item_id": "ITM-0044", "type": "demand_surge",
+                    "reference": "테스트(SC-003 재사용)",
+                    "params": {
+                        "surge_start_date": "2026-07-10", "ramp_days": 7,
+                        "peak_multiplier": 2.2, "sustain": True,
+                    },
+                },
+                {
+                    "scenario_id": "TEST-SH", "item_id": "ITM-0103", "type": "supply_halt",
+                    "reference": "테스트(SC-008 재사용)",
+                    "params": {"halt_start_date": "2026-07-03", "expected_restart_date": None},
+                },
+                {
+                    "scenario_id": "TEST-DD", "item_id": "ITM-0026", "type": "delivery_delay",
+                    "reference": "테스트(SC-011 재사용)",
+                    "params": {"expected_date": "2026-07-27", "delay_days": 5, "qty_ratio": 1.0},
+                },
+                {
+                    "scenario_id": "TEST-CP", "item_id": "ITM-0001", "type": "composite",
+                    "reference": "테스트(SC-016 재사용)",
+                    "params": {
+                        "sub_scenarios": [
+                            {
+                                "type": "demand_surge",
+                                "params": {
+                                    "surge_start_date": "2026-06-18", "ramp_days": 14,
+                                    "peak_multiplier": 2.4, "sustain": True,
+                                },
+                            },
+                            {
+                                "type": "supply_halt",
+                                "params": {
+                                    "halt_start_date": "2026-07-10",
+                                    "expected_restart_date": "2026-09-15",
+                                },
+                            },
+                        ],
+                    },
+                },
+            ],
+        }
+        path = tmp_path / "small_scenario_config.yaml"
+        path.write_text(
+            yaml.safe_dump(content, allow_unicode=True, sort_keys=False), encoding="utf-8"
+        )
+        return path
+
+    def test_default_rejects_one_per_type_config(self, tmp_path: Path) -> None:
+        config_path = self._small_config_yaml(tmp_path)
+        out = tmp_path / "rejected.db"
+        with pytest.raises(ValueError, match="4개 미만"):
+            inject.inject_scenarios(
+                out, seed=SEED_A, base_date=BASE_DATE, scenario_config_path=config_path
+            )
+
+    def test_min_scenarios_per_type_one_accepts_and_produces_four_labels(
+        self, tmp_path: Path
+    ) -> None:
+        config_path = self._small_config_yaml(tmp_path)
+        out = tmp_path / "accepted.db"
+        summary, labels = inject.inject_scenarios(
+            out, seed=SEED_A, base_date=BASE_DATE,
+            scenario_config_path=config_path, min_scenarios_per_type=1,
+        )
+        assert len(labels) == 4
+        assert {lbl["scenario_type"] for lbl in labels} == {
+            "demand_surge", "supply_halt", "delivery_delay", "composite",
+        }
+        assert out.exists()
+        assert summary.content_hash

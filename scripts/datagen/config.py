@@ -179,12 +179,18 @@ def _validate_scenario_params(
 def validate_scenario_config(
     cfg: ScenarioConfig,
     items_csv: str | Path = Path("data/reference/items_master.csv"),
+    *,
+    min_per_type: int = MIN_SCENARIOS_PER_TYPE,
 ) -> list[str]:
     """cfg를 검사해 위반 메시지 리스트를 반환한다(빈 리스트 = 통과).
 
-    검사 항목: 유형 4종 각 ≥4, 시나리오 품목 비율 ≤30%, item_id 실존, item_id 중복 없음,
-    scenario_id 유일, type 허용값, 앵커 날짜가 timeline_start~base_date 범위,
+    검사 항목: 유형 4종 각 ≥min_per_type, 시나리오 품목 비율 ≤30%, item_id 실존, item_id
+    중복 없음, scenario_id 유일, type 허용값, 앵커 날짜가 timeline_start~base_date 범위,
     reference 비어있지 않음, 유형별 필수 params 키 존재.
+
+    min_per_type 기본값은 MIN_SCENARIOS_PER_TYPE(4)로 표준 config 검증과 동일하다(Task S-22
+    브리프 배경: 블라인드 생성기는 유형당 시나리오 1개만 만들므로, 이 하한을 완화해 호출할
+    수 있게 매개변수화했다 — 개수 검사 로직 자체를 복제하지 않기 위함).
     """
     violations: list[str] = []
     all_item_ids = _load_item_ids(items_csv)
@@ -218,9 +224,9 @@ def validate_scenario_config(
         violations.extend(_validate_scenario_params(sc, cfg.timeline_start, cfg.base_date))
 
     for t in ALLOWED_TYPES:
-        if type_counts[t] < MIN_SCENARIOS_PER_TYPE:
+        if type_counts[t] < min_per_type:
             violations.append(
-                f"유형 '{t}' 시나리오 수가 {MIN_SCENARIOS_PER_TYPE}개 미만: {type_counts[t]}"
+                f"유형 '{t}' 시나리오 수가 {min_per_type}개 미만: {type_counts[t]}"
             )
 
     if all_item_ids:

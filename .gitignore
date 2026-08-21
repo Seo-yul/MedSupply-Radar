@@ -7,3 +7,8 @@ __pycache__/
 .claude/
 docs/superpowers/
 .env
+
+# 블라인드 평가 스냅샷(Task S-22) — DB·봉인 라벨은 생성 산출물이라 미커밋. manifest.json은
+# 봉인 증거(해시 매니페스트)라 예외적으로 커밋 대상이다(data/blind/manifest.json).
+data/blind/*
+!data/blind/manifest.json

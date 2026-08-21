@@ -231,3 +231,65 @@ class TestIsolationPreflight:
                 violations.append(str(path.relative_to(REPO_ROOT)))
 
         assert violations == [], f"격리 위반 후보(문자열 검사): {violations}"
+
+
+class TestMinPerTypeOverride:
+    """min_per_type 매개변수화(Task S-22 브리프 배경) — 블라인드 생성기는 유형당 시나리오
+    1개(표준의 최소 4개보다 적음)만 만들므로, validate_scenario_config가 이 하한을 인자로
+    받을 수 있어야 표준 검증 로직을 복제하지 않고 재사용할 수 있다. 기본값은 기존
+    MIN_SCENARIOS_PER_TYPE(4)과 동일해 표준 config·기존 호출부의 검증 결과는 그대로다.
+    """
+
+    _MINIMAL_PARAMS = {
+        "demand_surge": {
+            "surge_start_date": "2026-07-01", "ramp_days": 7, "peak_multiplier": 1.5,
+            "sustain": True,
+        },
+        "supply_halt": {"halt_start_date": "2026-07-01", "expected_restart_date": None},
+        "delivery_delay": {"expected_date": "2026-07-01", "delay_days": 5, "qty_ratio": 1.0},
+    }
+
+    def _one_per_type_config(self) -> ScenarioConfig:
+        scenarios = tuple(
+            Scenario(
+                scenario_id=f"B-{t.upper()}",
+                item_id=item_id,
+                type=t,
+                reference="블라인드 최소 구성 테스트",
+                params=params,
+            )
+            for t, item_id, params in [
+                ("demand_surge", "ITM-0002", self._MINIMAL_PARAMS["demand_surge"]),
+                ("supply_halt", "ITM-0005", self._MINIMAL_PARAMS["supply_halt"]),
+                ("delivery_delay", "ITM-0006", self._MINIMAL_PARAMS["delivery_delay"]),
+                (
+                    "composite", "ITM-0007",
+                    {"sub_scenarios": [
+                        {"type": "demand_surge", "params": self._MINIMAL_PARAMS["demand_surge"]},
+                    ]},
+                ),
+            ]
+        )
+        return ScenarioConfig(
+            version=1, base_date="2026-08-01", timeline_start="2025-08-02", scenarios=scenarios
+        )
+
+    def test_default_still_rejects_one_per_type(self) -> None:
+        """매개변수를 안 주면 종전과 동일하게(4개 미만) 위반으로 잡는다."""
+        violations = validate_scenario_config(self._one_per_type_config(), items_csv=ITEMS_CSV)
+        assert any("4개 미만" in v for v in violations), violations
+
+    def test_min_per_type_one_accepts_one_per_type(self) -> None:
+        """min_per_type=1이면 유형당 1개짜리 구성도 통과한다(개수 위반만 사라짐 — 다른
+        위반이 없는 최소 구성이라 전체 리스트가 빈 값이어야 한다)."""
+        violations = validate_scenario_config(
+            self._one_per_type_config(), items_csv=ITEMS_CSV, min_per_type=1
+        )
+        assert violations == []
+
+    def test_real_config_unaffected_by_new_keyword_default(self, cfg: ScenarioConfig) -> None:
+        """표준 scenario_config.yaml은 새 키워드를 안 줬을 때와 명시적으로 기본값을 줬을
+        때 결과가 동일해야 한다(하위 호환 회귀 가드)."""
+        assert validate_scenario_config(cfg, items_csv=ITEMS_CSV) == validate_scenario_config(
+            cfg, items_csv=ITEMS_CSV, min_per_type=4
+        )

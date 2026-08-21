@@ -80,18 +80,27 @@ class DelayEffect:
 
     qty_ratio가 있으면 expected_qty를 reorder_qty*qty_ratio(pack 단위 올림)로 줄인다.
     delay_days만큼 대기한 뒤(release_day = expected_date + delay_days) 재시도 슬롯을
-    풀어준다 — 그 특정 발주 자체는 관측 구간 내내 미이행(actual_date=NULL)으로 남지만,
-    이후 재고가 다시 ROP 밑으로 떨어지면 새 발주를 시도할 수 있다(halt와 달리 영구
-    봉쇄가 아니다). expected_date는 실제로 막힌 그 발주의 예정일(대상 선정 결과)이다 —
-    scenario_config.yaml의 expected_date 파라미터는 S-03에서 베이스라인 존재 이전에
-    정해진 "지정" 값이라 실제 발주 리듬과 정확히 일치하지 않을 수 있고(브리프: "가장
-    가까운 주문"), 라벨의 onset_date는 이 실제 값을 써야 onset<stockout이 항상 성립한다.
+    풀어준다 — arrives_late=False(기본값)면 그 특정 발주 자체는 관측 구간 내내
+    미이행(actual_date=NULL)으로 남지만, 이후 재고가 다시 ROP 밑으로 떨어지면 새 발주를
+    시도할 수 있다(halt와 달리 영구 봉쇄가 아니다). expected_date는 실제로 막힌 그 발주의
+    예정일(대상 선정 결과)이다 — scenario_config.yaml의 expected_date 파라미터는 S-03에서
+    베이스라인 존재 이전에 정해진 "지정" 값이라 실제 발주 리듬과 정확히 일치하지 않을 수
+    있고(브리프: "가장 가까운 주문"), 라벨의 onset_date는 이 실제 값을 써야 onset<stockout이
+    항상 성립한다.
+
+    arrives_late(Task S-22): True면 release_day에 그 발주가 결국 도착한다(actual_date=
+    release_day, actual_qty=expected_qty, status="입고 완료") — expected_date < actual_date인
+    행이 생긴다. 2주차 리뷰 F6 이월: 표준 스냅샷은 이 arm이 0건이라
+    medsupply.analytics.asof의 as_of 기준 재구성(S-17d, "미래 도착 스탬프로 과거 시점을
+    소급 왜곡하지 않는다")을 실데이터로 검증한 적이 없었다 — 블라인드 생성기가 이 공백을
+    메운다. 기본값 False는 종전 동작(영구 미이행) 그대로다.
     """
 
     order_date: date
     expected_date: date
     delay_days: int
     qty_ratio: float | None
+    arrives_late: bool = False
 
 
 def _combined_demand_multiplier(d: date, effects: tuple[DemandEffect, ...]) -> float:
@@ -186,6 +195,7 @@ def simulate_item_with_scenario(
     pending_expected: date | None = None
     pending_blocked = False
     pending_release_day: date | None = None
+    pending_arrives_late = False
 
     truncation_count = 0
     halt_blocked_order_dates: set[str] = set()
@@ -217,6 +227,25 @@ def simulate_item_with_scenario(
             pending_row["status"] = "입고 완료"
             pending_row = None
             pending_expected = None
+            pending_arrives_late = False
+        elif (
+            pending_row is not None
+            and pending_blocked
+            and pending_arrives_late
+            and pending_release_day is not None
+            and d == pending_release_day
+        ):
+            # S-22 지연 '도착' arm: 막혔던 발주가 release_day에 결국 도착한다(expected_date
+            # < actual_date인 행). 아래 "포기" 분기와 달리 incoming을 실제로 credit한다.
+            incoming = int(pending_row["expected_qty"])  # type: ignore[arg-type]
+            pending_row["actual_date"] = d.isoformat()
+            pending_row["actual_qty"] = incoming
+            pending_row["status"] = "입고 완료"
+            pending_row = None
+            pending_expected = None
+            pending_blocked = False
+            pending_release_day = None
+            pending_arrives_late = False
 
         if (
             pending_row is not None
@@ -228,6 +257,7 @@ def simulate_item_with_scenario(
             pending_expected = None
             pending_blocked = False
             pending_release_day = None
+            pending_arrives_late = False
 
         stock = stock - usage + incoming
 
@@ -278,6 +308,7 @@ def simulate_item_with_scenario(
             pending_expected = expected_date
             pending_blocked = blocked_by_halt or (delay_eff is not None)
             pending_release_day = release_day
+            pending_arrives_late = bool(delay_eff is not None and delay_eff.arrives_late)
 
     trace = ScenarioTrace(
         halt_blocked_order_dates=frozenset(halt_blocked_order_dates),
@@ -411,6 +442,9 @@ def _resolve_effects(
             qty_ratio = params.get("qty_ratio")
             qty_ratio_f = float(qty_ratio) if qty_ratio is not None else None
             delay_days = int(params["delay_days"])
+            # S-22 지연 '도착' arm: True면 이 발주는 release_day(expected_date+delay_days)에
+            # 결국 도착한다(expected_date < actual_date). 기본 False는 종전처럼 영구 미이행.
+            arrives_late = bool(params.get("arrives_late", False))
 
             matched = _closest_order(dry_shipments, target_expected)
             offset = (
@@ -428,6 +462,7 @@ def _resolve_effects(
                         expected_date=matched_expected_date,
                         delay_days=delay_days,
                         qty_ratio=qty_ratio_f,
+                        arrives_late=arrives_late,
                     )
                 )
                 resolved_onsets.append(matched_expected_date)
@@ -441,17 +476,35 @@ def _resolve_effects(
                         reorder_qty * qty_ratio_f, int(item_row["pack_size"])
                     )
                 forced_order_date = target_expected - timedelta(days=item_lead_time)
-                forced_rows.append(
-                    {
-                        "item_id": item_row["item_id"],
-                        "order_date": forced_order_date.isoformat(),
-                        "expected_date": target_expected.isoformat(),
-                        "expected_qty": int(forced_qty),
-                        "actual_date": None,
-                        "actual_qty": None,
-                        "status": "입고 예정",
-                    }
-                )
+                if arrives_late:
+                    # 강제 생성 발주는 day-loop 상태기계 밖에서 만들어지는 합성 행이라(재고
+                    # 궤적에 영향 없음, 기존 설계) 자연 arm처럼 시뮬레이션으로 도착을 만들
+                    # 수 없다 — 대신 도착 필드를 직접 채운다. release_day는 자연 arm과 동일한
+                    # 공식(expected_date+delay_days)을 쓴다.
+                    arrival_date = target_expected + timedelta(days=delay_days)
+                    forced_rows.append(
+                        {
+                            "item_id": item_row["item_id"],
+                            "order_date": forced_order_date.isoformat(),
+                            "expected_date": target_expected.isoformat(),
+                            "expected_qty": int(forced_qty),
+                            "actual_date": arrival_date.isoformat(),
+                            "actual_qty": int(forced_qty),
+                            "status": "입고 완료",
+                        }
+                    )
+                else:
+                    forced_rows.append(
+                        {
+                            "item_id": item_row["item_id"],
+                            "order_date": forced_order_date.isoformat(),
+                            "expected_date": target_expected.isoformat(),
+                            "expected_qty": int(forced_qty),
+                            "actual_date": None,
+                            "actual_qty": None,
+                            "status": "입고 예정",
+                        }
+                    )
                 resolved_onsets.append(target_expected)
 
         else:
@@ -495,7 +548,18 @@ def _assert_effects_effective(
 
     for row in forced_rows:
         if row["actual_date"] is not None:
-            raise ValueError(f"{scenario_id}: 강제 생성 발주가 이행 상태로 기록됐다(구현 오류)")
+            # S-22: arrives_late=True인 강제 생성 발주는 예정일보다 "늦게" 도착하는 것이
+            # 정당한 의도된 결과다(expected_date < actual_date) — 예정일 이전/당일에
+            # 이행된 것처럼 보이는 경우만 구현 오류로 본다(그 경우 "지연"이라는 전제 자체가
+            # 깨진다). arrives_late 미사용 표준 config는 forced_rows의 actual_date가 항상
+            # None이라 이 분기 자체에 진입하지 않는다(회귀 영향 없음).
+            actual = date.fromisoformat(str(row["actual_date"]))
+            expected = date.fromisoformat(str(row["expected_date"]))
+            if actual <= expected:
+                raise ValueError(
+                    f"{scenario_id}: 강제 생성 발주가 예정일 이전/당일에 이행 상태로"
+                    " 기록됐다(구현 오류)"
+                )
 
     if demand_effects:
         # demand_effects만 뺀 반사실(counterfactual)과 비교해 사용량이 실제로 달라졌는지
@@ -584,16 +648,22 @@ def inject_scenarios(
     items_csv: str | Path | None = None,
     reference_dir: str | Path = baseline.DEFAULT_REFERENCE_DIR,
     schema_path: str | Path = baseline.DEFAULT_SCHEMA_PATH,
+    min_scenarios_per_type: int = config.MIN_SCENARIOS_PER_TYPE,
 ) -> tuple[GenerationSummary, list[dict[str, object]]]:
-    """베이스라인 생성 후 scenario_config.yaml의 20건을 결정적으로 재시뮬레이션 주입한다.
+    """베이스라인 생성 후 scenario_config.yaml의 시나리오를 결정적으로 재시뮬레이션 주입한다.
 
-    반환: (요약, 라벨 20건 리스트). out_path에 최종 SQLite DB를 쓴다(기존 파일은
-    baseline.generate_baseline이 삭제 후 재생성). 시나리오 품목이 아닌 나머지 품목은
+    반환: (요약, 라벨 리스트 — 표준 config는 20건). out_path에 최종 SQLite DB를 쓴다(기존
+    파일은 baseline.generate_baseline이 삭제 후 재생성). 시나리오 품목이 아닌 나머지 품목은
     베이스라인 결과와 완전히 동일하게 남는다(재시뮬레이션 대상이 아니므로).
 
     action_history_seed.csv 적재는 이 함수의 책임이 아니다(브리프: 적재는 S-13 소관,
     이 함수는 순수 시나리오 주입 + 라벨 도출까지만 담당). 필요하면
     load_action_history_seed를 별도로 호출한다.
+
+    min_scenarios_per_type(Task S-22): config.validate_scenario_config로 그대로 전달되는
+    유형별 최소 개수 하한. 기본값은 config.MIN_SCENARIOS_PER_TYPE(4)로 표준 config 검증과
+    동일하다 — 블라인드 생성기(유형당 시나리오 1개)가 이 오케스트레이션 전체(베이스라인
+    생성+주입+해시+라벨 도출)를 복제하지 않고 재사용할 수 있도록 매개변수화했다.
     """
     start = time.monotonic()
 
@@ -608,7 +678,9 @@ def inject_scenarios(
     days = [timeline_start + timedelta(days=i) for i in range(365)]
 
     cfg = config.load_scenario_config(scenario_config_path)
-    violations = config.validate_scenario_config(cfg, items_csv=items_csv_path)
+    violations = config.validate_scenario_config(
+        cfg, items_csv=items_csv_path, min_per_type=min_scenarios_per_type
+    )
     if violations:
         raise ValueError("시나리오 config 검증 실패:\n" + "\n".join(violations))
 
