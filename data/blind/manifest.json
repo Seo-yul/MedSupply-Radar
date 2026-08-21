@@ -1,0 +1,145 @@
+{
+  "version": 1,
+  "runs": [
+    {
+      "seed": 20260901,
+      "db_file": "blind_20260901.db",
+      "db_sha256": "1aaa38d8432eecb4152ca880597493dc8a63e7a8bf342bc7a25a02f3136f6da0",
+      "labels_file": "blind_20260901.labels.json",
+      "labels_sha256": "f2c6598aca99e6cf1acb5146ed6e8cb83c7e1a505381e58fe7ae7d0c703b7381",
+      "content_hash": "f7bb9cac8535a2f1b5bb89c08f6f41b1a1c684f086a13d13ea43369a659fcb3b",
+      "params_summary": {
+        "seed": 20260901,
+        "base_date": "2026-08-01",
+        "item_count": 124,
+        "scenario_item_count": 4,
+        "scenario_type_counts": {
+          "demand_surge": 1,
+          "supply_halt": 1,
+          "delivery_delay": 1,
+          "composite": 1
+        },
+        "has_delayed_arrival_arm": true,
+        "attempts_used": 1,
+        "decoy_counts": {
+          "candidate_count": 120,
+          "minor_delay_count": 18,
+          "safe_overdue_eligible_count": 10,
+          "safe_overdue_count": 10
+        }
+      }
+    },
+    {
+      "seed": 20260902,
+      "db_file": "blind_20260902.db",
+      "db_sha256": "6a36fb1e11d18c7db56d0aa274a520d200eb4af48774fb33deae89c3f67f9f29",
+      "labels_file": "blind_20260902.labels.json",
+      "labels_sha256": "6f728273b8991fea099075ac26a04512a0c410c59e3a6551e427b6e454bd2afc",
+      "content_hash": "110a442d1a3084f1838631bd427a149efaa190c57e582a60e26843b2caaa1f2b",
+      "params_summary": {
+        "seed": 20260902,
+        "base_date": "2026-08-01",
+        "item_count": 124,
+        "scenario_item_count": 4,
+        "scenario_type_counts": {
+          "demand_surge": 1,
+          "supply_halt": 1,
+          "delivery_delay": 1,
+          "composite": 1
+        },
+        "has_delayed_arrival_arm": true,
+        "attempts_used": 1,
+        "decoy_counts": {
+          "candidate_count": 120,
+          "minor_delay_count": 14,
+          "safe_overdue_eligible_count": 9,
+          "safe_overdue_count": 9
+        }
+      }
+    },
+    {
+      "seed": 20260903,
+      "db_file": "blind_20260903.db",
+      "db_sha256": "50b2225140c37579951547d8dd14e10011375872d089c142f2594f7eb225ee26",
+      "labels_file": "blind_20260903.labels.json",
+      "labels_sha256": "b10be0315a3040c25a2f5db18484345a2d7cc7df6c0117f5c7a80d410f0a65b8",
+      "content_hash": "cfdd2fbce2e122f256908a9d6fe82b37e126eb6a6594eefaf30f51838825b13b",
+      "params_summary": {
+        "seed": 20260903,
+        "base_date": "2026-08-01",
+        "item_count": 124,
+        "scenario_item_count": 4,
+        "scenario_type_counts": {
+          "demand_surge": 1,
+          "supply_halt": 1,
+          "delivery_delay": 1,
+          "composite": 1
+        },
+        "has_delayed_arrival_arm": true,
+        "attempts_used": 1,
+        "decoy_counts": {
+          "candidate_count": 120,
+          "minor_delay_count": 13,
+          "safe_overdue_eligible_count": 3,
+          "safe_overdue_count": 3
+        }
+      }
+    },
+    {
+      "seed": 20260904,
+      "db_file": "blind_20260904.db",
+      "db_sha256": "cf5e2d9a4936d04b719f0bdbe4af701bd56fc7fb43f75a5ce14a6c6f901a1a75",
+      "labels_file": "blind_20260904.labels.json",
+      "labels_sha256": "647997dd8a34565fdc90821b8719325a09562a993ed5faed51a022da1a4d36a9",
+      "content_hash": "ea7fdd6e39ff84cb3d1e1da697ded607ac7ad8e8717852cc83f67cdd5376d7ac",
+      "params_summary": {
+        "seed": 20260904,
+        "base_date": "2026-08-01",
+        "item_count": 124,
+        "scenario_item_count": 4,
+        "scenario_type_counts": {
+          "demand_surge": 1,
+          "supply_halt": 1,
+          "delivery_delay": 1,
+          "composite": 1
+        },
+        "has_delayed_arrival_arm": true,
+        "attempts_used": 2,
+        "decoy_counts": {
+          "candidate_count": 120,
+          "minor_delay_count": 10,
+          "safe_overdue_eligible_count": 9,
+          "safe_overdue_count": 9
+        }
+      }
+    },
+    {
+      "seed": 20260905,
+      "db_file": "blind_20260905.db",
+      "db_sha256": "28eb61c44d850c384554f4acf586424ee4e4c4b46d85cc9a3087f4db2b2819bc",
+      "labels_file": "blind_20260905.labels.json",
+      "labels_sha256": "0b63451945f2affdde6ba59c14f4194ce8b66fe8d7f6c16d55b43c3029c97456",
+      "content_hash": "a073c102491183bc5729abbcb2462b630babb07d91dabcee6a6925bc8e603622",
+      "params_summary": {
+        "seed": 20260905,
+        "base_date": "2026-08-01",
+        "item_count": 124,
+        "scenario_item_count": 4,
+        "scenario_type_counts": {
+          "demand_surge": 1,
+          "supply_halt": 1,
+          "delivery_delay": 1,
+          "composite": 1
+        },
+        "has_delayed_arrival_arm": true,
+        "attempts_used": 1,
+        "decoy_counts": {
+          "candidate_count": 120,
+          "minor_delay_count": 15,
+          "safe_overdue_eligible_count": 8,
+          "safe_overdue_count": 8
+        }
+      }
+    }
+  ]
+}
