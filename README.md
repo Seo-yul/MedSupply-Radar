@@ -138,7 +138,7 @@ verify_reproducibility 74초 — 5개 합계 약 106초. 재현된 수치는 §�
 pip install -r requirements-dev.txt   # pytest만 추가로 필요
 .venv/bin/python -m pytest tests/ -q
 ```
-현재 **1231 passed, 4 skipped**.
+현재 **1297 passed, 4 skipped**.
 
 **격리 가드**: `tests/test_isolation.py`가 저장소 전역을 ast로 정적 검사해 "로직이 정답을
 볼 수 없다"를 기계적으로 강제한다 — 순방향(`medsupply/`+`app.py`+지정된 `scripts/` 일부는
@@ -153,8 +153,7 @@ pip install -r requirements-dev.txt   # pytest만 추가로 필요
 ## 데이터 주의
 
 - `data/medsupply.db`·`data/llm_cache.db`·`data/blind/`는 **미추적**(git에 커밋되지 않음
-  — `data/blind/*`는 `.gitignore`로 명시 제외되어 있고, `data/medsupply.db`·
-  `data/llm_cache.db`는 gitignore 규칙은 없지만 관례상 커밋 대상이 아니다). 지워지거나
+  — 셋 다 `.gitignore`로 명시 제외되어 있다). 지워지거나
   손상되면 위 ③(+ LLM 기능을 쓴 적이 있다면 §LLM 기능의 런북)으로 다시 만든다.
 - **`validate_dataset` 검사 9(action_history 시드 8건)**는 앱(검토 워크벤치)에서 조치를
   저장하면 `action_history` 행수가 8건을 넘어가 **자연히 FAIL로 바뀐다 — 이것은 정상
