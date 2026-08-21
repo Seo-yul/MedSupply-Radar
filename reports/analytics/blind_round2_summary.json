@@ -1,0 +1,800 @@
+{
+  "meta": {
+    "task": "S-30c",
+    "round": 2,
+    "protocol": "생성 → validate 11/11 → 봉인(manifest round2 절) → 예측(라벨 미접근) → 예측 해시 커밋 → 개봉 채점",
+    "seed_preregistration": {
+      "seeds": [
+        20260911,
+        20260912,
+        20260913,
+        20260914,
+        20260915
+      ],
+      "source": "task-S30c-brief.md §C(변경 금지)",
+      "note": "브리프에 사전 등록된 시드를 그대로 썼다 — 결과를 본 뒤 시드를 바꾸거나 추가하지 않았다."
+    },
+    "sweep": {
+      "start": "2026-07-01",
+      "end": "2026-08-01",
+      "days": 32
+    },
+    "grade_watch_days": 30,
+    "params_ref": "config/analytics_params.toml",
+    "config_hash": "6ec9bf05",
+    "predict_commit": {
+      "hash": "3928cb0f6261faf8a5fcc5e75fc036dd7981c301",
+      "message": "feat: seal second blind round",
+      "files": [
+        "data/blind/manifest.json"
+      ]
+    },
+    "prediction_hash_verification": {
+      "status": "PASS",
+      "checked": [
+        {
+          "seed": 20260911,
+          "manifest_sha256": "8f048b6b977b82d1653549255aabed88154e60329dd3fd3f49f9511dfdeceb7b"
+        },
+        {
+          "seed": 20260912,
+          "manifest_sha256": "6d8bfc9b0301d1a1c47e640fe8dfffd23a31782435221ba044dfad263b8fbc09"
+        },
+        {
+          "seed": 20260913,
+          "manifest_sha256": "9e5d6504f532289cfce777b94328ca4f3bab8d64b9c60844fecd9738a77db51a"
+        },
+        {
+          "seed": 20260914,
+          "manifest_sha256": "f66ed71f2d245fd69edb9907579e98a5e40661821346be81ee47543d9e091136"
+        },
+        {
+          "seed": 20260915,
+          "manifest_sha256": "671487babb6080a2725cbb33d02ed0459e54926c681f768a0fd5d67cecafa88c"
+        }
+      ],
+      "detail": "커밋 이후 채점 직전 5/5 재검증 통과(data/blind/tmp/round2_verify_and_score.py, 로그 data/blind/tmp/logs/round2_score_stage.log). 채점 후 sealed 라벨 sha256도 manifest labels_sha256과 5/5 일치 확인."
+    },
+    "round1_preserved": "1차(S-30) 산출물은 하나도 수정·삭제하지 않았다 — reports/analytics/blind_summary.json·blind_2026090*_metrics.json, manifest.json의 runs(20260901~05)·최상위 predictions 절 전부 바이트 불변."
+  },
+  "design_fixes": {
+    "A_placement_and_decoys": [
+      "blind_ranges.yaml에 measurement_window 절 신설 — 관측 가능 창 [스윕 시작, 스윕 종료 + watch_days] = [2026-07-01, 2026-08-31].",
+      "scenario_start_offset_days_range: -240~-30 → -52~-16(상한은 arrives_late 도착일이 타임라인 안에 남아야 하는 구조적 제약).",
+      "inject: _assert_effects_effective의 관측 품절 창 검사 + assert_labels_observable(외삽 포함) — 창 밖이면 재추첨.",
+      "max_generation_attempts 20 → 40.",
+      "미끼 적격성 통일: 두 미끼 모두 '스윕 구간 최저 커버리지(창 내 min(closing_stock)/평균 사용량) > 44' 품목만(base_date 한 점 측정 폐기)."
+    ],
+    "B_scoring_diagnostics": [
+      "measure_detection: unscoreable_labels 절(스윕 시작 이전 품절 라벨 카운터·목록) + stderr 경고. 채점 산식은 무변경.",
+      "within_horizon 지평 기준에 하한(sweep_start <= stockout_date) 추가, criterion 문자열 갱신.",
+      "labels.derive_labels(annotate_attribution=True)로 블라인드 라벨에만 scenario_attribution 표기(extrapolated → unverified_extrapolation)."
+    ],
+    "freeze_proofs": {
+      "standard_two_stage_regeneration_content_hash": "c34bf4cb9215e1ba4b7a21c9d0f1d7236e2164ae08b630bf54fdf82d4c2f6483 (generate_dataset + load_notices, validate_dataset 11/11 PASS)",
+      "standard_labels_sha256": "84e6f5c9377d6307fa130fe6905ce43181a6c58e2afb0662ac7b87cac8af67ab (불변)",
+      "detection_metrics_json": "파일 무수정. 표준 스냅샷 재측정 결과를 전수 비교한 결과 차이는 3건 전부 비수치였다(신규 unscoreable_labels 절, within_horizon.criterion 문자열, within_horizon.sweep_start). 수치 항목은 전 항목 불변(감지 0.9, 오탐 0.4519…, 정밀도 1.0, 지평 내 14/15·제외 5, 문턱별 전부 동일, 표준 unscoreable=0).",
+      "overdue_cutoff": "무접촉(동결) — 무임계 취약점은 문서화만 했다."
+    }
+  },
+  "standard_snapshot_reference": {
+    "source": "reports/analytics/detection_metrics.json",
+    "dataset_content_hash": "c34bf4cb9215e1ba4b7a21c9d0f1d7236e2164ae08b630bf54fdf82d4c2f6483",
+    "detection_rate": 0.9,
+    "false_positive_rate": 0.4519230769230769,
+    "danger_precision": 1.0,
+    "lead_days": {
+      "min": 3,
+      "median": 26.5,
+      "mean": 27.56,
+      "max": 75
+    },
+    "risk_type_match_overall": 0.25,
+    "counts": {
+      "labeled": 20,
+      "normal": 104,
+      "detected": 18,
+      "false_positives": 47
+    }
+  },
+  "round1_reference": {
+    "source": "reports/analytics/blind_summary.json (무수정 인용)",
+    "aggregate": {
+      "detection_rate": {
+        "mean": 0.35,
+        "min": 0.25,
+        "max": 0.5
+      },
+      "false_positive_rate": {
+        "mean": 0.555,
+        "min": 0.475,
+        "max": 0.6
+      },
+      "danger_precision": {
+        "mean": 0.7667,
+        "min": 0.5,
+        "max": 1.0
+      },
+      "lead_days_median": {
+        "mean": 45.5,
+        "min": 32,
+        "max": 61.5
+      },
+      "risk_type_match_overall": {
+        "mean": 0.2,
+        "min": 0.0,
+        "max": 0.25
+      },
+      "within_horizon_threshold_watch_detection_rate": {
+        "mean": 0.3,
+        "min": 0.25,
+        "max": 0.3333
+      }
+    },
+    "unscoreable_labels": {
+      "per_seed": {
+        "20260901": 2,
+        "20260902": 2,
+        "20260903": 2,
+        "20260904": 3,
+        "20260905": 3
+      },
+      "total": 12,
+      "labels_total": 20,
+      "note": "1차 채점 시점에는 이 진단이 없었다 — 봉인 라벨(무수정)과 기록된 스윕 시작일만으로 사후 산출한 사실 진술이다. S-30b §1의 12/20과 일치한다. 1차 metrics 파일은 재작성하지 않았다."
+    }
+  },
+  "blind_results": [
+    {
+      "seed": 20260911,
+      "dataset_content_hash": "96316ece4d20e5281a72df8a818f78827dbbb7f89c261489114889874fd68464",
+      "prediction_sha256": "8f048b6b977b82d1653549255aabed88154e60329dd3fd3f49f9511dfdeceb7b",
+      "attempts_used": 1,
+      "decoy_counts": {
+        "candidate_count": 120,
+        "eligible_count": 0,
+        "minor_delay_count": 0,
+        "safe_overdue_count": 0
+      },
+      "detection_rate": 1.0,
+      "false_positive_rate": 0.49166666666666664,
+      "danger_precision": 1.0,
+      "lead_days": {
+        "min": 0,
+        "median": 19.5,
+        "mean": 20.75,
+        "max": 44
+      },
+      "counts": {
+        "labeled": 4,
+        "normal": 120,
+        "detected": 4,
+        "false_positives": 59
+      },
+      "risk_type_match": {
+        "overall": 0.25,
+        "counts": {
+          "labeled": 4,
+          "matched": 1
+        }
+      },
+      "within_horizon": {
+        "criterion": "sweep_start <= stockout_date <= sweep_end + grade.watch_days",
+        "counts": {
+          "labeled_total": 4,
+          "labeled_in_horizon": 4,
+          "excluded": 0
+        },
+        "threshold_watch_detection_rate": 1.0,
+        "threshold_warning_detection_rate": 1.0
+      },
+      "unscoreable_labels": {
+        "labeled_total": 4,
+        "unscoreable": 0
+      },
+      "label_stockout_offsets_vs_base_date": [
+        -31,
+        -23,
+        13,
+        14
+      ],
+      "label_attribution_counts": {
+        "observed_stockout": 2,
+        "unverified_extrapolation": 2
+      },
+      "by_type": {
+        "composite": {
+          "labeled": 1,
+          "detected": 1,
+          "detection_rate": 1.0,
+          "lead_days": {
+            "min": 0,
+            "median": 0,
+            "mean": 0,
+            "max": 0
+          }
+        },
+        "delivery_delay": {
+          "labeled": 1,
+          "detected": 1,
+          "detection_rate": 1.0,
+          "lead_days": {
+            "min": 44,
+            "median": 44,
+            "mean": 44,
+            "max": 44
+          }
+        },
+        "demand_surge": {
+          "labeled": 1,
+          "detected": 1,
+          "detection_rate": 1.0,
+          "lead_days": {
+            "min": 31,
+            "median": 31,
+            "mean": 31,
+            "max": 31
+          }
+        },
+        "supply_halt": {
+          "labeled": 1,
+          "detected": 1,
+          "detection_rate": 1.0,
+          "lead_days": {
+            "min": 8,
+            "median": 8,
+            "mean": 8,
+            "max": 8
+          }
+        }
+      }
+    },
+    {
+      "seed": 20260912,
+      "dataset_content_hash": "41e7c393c4c6d58ef408eca5ee8bb4b5fd73fb48892d839ad61e9b786381cafe",
+      "prediction_sha256": "6d8bfc9b0301d1a1c47e640fe8dfffd23a31782435221ba044dfad263b8fbc09",
+      "attempts_used": 6,
+      "decoy_counts": {
+        "candidate_count": 120,
+        "eligible_count": 0,
+        "minor_delay_count": 0,
+        "safe_overdue_count": 0
+      },
+      "detection_rate": 1.0,
+      "false_positive_rate": 0.4166666666666667,
+      "danger_precision": 1.0,
+      "lead_days": {
+        "min": 3,
+        "median": 9.0,
+        "mean": 12.25,
+        "max": 28
+      },
+      "counts": {
+        "labeled": 4,
+        "normal": 120,
+        "detected": 4,
+        "false_positives": 50
+      },
+      "risk_type_match": {
+        "overall": 0.5,
+        "counts": {
+          "labeled": 4,
+          "matched": 2
+        }
+      },
+      "within_horizon": {
+        "criterion": "sweep_start <= stockout_date <= sweep_end + grade.watch_days",
+        "counts": {
+          "labeled_total": 4,
+          "labeled_in_horizon": 4,
+          "excluded": 0
+        },
+        "threshold_watch_detection_rate": 1.0,
+        "threshold_warning_detection_rate": 1.0
+      },
+      "unscoreable_labels": {
+        "labeled_total": 4,
+        "unscoreable": 0
+      },
+      "label_stockout_offsets_vs_base_date": [
+        -23,
+        -19,
+        -17,
+        11
+      ],
+      "label_attribution_counts": {
+        "observed_stockout": 3,
+        "unverified_extrapolation": 1
+      },
+      "by_type": {
+        "composite": {
+          "labeled": 1,
+          "detected": 1,
+          "detection_rate": 1.0,
+          "lead_days": {
+            "min": 3,
+            "median": 3,
+            "mean": 3,
+            "max": 3
+          }
+        },
+        "delivery_delay": {
+          "labeled": 1,
+          "detected": 1,
+          "detection_rate": 1.0,
+          "lead_days": {
+            "min": 12,
+            "median": 12,
+            "mean": 12,
+            "max": 12
+          }
+        },
+        "demand_surge": {
+          "labeled": 1,
+          "detected": 1,
+          "detection_rate": 1.0,
+          "lead_days": {
+            "min": 28,
+            "median": 28,
+            "mean": 28,
+            "max": 28
+          }
+        },
+        "supply_halt": {
+          "labeled": 1,
+          "detected": 1,
+          "detection_rate": 1.0,
+          "lead_days": {
+            "min": 6,
+            "median": 6,
+            "mean": 6,
+            "max": 6
+          }
+        }
+      }
+    },
+    {
+      "seed": 20260913,
+      "dataset_content_hash": "4efd2b3be638b2a7e10f0fc559a8a47147428d0f746f7f6d6fa38795503915b5",
+      "prediction_sha256": "9e5d6504f532289cfce777b94328ca4f3bab8d64b9c60844fecd9738a77db51a",
+      "attempts_used": 2,
+      "decoy_counts": {
+        "candidate_count": 120,
+        "eligible_count": 0,
+        "minor_delay_count": 0,
+        "safe_overdue_count": 0
+      },
+      "detection_rate": 1.0,
+      "false_positive_rate": 0.43333333333333335,
+      "danger_precision": 1.0,
+      "lead_days": {
+        "min": 5,
+        "median": 16.0,
+        "mean": 24,
+        "max": 59
+      },
+      "counts": {
+        "labeled": 4,
+        "normal": 120,
+        "detected": 4,
+        "false_positives": 52
+      },
+      "risk_type_match": {
+        "overall": 0.25,
+        "counts": {
+          "labeled": 4,
+          "matched": 1
+        }
+      },
+      "within_horizon": {
+        "criterion": "sweep_start <= stockout_date <= sweep_end + grade.watch_days",
+        "counts": {
+          "labeled_total": 4,
+          "labeled_in_horizon": 4,
+          "excluded": 0
+        },
+        "threshold_watch_detection_rate": 1.0,
+        "threshold_warning_detection_rate": 1.0
+      },
+      "unscoreable_labels": {
+        "labeled_total": 4,
+        "unscoreable": 0
+      },
+      "label_stockout_offsets_vs_base_date": [
+        -26,
+        -12,
+        15,
+        28
+      ],
+      "label_attribution_counts": {
+        "observed_stockout": 2,
+        "unverified_extrapolation": 2
+      },
+      "by_type": {
+        "composite": {
+          "labeled": 1,
+          "detected": 1,
+          "detection_rate": 1.0,
+          "lead_days": {
+            "min": 5,
+            "median": 5,
+            "mean": 5,
+            "max": 5
+          }
+        },
+        "delivery_delay": {
+          "labeled": 1,
+          "detected": 1,
+          "detection_rate": 1.0,
+          "lead_days": {
+            "min": 59,
+            "median": 59,
+            "mean": 59,
+            "max": 59
+          }
+        },
+        "demand_surge": {
+          "labeled": 1,
+          "detected": 1,
+          "detection_rate": 1.0,
+          "lead_days": {
+            "min": 25,
+            "median": 25,
+            "mean": 25,
+            "max": 25
+          }
+        },
+        "supply_halt": {
+          "labeled": 1,
+          "detected": 1,
+          "detection_rate": 1.0,
+          "lead_days": {
+            "min": 7,
+            "median": 7,
+            "mean": 7,
+            "max": 7
+          }
+        }
+      }
+    },
+    {
+      "seed": 20260914,
+      "dataset_content_hash": "aad28f0bed8b89b6a8307280b9b944f95aacd92a58f9b4ae48486621ff93d034",
+      "prediction_sha256": "f66ed71f2d245fd69edb9907579e98a5e40661821346be81ee47543d9e091136",
+      "attempts_used": 5,
+      "decoy_counts": {
+        "candidate_count": 120,
+        "eligible_count": 0,
+        "minor_delay_count": 0,
+        "safe_overdue_count": 0
+      },
+      "detection_rate": 1.0,
+      "false_positive_rate": 0.44166666666666665,
+      "danger_precision": 1.0,
+      "lead_days": {
+        "min": 4,
+        "median": 19.0,
+        "mean": 18.5,
+        "max": 32
+      },
+      "counts": {
+        "labeled": 4,
+        "normal": 120,
+        "detected": 4,
+        "false_positives": 53
+      },
+      "risk_type_match": {
+        "overall": 0.0,
+        "counts": {
+          "labeled": 4,
+          "matched": 0
+        }
+      },
+      "within_horizon": {
+        "criterion": "sweep_start <= stockout_date <= sweep_end + grade.watch_days",
+        "counts": {
+          "labeled_total": 4,
+          "labeled_in_horizon": 4,
+          "excluded": 0
+        },
+        "threshold_watch_detection_rate": 1.0,
+        "threshold_warning_detection_rate": 0.75
+      },
+      "unscoreable_labels": {
+        "labeled_total": 4,
+        "unscoreable": 0
+      },
+      "label_stockout_offsets_vs_base_date": [
+        -9,
+        -9,
+        12,
+        30
+      ],
+      "label_attribution_counts": {
+        "observed_stockout": 2,
+        "unverified_extrapolation": 2
+      },
+      "by_type": {
+        "composite": {
+          "labeled": 1,
+          "detected": 1,
+          "detection_rate": 1.0,
+          "lead_days": {
+            "min": 4,
+            "median": 4,
+            "mean": 4,
+            "max": 4
+          }
+        },
+        "delivery_delay": {
+          "labeled": 1,
+          "detected": 1,
+          "detection_rate": 1.0,
+          "lead_days": {
+            "min": 32,
+            "median": 32,
+            "mean": 32,
+            "max": 32
+          }
+        },
+        "demand_surge": {
+          "labeled": 1,
+          "detected": 1,
+          "detection_rate": 1.0,
+          "lead_days": {
+            "min": 29,
+            "median": 29,
+            "mean": 29,
+            "max": 29
+          }
+        },
+        "supply_halt": {
+          "labeled": 1,
+          "detected": 1,
+          "detection_rate": 1.0,
+          "lead_days": {
+            "min": 9,
+            "median": 9,
+            "mean": 9,
+            "max": 9
+          }
+        }
+      }
+    },
+    {
+      "seed": 20260915,
+      "dataset_content_hash": "4bc5893ad5523245f912877167a0d6e9f9af73d6b0c2a64ddab8c822dcea43e5",
+      "prediction_sha256": "671487babb6080a2725cbb33d02ed0459e54926c681f768a0fd5d67cecafa88c",
+      "attempts_used": 8,
+      "decoy_counts": {
+        "candidate_count": 120,
+        "eligible_count": 0,
+        "minor_delay_count": 0,
+        "safe_overdue_count": 0
+      },
+      "detection_rate": 1.0,
+      "false_positive_rate": 0.45,
+      "danger_precision": 1.0,
+      "lead_days": {
+        "min": 5,
+        "median": 8.5,
+        "mean": 12,
+        "max": 26
+      },
+      "counts": {
+        "labeled": 4,
+        "normal": 120,
+        "detected": 4,
+        "false_positives": 54
+      },
+      "risk_type_match": {
+        "overall": 0.5,
+        "counts": {
+          "labeled": 4,
+          "matched": 2
+        }
+      },
+      "within_horizon": {
+        "criterion": "sweep_start <= stockout_date <= sweep_end + grade.watch_days",
+        "counts": {
+          "labeled_total": 4,
+          "labeled_in_horizon": 4,
+          "excluded": 0
+        },
+        "threshold_watch_detection_rate": 1.0,
+        "threshold_warning_detection_rate": 1.0
+      },
+      "unscoreable_labels": {
+        "labeled_total": 4,
+        "unscoreable": 0
+      },
+      "label_stockout_offsets_vs_base_date": [
+        -15,
+        -12,
+        -3,
+        8
+      ],
+      "label_attribution_counts": {
+        "observed_stockout": 3,
+        "unverified_extrapolation": 1
+      },
+      "by_type": {
+        "composite": {
+          "labeled": 1,
+          "detected": 1,
+          "detection_rate": 1.0,
+          "lead_days": {
+            "min": 5,
+            "median": 5,
+            "mean": 5,
+            "max": 5
+          }
+        },
+        "delivery_delay": {
+          "labeled": 1,
+          "detected": 1,
+          "detection_rate": 1.0,
+          "lead_days": {
+            "min": 9,
+            "median": 9,
+            "mean": 9,
+            "max": 9
+          }
+        },
+        "demand_surge": {
+          "labeled": 1,
+          "detected": 1,
+          "detection_rate": 1.0,
+          "lead_days": {
+            "min": 26,
+            "median": 26,
+            "mean": 26,
+            "max": 26
+          }
+        },
+        "supply_halt": {
+          "labeled": 1,
+          "detected": 1,
+          "detection_rate": 1.0,
+          "lead_days": {
+            "min": 8,
+            "median": 8,
+            "mean": 8,
+            "max": 8
+          }
+        }
+      }
+    }
+  ],
+  "aggregate": {
+    "detection_rate": {
+      "mean": 1.0,
+      "min": 1.0,
+      "max": 1.0
+    },
+    "false_positive_rate": {
+      "mean": 0.4467,
+      "min": 0.4167,
+      "max": 0.4917
+    },
+    "danger_precision": {
+      "mean": 1.0,
+      "min": 1.0,
+      "max": 1.0
+    },
+    "lead_days_median": {
+      "mean": 14.4,
+      "min": 8.5,
+      "max": 19.5
+    },
+    "risk_type_match_overall": {
+      "mean": 0.3,
+      "min": 0.0,
+      "max": 0.5
+    },
+    "within_horizon_threshold_watch_detection_rate": {
+      "mean": 1.0,
+      "min": 1.0,
+      "max": 1.0
+    },
+    "unscoreable_labels_total": 0,
+    "labels_total": 20,
+    "by_type_detected": {
+      "composite": {
+        "labeled": 5,
+        "detected": 5,
+        "detection_rate": 1.0
+      },
+      "delivery_delay": {
+        "labeled": 5,
+        "detected": 5,
+        "detection_rate": 1.0
+      },
+      "demand_surge": {
+        "labeled": 5,
+        "detected": 5,
+        "detection_rate": 1.0
+      },
+      "supply_halt": {
+        "labeled": 5,
+        "detected": 5,
+        "detection_rate": 1.0
+      }
+    },
+    "risk_type_match_by_type": {
+      "composite": {
+        "labeled": 5,
+        "matched": 0,
+        "match_rate": 0.0
+      },
+      "delivery_delay": {
+        "labeled": 5,
+        "matched": 3,
+        "match_rate": 0.6
+      },
+      "demand_surge": {
+        "labeled": 5,
+        "matched": 3,
+        "match_rate": 0.6
+      },
+      "supply_halt": {
+        "labeled": 5,
+        "matched": 0,
+        "match_rate": 0.0
+      }
+    },
+    "attempts_used": {
+      "values": [
+        1,
+        6,
+        2,
+        5,
+        8
+      ],
+      "mean": 4.4,
+      "max": 8
+    }
+  },
+  "comparison": {
+    "note": "1차와 2차는 **라벨 모집단의 정의가 다르다** — 2차는 배치를 측정 창에 결합했으므로 '측정 가능한 배치 조건부' 표본이다. 따라서 감지율 35.0% → 100.0%는 탐지기가 좋아진 결과가 아니라 **1차에서 구조적으로 채점 불가였던 라벨 12/20이 사라진 결과**로 읽어야 한다(코드·파라미터는 무변경, config_hash 6ec9bf05 동일). 반대로 오탐률은 2차에서 미끼가 0건이라 표준과 like-for-like 비교가 가능해졌다.",
+    "detection_rate": {
+      "standard": 0.9,
+      "round1_mean": 0.35,
+      "round2_mean": 1.0
+    },
+    "false_positive_rate": {
+      "standard": 0.4519230769230769,
+      "round1_mean": 0.555,
+      "round2_mean": 0.4467,
+      "delta_round2_minus_standard": -0.0052,
+      "like_for_like": "2차 정상 600슬롯의 주입 입고 이상은 0건(미끼 적격 0건)이라 표준 정상 104건(0건)과 같은 조건이다. 1차는 109/600(18.2%)이었다 — 1차의 오탐 비교는 성립하지 않았다."
+    },
+    "danger_precision": {
+      "standard": 1.0,
+      "round1_mean": 0.7667,
+      "round2_mean": 1.0
+    },
+    "lead_days_median": {
+      "standard": 26.5,
+      "round1_mean": 45.5,
+      "round2_mean": 14.4
+    },
+    "risk_type_match_overall": {
+      "standard": 0.25,
+      "round1_mean": 0.2,
+      "round2_mean": 0.3
+    },
+    "unscoreable_labels": {
+      "round1": "12/20",
+      "round2": "0/20"
+    }
+  },
+  "disclosures": [
+    "조건부 표집(재추첨) 확대: 2차는 '라벨 4건이 동시에 측정 창 안'을 만족할 때까지 전량 재추첨한다. 실제 attempts_used = [1, 6, 2, 5, 8](평균 4.4, 최대 8). S-22가 고지한 재시도 낙관 편향이 1차보다 커졌다 — 2차 감지율은 '측정 가능하게 배치된 시나리오에 한한' 조건부 성능이며 균등 무작위 시나리오의 기대 성능이 아니다.",
+    "미끼 0건의 대가: 새 적격성 가드 아래 적격 정상 품목이 0건이라 미끼가 하나도 주입되지 않았다. 그 결과 S-22 F1(역산 누출) 방어가 사라졌다 — 실측으로 'actual_date>expected_date OR (actual_date IS NULL AND expected_date<base_date)' SQL은 5개 seed에서 각각 정확히 3개 품목만 걸러내고 전부 시나리오 품목이었다(정상 품목 오탐 0건). 이번 회차의 예측은 그 SQL을 쓰지 않는 고정 파이프라인(run_risk_batch → measure_detection --predict-only)으로만 만들었지만, 설계상의 누출은 실재한다.",
+    "적격 품목이 0건인 근본 이유는 상수 선택이 아니라 무임계 overdue_cutoff다(S-30b §4.3): 이 시뮬레이터의 재발주 저점 커버리지가 8~10일이라 '연체가 걸려도 watch_days 안에 안 들어오는 정상 품목'이 존재하지 않는다. overdue_cutoff는 동결 대상이라 이번 범위 밖이며 문서화만 했다.",
+    "라벨 표본은 여전히 seed당 4건(유형당 1건)으로 매우 작다 — 유형별 비율(2차 4유형 전부 5/5)을 '이 유형은 항상 잡힌다'로 일반화하기엔 근거가 약하다.",
+    "risk_type 일치율은 2차 평균 30.0%로 여전히 낮다(등급은 잡아도 원인 유형은 못 짚는 실패). supply_halt 0/5·composite 0/5로 체계적이다 — 감지율 100%가 이 실패를 가리지 않도록 병기한다."
+  ],
+  "protocol_compliance_statement": "사전 등록 시드 20260911~20260915로 스냅샷을 생성하고(validate_dataset 5/5 모두 11/11 PASS) 사본에 대해 라벨을 전혀 열지 않은 상태로 run_risk_batch.py → measure_detection.py --predict-only를 실행해 예측 파일 5개를 만들었다. 그 sha256을 manifest.json의 round2.predictions에 기록하고 커밋 3928cb0('feat: seal second blind round', manifest 1개 파일만 스테이징)으로 봉인한 뒤에만 data/blind/sealed/의 2차 라벨을 열어 --score를 실행했다. 채점 결과를 이유로 파라미터·문턱·스윕 구간·시드 중 어느 것도 바꾸지 않았다(config_hash=6ec9bf05, 표준과 동일 스윕 2026-07-01~2026-08-01)."
+}
