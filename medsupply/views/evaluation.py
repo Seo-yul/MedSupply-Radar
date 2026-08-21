@@ -103,7 +103,11 @@ def _render_blind_summary(reports: dict) -> None:
     """블라인드 1·2차 요약 — S-31 선행 맥락 지시: 2차(감지 100%·오탐 44.67%
     like-for-like)와 1차를 함께 노출하되, "탐지기 동일·라벨 배치 수정" 메커니즘
     문구를 반드시 붙인다(수치만 단독 노출 금지). 두 리포트는 detection_metrics.json과
-    별개 파일이라 가용성을 독립적으로 판정한다."""
+    별개 파일이라 가용성을 독립적으로 판정한다.
+
+    메커니즘 문구는 **2차 수치가 노출되는 모든 경로에서 무조건 병기**한다(리뷰 F2 —
+    1차가 부재라도 2차만으로 이미 "감지율이 왜 이렇게 높은가"라는 오독 위험이 있으므로,
+    1차 유무와 무관하게 2차가 있으면 항상 붙인다)."""
     blind1 = reports["blind_summary"]
     blind2 = reports["blind_round2_summary"]
     round1_available = _is_available(blind1)
@@ -134,7 +138,7 @@ def _render_blind_summary(reports: dict) -> None:
     else:
         lines.append(f"블라인드 2차: {_PENDING_BADGE}")
 
-    if round1_available and round2_available:
+    if round2_available:
         lines.append(
             "탐지기 동일(코드·파라미터 무변경) · 라벨 배치 수정(시나리오를 측정 창에"
             " 결합)으로 1차에서 채점 불가였던 라벨이 사라진 결과다 — 감지율 상승을"

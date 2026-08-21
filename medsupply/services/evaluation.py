@@ -80,11 +80,14 @@ def _latest_eval_result_path() -> Path | None:
 
 
 def _load_eval_config() -> dict:
+    """{"exists": False} | {"exists": True, "data": dict} | {"exists": True, "error": str}.
+    _load_json_file과 대칭: OSError(디렉터리를 가리키는 등 read_text 자체가 실패하는
+    경우 포함)·yaml.YAMLError 어느 쪽도 예외로 전파하지 않는다."""
     if not EVAL_CONFIG_PATH.exists():
         return {"exists": False}
     try:
         data = yaml.safe_load(EVAL_CONFIG_PATH.read_text(encoding="utf-8")) or {}
-    except yaml.YAMLError as exc:
+    except (OSError, yaml.YAMLError) as exc:
         return {"exists": True, "error": str(exc)}
     return {"exists": True, "data": data}
 

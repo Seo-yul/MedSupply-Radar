@@ -221,6 +221,35 @@ class TestAllReportsPresent:
 
 
 # ---------------------------------------------------------------------------
+# 블라인드 1차 부재 + 2차만 존재 — 메커니즘 문구는 2차 단독으로도 무조건 병기(리뷰 F2)
+# ---------------------------------------------------------------------------
+
+
+class TestBlindSummaryRound2Only:
+    @pytest.fixture()
+    def rendered(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> str:
+        report_paths = _build_full_report_tree(tmp_path)
+        report_paths["blind_summary"].unlink()  # 1차 리포트만 제거(2차는 그대로 유지)
+        _activate(monkeypatch, tmp_path, report_paths=report_paths)
+
+        at = AppTest.from_function(_run_evaluation_page)
+        at.run()
+        assert not at.exception
+        return _rendered_text(at)
+
+    def test_round2_numbers_and_pending_round1_render(self, rendered: str) -> None:
+        assert "100.0%" in rendered  # 블라인드 2차 감지
+        assert "44.67%" in rendered  # 블라인드 2차 오탐(like-for-like)
+        assert "실측 전" in rendered  # 블라인드 1차 자리는 부재 배지로 채워진다
+
+    def test_mechanism_phrase_still_attached_without_round1(self, rendered: str) -> None:
+        # 리뷰 F2: 1차가 부재라도 2차 수치가 노출되는 경로면 메커니즘 문구가 무조건
+        # 병기되어야 한다(수치만 단독 노출 금지 원칙을 1차 유무와 무관하게 지킨다).
+        assert "탐지기 동일" in rendered
+        assert "라벨 배치 수정" in rendered
+
+
+# ---------------------------------------------------------------------------
 # 전부 없음 — "실측 전" 렌더
 # ---------------------------------------------------------------------------
 
@@ -340,6 +369,43 @@ class TestLoadEvalReports:
         # 다른 리포트는 영향받지 않는다.
         assert reports["detection_metrics"]["exists"] is True
         assert "data" in reports["detection_metrics"]
+
+    def test_broken_yaml_config_is_isolated_as_error_without_raising(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """리뷰 F1: eval/config.yaml 파싱 실패도 _load_json_file과 대칭으로 격리돼야
+        한다(예외 전파 금지)."""
+        report_paths = _build_full_report_tree(tmp_path)
+        eval_config_path = tmp_path / "eval" / "config.yaml"
+        eval_config_path.write_text("a: {unclosed: true", encoding="utf-8")
+        _activate(monkeypatch, tmp_path, report_paths=report_paths)
+
+        reports = evaluation_service.load_eval_reports(evaluation_service.current_report_mtimes())
+
+        assert reports["eval_config"]["exists"] is True
+        assert "error" in reports["eval_config"]
+        assert "data" not in reports["eval_config"]
+        # 다른 리포트는 영향받지 않는다.
+        assert reports["detection_metrics"]["exists"] is True
+        assert "data" in reports["detection_metrics"]
+
+    def test_eval_config_path_as_directory_is_isolated_as_error_without_raising(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """리뷰 F1: EVAL_CONFIG_PATH가 파일이 아니라 디렉터리를 가리키면(권한 오류 등과
+        같은 OSError 계열) read_text 자체가 실패한다 — 수정 전에는 yaml.YAMLError만
+        잡아 이 경우 예외가 그대로 전파됐다."""
+        report_paths = _build_full_report_tree(tmp_path)
+        eval_config_path = tmp_path / "eval" / "config.yaml"
+        eval_config_path.unlink()  # _build_full_report_tree가 만든 파일 제거
+        eval_config_path.mkdir()  # 같은 자리에 디렉터리를 둔다
+        _activate(monkeypatch, tmp_path, report_paths=report_paths)
+
+        reports = evaluation_service.load_eval_reports(evaluation_service.current_report_mtimes())
+
+        assert reports["eval_config"]["exists"] is True
+        assert "error" in reports["eval_config"]
+        assert "data" not in reports["eval_config"]
 
     def test_current_report_mtimes_changes_when_a_file_is_touched(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
