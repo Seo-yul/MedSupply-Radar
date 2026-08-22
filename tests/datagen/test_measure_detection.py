@@ -361,6 +361,74 @@ class TestResultMeta:
         assert results["sweep"] == {"start": START, "end": END, "days": 3}
 
 
+class TestExtractionStateMeta:
+    """Task X-3: meta.extraction_state — 공고 반영 상태의 DB 기계 기록(브리프 §1: 테스트 1건).
+
+    기존 출력 스키마·감지 산식은 전혀 바뀌지 않는다(키 추가만) — 이 테스트는 그 새 키의
+    집계 로직만 순수하게 손검산한다(``TestScoreSweep``과 동일한 관례). 자체 최소 DB를
+    구성해 네 값이 서로 뒤섞이지 않고 각각 정확히 구분되게 만든다 — 특히
+    ``active_escalations``는 같은 params_hash 패밀리의 **구run**(2026-07-31, 3건 상향)이
+    아니라 **최신 run**(2026-08-01, 1건 상향)만 세는지를, 두 run의 상향 건수를 서로 다르게
+    둬 판별한다(버그로 전 run을 합산하면 4, 구run만 집으면 3이 나와 정답 1과 갈린다).
+    """
+
+    def test_counts_notices_mapping_and_latest_run_escalations(self) -> None:
+        conn = db.get_connection(":memory:")
+        db.init_db(conn, drop=False)
+        try:
+            conn.executemany(
+                "INSERT INTO items(item_id, item_name) VALUES (?, ?)",
+                [(f"ITM-{i}", f"테스트 품목 {i}") for i in range(1, 6)],
+            )
+            conn.executemany(
+                "INSERT INTO notices(notice_id, published_date, title) VALUES (?, ?, ?)",
+                [(f"N-{i}", "2026-07-01", f"테스트 공고 {i}") for i in range(1, 4)],
+            )
+            conn.executemany(
+                "INSERT INTO notice_extractions(notice_id, payload_json, status)"
+                " VALUES (?, '{}', '자동확정')",
+                [(f"N-{i}",) for i in range(1, 4)],  # extracted_notices = 3
+            )
+            conn.executemany(
+                "INSERT INTO notice_item_map(notice_id, item_id, match_basis, needs_review)"
+                " VALUES (?, ?, 'ingredient', ?)",
+                [
+                    ("N-1", "ITM-1", 0), ("N-1", "ITM-2", 1),  # mapped_rows = 5,
+                    ("N-2", "ITM-3", 0), ("N-2", "ITM-4", 1),  # needs_review_rows = 2
+                    ("N-3", "ITM-5", 0),
+                ],
+            )
+            conn.executemany(
+                "INSERT INTO risk_results(run_id, item_id, as_of, grade, base_grade,"
+                " escalated_by_notice) VALUES (?, ?, ?, '정상', '정상', ?)",
+                [
+                    # 구run(같은 패밀리 aaaa1111, as_of 앞선다) — 상향 3건. 최신 run 판정
+                    # (queries.get_latest_runs)에서 제외돼야 하는 행들이다.
+                    ("2026-07-31#aaaa1111", "ITM-1", "2026-07-31", 1),
+                    ("2026-07-31#aaaa1111", "ITM-2", "2026-07-31", 1),
+                    ("2026-07-31#aaaa1111", "ITM-3", "2026-07-31", 1),
+                    # 최신 run — 상향 1건만(ITM-1). active_escalations의 정답은 이 1건뿐이다.
+                    ("2026-08-01#aaaa1111", "ITM-1", "2026-08-01", 1),
+                    ("2026-08-01#aaaa1111", "ITM-2", "2026-08-01", 0),
+                    ("2026-08-01#aaaa1111", "ITM-3", "2026-08-01", 0),
+                    ("2026-08-01#aaaa1111", "ITM-4", "2026-08-01", 0),
+                    ("2026-08-01#aaaa1111", "ITM-5", "2026-08-01", 0),
+                ],
+            )
+            conn.commit()
+
+            state = md._extraction_state(conn)
+        finally:
+            conn.close()
+
+        assert state == {
+            "extracted_notices": 3,
+            "mapped_rows": 5,
+            "needs_review_rows": 2,
+            "active_escalations": 1,
+        }
+
+
 class TestUnscoreableLabelDiagnostics:
     """Task S-30c B: 채점 규칙상 성공이 불가능한 라벨(stockout_date < 스윕 시작)을 세어
     진단으로 병기한다. S-30b: 1차 블라인드 라벨 20건 중 12건이 그 상태였는데 리포트에

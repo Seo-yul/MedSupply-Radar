@@ -51,6 +51,8 @@ metrics-spec의 공통 meta/results 헤더는 **최종 결과 JSON**(``--out``)�
     {
       "dataset_content_hash": "...", "config_hash": "...", "params_ref": "...",
       "generated_at": "...", "sweep": {"start", "end", "days"},
+      "extraction_state": {"extracted_notices", "mapped_rows", "needs_review_rows",
+          "active_escalations"},
       "predictions": {"<item_id>": {"<date ISO>": "<grade>", ...}, ...},
       "risk_types": {"<item_id>": {"<date ISO>": "<risk_type>", ...}, ...}
     }
@@ -60,6 +62,17 @@ metrics-spec의 공통 meta/results 헤더는 **최종 결과 JSON**(``--out``)�
 채점 시각으로 달라진다). ``risk_types``는 S-17에서 추가된 필드로, 이것이 있어야 2단계
 경로도 일괄 실행과 동일한 ``risk_type_match``를 산출한다 — 이 필드가 없는 옛 예측 파일을
 ``--score``에 넣으면 ``risk_type_match``만 null이 되고 나머지 지표는 그대로 나온다.
+``extraction_state``도 같은 방식이다(Task X-3) — 없는 옛 예측 파일을 ``--score``에 넣으면
+최종 meta의 ``extraction_state``만 null이 된다.
+
+## meta.extraction_state(Task X-3)
+최종 결과 JSON의 ``meta``에 ``extraction_state`` 블록이 병기된다 — DB에서 집계한
+``{extracted_notices, mapped_rows, needs_review_rows, active_escalations}``(정의는
+``_extraction_state`` docstring). **측정 조건의 기계 기록일 뿐 산식이 아니다** — 감지·
+오탐·선행일수·문턱은 이 블록과 무관하게 종전과 동일하게 계산된다. 공고가 추출·매핑되지
+않은 DB에 대해 실행하면 전부 0이 나오고(공고 미반영 조건), `process_notices.py --all`
+실행 후의 DB에 대해 실행하면 실제 집계값이 나온다(공고 반영 조건) — 이 블록의 값 자체가
+"어느 조건에서 측정했는가"의 증거가 된다.
 """
 
 from __future__ import annotations
@@ -81,6 +94,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from medsupply.analytics.params import AnalyticsParams, load_params  # noqa: E402
 from medsupply.analytics.pipeline import assess_snapshot  # noqa: E402
 from medsupply.data import db  # noqa: E402
+from medsupply.data import queries  # noqa: E402
 
 #: '주의' 이상(주의·경고·위험) — 감지·오탐 판정에 쓰는 등급 집합(기본 문턱, 변경 금지).
 ALERT_GRADES = frozenset({"주의", "경고", "위험"})
@@ -177,6 +191,57 @@ def run_sweep(conn, start: date, end: date, params: AnalyticsParams) -> dict[str
 def _dataset_content_hash(conn) -> str | None:
     row = conn.execute("SELECT value FROM meta WHERE key = 'content_hash'").fetchone()
     return row[0] if row is not None else None
+
+
+def _extraction_state(conn) -> dict:
+    """공고 반영 상태의 DB 기계 기록(``meta.extraction_state``, Task X-3).
+
+    측정이 "공고 반영 조건"인지 "공고 미반영 조건"인지는 판정 파라미터가 아니라 DB
+    상태(공고 추출·매핑·최신 run의 활성 상향)가 결정한다. 이 함수는 그 상태를 그대로
+    세어 meta에 병기할 dict로 돌려준다 — **감지·오탐·선행일수 산식은 전혀 건드리지
+    않는다**(기존 스키마에 키를 추가할 뿐이다).
+
+    Args:
+        conn: 스윕에 쓴 것과 동일한 커넥션(호출부가 닫기 전에 불러야 한다).
+
+    Returns:
+        {extracted_notices, mapped_rows, needs_review_rows, active_escalations}.
+
+        - ``extracted_notices``: ``notice_extractions`` 총 행수 — 추출을 마친 공고 수
+          (공고 원문 자체의 수인 ``notices`` 총행수와는 다르다 — 적재만 되고 아직
+          추출되지 않은 공고는 여기 안 잡힌다).
+        - ``mapped_rows``: ``notice_item_map`` 총 행수 — 공고-품목 매핑 행수(공고 1건이
+          여러 품목에 매핑되면 그만큼 늘어나는 다대다 카운트다).
+        - ``needs_review_rows``: ``mapped_rows`` 중 ``needs_review = 1``인 행수. 공고
+          자체의 확인 상태(``notice_extractions.status``)와는 **다른 축**이다 — 추출이
+          "자동확정"이어도 개별 매핑 행은 근거가 약한 부분 일치(``ingredient_partial``)라
+          검토가 필요할 수 있다(``medsupply/llm/mapping.py``).
+        - ``active_escalations``: ``risk_results``의 **최신 run**(``queries.get_latest_runs``와
+          동일한 정의 — 최신 run과 같은 ``params_hash`` 패밀리 중 as_of 최신)에서
+          ``escalated_by_notice = 1``인 행수. run이 아직 없으면(``risk_results`` 빈 DB)
+          0이다.
+    """
+    extracted_notices = conn.execute("SELECT COUNT(*) FROM notice_extractions").fetchone()[0]
+    mapped_rows = conn.execute("SELECT COUNT(*) FROM notice_item_map").fetchone()[0]
+    needs_review_rows = conn.execute(
+        "SELECT COUNT(*) FROM notice_item_map WHERE needs_review = 1"
+    ).fetchone()[0]
+
+    latest_runs = queries.get_latest_runs(conn, 1)
+    if latest_runs:
+        active_escalations = conn.execute(
+            "SELECT COUNT(*) FROM risk_results WHERE run_id = ? AND escalated_by_notice = 1",
+            (latest_runs[0],),
+        ).fetchone()[0]
+    else:
+        active_escalations = 0
+
+    return {
+        "extracted_notices": extracted_notices,
+        "mapped_rows": mapped_rows,
+        "needs_review_rows": needs_review_rows,
+        "active_escalations": active_escalations,
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -758,6 +823,7 @@ def _run_predict_only(args: argparse.Namespace) -> int:
     try:
         predictions, risk_types = run_sweep_detail(conn, args.start, args.end, params)
         dataset_content_hash = _dataset_content_hash(conn)
+        extraction_state = _extraction_state(conn)
     finally:
         conn.close()
 
@@ -768,6 +834,7 @@ def _run_predict_only(args: argparse.Namespace) -> int:
         "generated_at": _now_iso(),
         "sweep": _sweep_info(args.start, args.end),
         "grade_watch_days": params.grade.watch_days,
+        "extraction_state": extraction_state,
         "predictions": predictions,
         "risk_types": risk_types,
     }
@@ -802,6 +869,7 @@ def _run_score(args: argparse.Namespace) -> int:
         "params_ref": payload["params_ref"],
         "generated_at": _now_iso(),
         "measured_by": MEASURED_BY,
+        "extraction_state": payload.get("extraction_state"),
     }
     return _finalize(results, meta, args.out)
 
@@ -813,6 +881,7 @@ def _run_full(args: argparse.Namespace) -> int:
     try:
         predictions, risk_types = run_sweep_detail(conn, args.start, args.end, params)
         dataset_content_hash = _dataset_content_hash(conn)
+        extraction_state = _extraction_state(conn)
     finally:
         conn.close()
 
@@ -834,6 +903,7 @@ def _run_full(args: argparse.Namespace) -> int:
         "params_ref": args.params,
         "generated_at": _now_iso(),
         "measured_by": MEASURED_BY,
+        "extraction_state": extraction_state,
     }
     return _finalize(results, meta, args.out)
 
