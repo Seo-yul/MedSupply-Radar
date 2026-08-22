@@ -1,11 +1,11 @@
 {
   "report": "docs/verification-report.md",
-  "generated_at": "2026-08-22T11:37:51",
+  "generated_at": "2026-08-22T11:46:43",
   "checked_by": "scripts/check_report_numbers.py",
   "summary": {
     "status": "PASS",
-    "marks": 319,
-    "matched": 319,
+    "marks": 320,
+    "matched": 320,
     "mismatches": 0,
     "unmarked": 0,
     "skipped_lines": 7,
@@ -2585,7 +2585,15 @@
       "literal_found_in_line": true
     },
     {
-      "line": 460,
+      "line": 438,
+      "source": "reports/analytics/detection_metrics_with_notices.json",
+      "path": "meta.extraction_state.extracted_notices",
+      "literal": "20",
+      "json_value": 20,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 463,
       "source": "reports/llm/extraction_accuracy.json",
       "path": "needs_review.tp",
       "literal": "0",
@@ -2593,7 +2601,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 460,
+      "line": 463,
       "source": "reports/llm/extraction_accuracy.json",
       "path": "needs_review.fn",
       "literal": "0",
@@ -2601,7 +2609,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 460,
+      "line": 463,
       "source": "reports/llm/extraction_accuracy.json",
       "path": "needs_review.fp",
       "literal": "0",
@@ -2609,7 +2617,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 460,
+      "line": 463,
       "source": "reports/llm/extraction_accuracy.json",
       "path": "needs_review.tn",
       "literal": "20",
@@ -2684,13 +2692,13 @@
   "allowed_tokens_by_rule": {
     "code_span": 15,
     "heading_number": 24,
-    "html_comment": 348,
+    "html_comment": 349,
     "identifier": 11,
     "iso_date": 18,
     "ko_ordinal": 44,
     "list_number": 15,
     "percentile_label": 0,
-    "section_ref": 22,
+    "section_ref": 26,
     "seed": 7,
     "table_separator": 0
   },
