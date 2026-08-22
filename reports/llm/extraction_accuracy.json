@@ -1,0 +1,135 @@
+{
+  "measured_at": "2026-08-22T10:51:18",
+  "db": "data/medsupply.db",
+  "gold_version": "v1",
+  "dataset_content_hash": "c34bf4cb9215e1ba4b7a21c9d0f1d7236e2164ae08b630bf54fdf82d4c2f6483",
+  "extracted_count": 20,
+  "unextracted_count": 0,
+  "per_field": {
+    "notice_type": {
+      "accuracy": 1.0,
+      "matched": 20,
+      "total": 20
+    },
+    "halt_start_date": {
+      "accuracy": 1.0,
+      "matched": 20,
+      "total": 20
+    },
+    "expected_restart_date": {
+      "accuracy": 1.0,
+      "matched": 20,
+      "total": 20
+    },
+    "product_names": {
+      "exact_match_rate": 1.0,
+      "jaccard_mean": 1.0,
+      "matched": 20,
+      "total": 20
+    },
+    "ingredient_names": {
+      "exact_match_rate": 1.0,
+      "jaccard_mean": 1.0,
+      "matched": 20,
+      "total": 20
+    },
+    "reason": {
+      "reason_overlap_rate": 1.0,
+      "matched": 20,
+      "total": 20
+    }
+  },
+  "needs_review": {
+    "recall": null,
+    "precision": null,
+    "tp": 0,
+    "fn": 0,
+    "fp": 0,
+    "tn": 20,
+    "misses": [],
+    "false_alarms": []
+  },
+  "macro_accuracy": 1.0,
+  "per_notice": [
+    {
+      "notice_id": "N-001",
+      "mismatched_fields": []
+    },
+    {
+      "notice_id": "N-002",
+      "mismatched_fields": []
+    },
+    {
+      "notice_id": "N-003",
+      "mismatched_fields": []
+    },
+    {
+      "notice_id": "N-004",
+      "mismatched_fields": []
+    },
+    {
+      "notice_id": "N-005",
+      "mismatched_fields": []
+    },
+    {
+      "notice_id": "N-006",
+      "mismatched_fields": []
+    },
+    {
+      "notice_id": "N-007",
+      "mismatched_fields": []
+    },
+    {
+      "notice_id": "N-008",
+      "mismatched_fields": []
+    },
+    {
+      "notice_id": "N-009",
+      "mismatched_fields": []
+    },
+    {
+      "notice_id": "N-010",
+      "mismatched_fields": []
+    },
+    {
+      "notice_id": "N-011",
+      "mismatched_fields": []
+    },
+    {
+      "notice_id": "N-012",
+      "mismatched_fields": []
+    },
+    {
+      "notice_id": "N-013",
+      "mismatched_fields": []
+    },
+    {
+      "notice_id": "N-014",
+      "mismatched_fields": []
+    },
+    {
+      "notice_id": "N-015",
+      "mismatched_fields": []
+    },
+    {
+      "notice_id": "N-016",
+      "mismatched_fields": []
+    },
+    {
+      "notice_id": "N-017",
+      "mismatched_fields": []
+    },
+    {
+      "notice_id": "N-018",
+      "mismatched_fields": []
+    },
+    {
+      "notice_id": "N-019",
+      "mismatched_fields": []
+    },
+    {
+      "notice_id": "N-020",
+      "mismatched_fields": []
+    }
+  ]
+}
