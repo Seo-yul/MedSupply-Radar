@@ -122,9 +122,11 @@ verify_reproducibility 74초 — 5개 합계 약 106초. 재현된 수치는 §�
    ```
    순서가 고정인 이유: `process_notices --all`이 공고를 추출·매핑해 `notice_item_map`을
    채워야 `run_risk_batch` 재실행에서 활성 공고발 등급 상향(`escalate_on_notice`)이
-   비로소 반영된다 — **§측정 결과 요약 표의 감지·오탐·선행 수치는 이 재실행 이전, 즉
-   공고가 매핑되지 않아 상향이 0건인 조건에서 측정된 값**이다(위 ⑤에서 실측으로 확인한
-   그대로). `warm_cache`는 그다음(공고 매핑이 먼저 반영돼야 설명 근거의 활성 공고 목록이
+   비로소 반영된다 — **§측정 결과 요약 표의 첫 감지·오탐·선행 표(공고 반영 후 재측정
+   행 제외)는 이 재실행 이전, 즉 공고가 매핑되지 않아 상향이 0건인 조건에서 측정된
+   값**이다(위 ⑤에서 실측으로 확인한 그대로). 이 순서를 실제로 실행한 뒤 같은 조건으로
+   재측정한 값은 같은 절 아래 "공고 반영 후 재측정" 소표에 병기돼 있다(Task X-3).
+   `warm_cache`는 그다음(공고 매핑이 먼저 반영돼야 설명 근거의 활성 공고 목록이
    정확하다), `measure_extraction`은 추출 결과가 쌓인 뒤에야 골드 대조가 의미 있다.
 
 3. **오프라인 시연 모드**: `LLM_MODE=offline`으로 두면 `warm_cache`가 미리 채운 캐시
@@ -138,7 +140,7 @@ verify_reproducibility 74초 — 5개 합계 약 106초. 재현된 수치는 §�
 pip install -r requirements-dev.txt   # pytest만 추가로 필요
 .venv/bin/python -m pytest tests/ -q
 ```
-현재 **1313 passed, 4 skipped**(4건은 아래 실 API 스모크 — RUN_LLM_SMOKE 미설정 시
+현재 **1314 passed, 4 skipped**(4건은 아래 실 API 스모크 — RUN_LLM_SMOKE 미설정 시
 항상 skip).
 
 **실 API 스모크**: judge·추출·설명 생성 각 1~2건은 실제 Anthropic/OpenAI API를 호출한다
@@ -181,6 +183,22 @@ pip install -r requirements-dev.txt   # pytest만 추가로 필요
 | 경고 이상 | 지평 내(라벨 15) | 66.7%(10/15) | 3.8%(4/104) | 9.0일 |
 
 참고로 최고등급('위험') 정밀도는 100.0%(같은 파일 `results.danger_precision`)다.
+
+**공고 반영 후 재측정**(Task X-3, 같은 스냅샷·같은 `config_hash=6ec9bf05`·같은 스윕 —
+`process_notices.py --all`로 공고 20건을 추출·매핑하고 위험 배치를 재실행한 뒤 다시 측정,
+`reports/analytics/detection_metrics_with_notices.json`):
+
+| 문턱 | 표본 범위 | 감지율 | 오탐률 | 선행일수(중앙값) |
+| --- | --- | --- | --- | --- |
+| 주의 이상 | raw(라벨 20 / 정상 104) | 90.0%(18/20) | 57.7%(60/104) | 31.5일 |
+| 주의 이상 | 지평 내(라벨 15, 2026-08-31까지) | 93.3%(14/15) | 57.7%(60/104) | 22.5일 |
+| 경고 이상 | raw(라벨 20 / 정상 104) | 80.0%(16/20) | 14.4%(15/104) | 14.0일 |
+| 경고 이상 | 지평 내(라벨 15) | 86.7%(13/15) | 14.4%(15/104) | 10일 |
+
+최고등급('위험') 정밀도는 90.0%(공고 미반영 조건은 100.0%). 감지된 라벨 집합은 두 조건에서
+동일하다(미감지 2건 — ITM-0011·ITM-0087 — 반영 전후 그대로) — 같은 탐지기·같은 문턱이고
+달라진 것은 공고 매핑 데이터의 존재뿐이다. 두 조건의 전체 비교와 메커니즘 설명은
+`docs/verification-report.md` §2.5 참조.
 
 **MAPE**(SES 채택 모델 vs SMA 베이스라인 병기, horizon 14일, as_of 2개,
 `reports/analytics/forecast_mape.json` `overall`):

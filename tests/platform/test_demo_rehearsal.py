@@ -183,18 +183,34 @@ def test_situation_page_renders_and_matches_script_markers(monkeypatch: pytest.M
 
 
 def test_review_page_renders_and_matches_script_marker(monkeypatch: pytest.MonkeyPatch) -> None:
-    """마커 3 — 검토 대기함(워크벤치): 기본 선택 품목의 라벨이 실데이터로 노출(스텝 2)."""
+    """마커 3 — 검토 대기함(워크벤치): 기본 선택 품목에 AI 원인 설명이 실데이터로 존재
+    (스텝 2, 런북 실행 후 상태).
+
+    X-2의 위험 배치 재실행(공고발 등급 상향 반영)으로 최고 위험점수 품목의 정체성이
+    바뀌어 더 이상 _LEAD_ITEM_NAME(메디헤파린주, 런북 실행 전 1순위)이 기본 선택되지
+    않는다 — 이 실패의 근본원인이 특정 품목 이름에 대한 결합이었으므로, 새 단언은
+    품목 정체성이 아니라 "AI 근거 설명 탭에 생성물이 있는가"로 잡는다. warm_cache.py
+    실행으로 alert 대상 71개 품목에 이미 설명이 채워져 있어, 지금은 몇 순위든 기본
+    선택 품목에 pending 안내 대신 실제 생성 메타(공급자/모델)가 뜬다."""
     _activate_offline(monkeypatch)
 
     at = AppTest.from_function(_run_review)
     at.run()
 
     assert not at.exception
-    assert _LEAD_ITEM_NAME in _rendered_markdown(at)
+    rendered = _rendered_markdown(at)
+    assert "AI 원인 설명이 아직 생성되지 않았습니다" not in rendered
+    assert "생성: anthropic/claude-opus-5" in rendered
 
 
 def test_notices_page_renders_and_matches_script_marker(monkeypatch: pytest.MonkeyPatch) -> None:
-    """마커 4 — 공급 공고: 공고 20건 적재·전부 미추출 안내(스텝 3)."""
+    """마커 4 — 공급 공고: 공고 20건 적재·추출 결과 병기 표시(스텝 3, 런북 실행 후 상태).
+
+    X-2에서 python scripts/process_notices.py --all이 실제로 실행돼 20건 전부
+    '자동확정' 상태로 추출을 마쳤다(저장소 실 DB — 모듈 docstring대로 tmp 사본이 아니라
+    실 파일 그대로 읽는다). 그래서 "추출 미실행" 안내(st.info)는 더 이상 뜨지 않고,
+    대신 추출 결과 JSON 1건과 "자동확정된 공고입니다" 캡션이 뜬다 — 이것이 새 상태의
+    실질 표식이다(마커를 지우지 않고 반대 상태로 교체한다)."""
     _activate_offline(monkeypatch)
 
     at = AppTest.from_function(_run_notices)
@@ -202,8 +218,11 @@ def test_notices_page_renders_and_matches_script_marker(monkeypatch: pytest.Monk
 
     assert not at.exception
     assert "공고 20건" in _rendered_markdown(at)
-    # "추출 미실행" 안내는 st.info(...)로 렌더되므로 markdown이 아니라 info 컬렉션에서 찾는다.
-    assert any("추출 미실행" in info.value for info in at.info)
+    # 20건 전부 추출을 마쳤으므로 "추출 미실행" 안내는 더 이상 뜨지 않는다.
+    assert not any("추출 미실행" in info.value for info in at.info)
+    # 대신 기본 선택된 공고의 추출 결과가 st.json 1건으로, 확인 상태가 캡션으로 뜬다.
+    assert len(at.json) == 1
+    assert any("자동확정된 공고입니다" in c.value for c in at.caption)
 
 
 def test_orders_page_renders_and_matches_script_marker(monkeypatch: pytest.MonkeyPatch) -> None:

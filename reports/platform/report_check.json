@@ -1,11 +1,11 @@
 {
   "report": "docs/verification-report.md",
-  "generated_at": "2026-08-21T16:25:33",
+  "generated_at": "2026-08-22T11:37:51",
   "checked_by": "scripts/check_report_numbers.py",
   "summary": {
     "status": "PASS",
-    "marks": 178,
-    "matched": 178,
+    "marks": 319,
+    "matched": 319,
     "mismatches": 0,
     "unmarked": 0,
     "skipped_lines": 7,
@@ -38,9 +38,17 @@
       "exists": true,
       "sha256": "aac31277a398dfd5cb5773e2a4d944e134ed16236518f4691176568c1e7c3056"
     },
+    "reports/analytics/detection_metrics_with_notices.json": {
+      "exists": true,
+      "sha256": "1e828194576e1e892cc88556b39c580144486a12c8895b953829612e6666fcac"
+    },
     "reports/analytics/forecast_mape.json": {
       "exists": true,
       "sha256": "5f409ecfb5618b6487c19b1302362c3a7ad2372c1eb2d6ae6ca6e31ca05cea06"
+    },
+    "reports/llm/extraction_accuracy.json": {
+      "exists": true,
+      "sha256": "3224a3675ae5b54faf12e368212aa3547414977fce2e2132880194b33558ad32"
     },
     "reports/platform/e2e_results.json": {
       "exists": true,
@@ -1225,7 +1233,1031 @@
       "literal_found_in_line": true
     },
     {
-      "line": 287,
+      "line": 285,
+      "source": "reports/analytics/detection_metrics_with_notices.json",
+      "path": "meta.extraction_state.extracted_notices",
+      "literal": "20",
+      "json_value": 20,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 286,
+      "source": "reports/analytics/detection_metrics_with_notices.json",
+      "path": "meta.extraction_state.extracted_notices",
+      "literal": "20",
+      "json_value": 20,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 286,
+      "source": "reports/analytics/detection_metrics_with_notices.json",
+      "path": "meta.extraction_state.mapped_rows",
+      "literal": "47",
+      "json_value": 47,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 286,
+      "source": "reports/analytics/detection_metrics_with_notices.json",
+      "path": "meta.extraction_state.needs_review_rows",
+      "literal": "3",
+      "json_value": 3,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 286,
+      "source": "reports/analytics/detection_metrics_with_notices.json",
+      "path": "meta.extraction_state.active_escalations",
+      "literal": "28",
+      "json_value": 28,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 290,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.counts.labeled",
+      "literal": "20",
+      "json_value": 20,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 290,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.detection_rate",
+      "literal": "90.0%",
+      "json_value": 0.9,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 290,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.counts.detected",
+      "literal": "18",
+      "json_value": 18,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 290,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.counts.labeled",
+      "literal": "20",
+      "json_value": 20,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 290,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.false_positive_rate",
+      "literal": "45.19%",
+      "json_value": 0.4519230769230769,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 290,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.counts.false_positives",
+      "literal": "47",
+      "json_value": 47,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 290,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.counts.normal",
+      "literal": "104",
+      "json_value": 104,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 290,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.lead_days.median",
+      "literal": "26.5",
+      "json_value": 26.5,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 291,
+      "source": "reports/analytics/detection_metrics_with_notices.json",
+      "path": "results.counts.labeled",
+      "literal": "20",
+      "json_value": 20,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 291,
+      "source": "reports/analytics/detection_metrics_with_notices.json",
+      "path": "results.detection_rate",
+      "literal": "90.0%",
+      "json_value": 0.9,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 291,
+      "source": "reports/analytics/detection_metrics_with_notices.json",
+      "path": "results.counts.detected",
+      "literal": "18",
+      "json_value": 18,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 291,
+      "source": "reports/analytics/detection_metrics_with_notices.json",
+      "path": "results.counts.labeled",
+      "literal": "20",
+      "json_value": 20,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 291,
+      "source": "reports/analytics/detection_metrics_with_notices.json",
+      "path": "results.false_positive_rate",
+      "literal": "57.69%",
+      "json_value": 0.5769230769230769,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 291,
+      "source": "reports/analytics/detection_metrics_with_notices.json",
+      "path": "results.counts.false_positives",
+      "literal": "60",
+      "json_value": 60,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 291,
+      "source": "reports/analytics/detection_metrics_with_notices.json",
+      "path": "results.counts.normal",
+      "literal": "104",
+      "json_value": 104,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 291,
+      "source": "reports/analytics/detection_metrics_with_notices.json",
+      "path": "results.lead_days.median",
+      "literal": "31.5",
+      "json_value": 31.5,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 292,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.within_horizon.counts.labeled_in_horizon",
+      "literal": "15",
+      "json_value": 15,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 292,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.within_horizon.threshold_watch.detection_rate",
+      "literal": "93.3%",
+      "json_value": 0.9333333333333333,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 292,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.within_horizon.threshold_watch.counts.detected",
+      "literal": "14",
+      "json_value": 14,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 292,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.within_horizon.threshold_watch.counts.labeled",
+      "literal": "15",
+      "json_value": 15,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 292,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.within_horizon.threshold_watch.false_positive_rate",
+      "literal": "45.19%",
+      "json_value": 0.4519230769230769,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 292,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.within_horizon.threshold_watch.counts.false_positives",
+      "literal": "47",
+      "json_value": 47,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 292,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.within_horizon.threshold_watch.counts.normal",
+      "literal": "104",
+      "json_value": 104,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 292,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.within_horizon.threshold_watch.lead_days.median",
+      "literal": "15.0",
+      "json_value": 15.0,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 293,
+      "source": "reports/analytics/detection_metrics_with_notices.json",
+      "path": "results.within_horizon.counts.labeled_in_horizon",
+      "literal": "15",
+      "json_value": 15,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 293,
+      "source": "reports/analytics/detection_metrics_with_notices.json",
+      "path": "results.within_horizon.threshold_watch.detection_rate",
+      "literal": "93.3%",
+      "json_value": 0.9333333333333333,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 293,
+      "source": "reports/analytics/detection_metrics_with_notices.json",
+      "path": "results.within_horizon.threshold_watch.counts.detected",
+      "literal": "14",
+      "json_value": 14,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 293,
+      "source": "reports/analytics/detection_metrics_with_notices.json",
+      "path": "results.within_horizon.threshold_watch.counts.labeled",
+      "literal": "15",
+      "json_value": 15,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 293,
+      "source": "reports/analytics/detection_metrics_with_notices.json",
+      "path": "results.within_horizon.threshold_watch.false_positive_rate",
+      "literal": "57.69%",
+      "json_value": 0.5769230769230769,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 293,
+      "source": "reports/analytics/detection_metrics_with_notices.json",
+      "path": "results.within_horizon.threshold_watch.counts.false_positives",
+      "literal": "60",
+      "json_value": 60,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 293,
+      "source": "reports/analytics/detection_metrics_with_notices.json",
+      "path": "results.within_horizon.threshold_watch.counts.normal",
+      "literal": "104",
+      "json_value": 104,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 293,
+      "source": "reports/analytics/detection_metrics_with_notices.json",
+      "path": "results.within_horizon.threshold_watch.lead_days.median",
+      "literal": "22.5",
+      "json_value": 22.5,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 294,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.counts.labeled",
+      "literal": "20",
+      "json_value": 20,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 294,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.threshold_warning.detection_rate",
+      "literal": "65.0%",
+      "json_value": 0.65,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 294,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.threshold_warning.counts.detected",
+      "literal": "13",
+      "json_value": 13,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 294,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.threshold_warning.counts.labeled",
+      "literal": "20",
+      "json_value": 20,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 294,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.threshold_warning.false_positive_rate",
+      "literal": "3.85%",
+      "json_value": 0.038461538461538464,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 294,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.threshold_warning.counts.false_positives",
+      "literal": "4",
+      "json_value": 4,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 294,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.threshold_warning.counts.normal",
+      "literal": "104",
+      "json_value": 104,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 294,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.threshold_warning.lead_days.median",
+      "literal": "10",
+      "json_value": 10,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 295,
+      "source": "reports/analytics/detection_metrics_with_notices.json",
+      "path": "results.counts.labeled",
+      "literal": "20",
+      "json_value": 20,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 295,
+      "source": "reports/analytics/detection_metrics_with_notices.json",
+      "path": "results.threshold_warning.detection_rate",
+      "literal": "80.0%",
+      "json_value": 0.8,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 295,
+      "source": "reports/analytics/detection_metrics_with_notices.json",
+      "path": "results.threshold_warning.counts.detected",
+      "literal": "16",
+      "json_value": 16,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 295,
+      "source": "reports/analytics/detection_metrics_with_notices.json",
+      "path": "results.threshold_warning.counts.labeled",
+      "literal": "20",
+      "json_value": 20,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 295,
+      "source": "reports/analytics/detection_metrics_with_notices.json",
+      "path": "results.threshold_warning.false_positive_rate",
+      "literal": "14.42%",
+      "json_value": 0.14423076923076922,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 295,
+      "source": "reports/analytics/detection_metrics_with_notices.json",
+      "path": "results.threshold_warning.counts.false_positives",
+      "literal": "15",
+      "json_value": 15,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 295,
+      "source": "reports/analytics/detection_metrics_with_notices.json",
+      "path": "results.threshold_warning.counts.normal",
+      "literal": "104",
+      "json_value": 104,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 295,
+      "source": "reports/analytics/detection_metrics_with_notices.json",
+      "path": "results.threshold_warning.lead_days.median",
+      "literal": "14.0",
+      "json_value": 14.0,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 296,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.within_horizon.counts.labeled_in_horizon",
+      "literal": "15",
+      "json_value": 15,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 296,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.within_horizon.threshold_warning.detection_rate",
+      "literal": "66.7%",
+      "json_value": 0.6666666666666666,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 296,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.within_horizon.threshold_warning.counts.detected",
+      "literal": "10",
+      "json_value": 10,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 296,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.within_horizon.threshold_warning.counts.labeled",
+      "literal": "15",
+      "json_value": 15,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 296,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.within_horizon.threshold_warning.false_positive_rate",
+      "literal": "3.85%",
+      "json_value": 0.038461538461538464,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 296,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.within_horizon.threshold_warning.counts.false_positives",
+      "literal": "4",
+      "json_value": 4,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 296,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.within_horizon.threshold_warning.counts.normal",
+      "literal": "104",
+      "json_value": 104,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 296,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.within_horizon.threshold_warning.lead_days.median",
+      "literal": "9.0",
+      "json_value": 9.0,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 297,
+      "source": "reports/analytics/detection_metrics_with_notices.json",
+      "path": "results.within_horizon.counts.labeled_in_horizon",
+      "literal": "15",
+      "json_value": 15,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 297,
+      "source": "reports/analytics/detection_metrics_with_notices.json",
+      "path": "results.within_horizon.threshold_warning.detection_rate",
+      "literal": "86.7%",
+      "json_value": 0.8666666666666667,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 297,
+      "source": "reports/analytics/detection_metrics_with_notices.json",
+      "path": "results.within_horizon.threshold_warning.counts.detected",
+      "literal": "13",
+      "json_value": 13,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 297,
+      "source": "reports/analytics/detection_metrics_with_notices.json",
+      "path": "results.within_horizon.threshold_warning.counts.labeled",
+      "literal": "15",
+      "json_value": 15,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 297,
+      "source": "reports/analytics/detection_metrics_with_notices.json",
+      "path": "results.within_horizon.threshold_warning.false_positive_rate",
+      "literal": "14.42%",
+      "json_value": 0.14423076923076922,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 297,
+      "source": "reports/analytics/detection_metrics_with_notices.json",
+      "path": "results.within_horizon.threshold_warning.counts.false_positives",
+      "literal": "15",
+      "json_value": 15,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 297,
+      "source": "reports/analytics/detection_metrics_with_notices.json",
+      "path": "results.within_horizon.threshold_warning.counts.normal",
+      "literal": "104",
+      "json_value": 104,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 297,
+      "source": "reports/analytics/detection_metrics_with_notices.json",
+      "path": "results.within_horizon.threshold_warning.lead_days.median",
+      "literal": "10",
+      "json_value": 10,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 298,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.counts.labeled",
+      "literal": "20",
+      "json_value": 20,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 298,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.threshold_danger.detection_rate",
+      "literal": "45.0%",
+      "json_value": 0.45,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 298,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.threshold_danger.counts.detected",
+      "literal": "9",
+      "json_value": 9,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 298,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.threshold_danger.counts.labeled",
+      "literal": "20",
+      "json_value": 20,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 298,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.threshold_danger.false_positive_rate",
+      "literal": "0.00%",
+      "json_value": 0.0,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 298,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.threshold_danger.counts.false_positives",
+      "literal": "0",
+      "json_value": 0,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 298,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.threshold_danger.counts.normal",
+      "literal": "104",
+      "json_value": 104,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 298,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.threshold_danger.lead_days.median",
+      "literal": "7",
+      "json_value": 7,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 299,
+      "source": "reports/analytics/detection_metrics_with_notices.json",
+      "path": "results.counts.labeled",
+      "literal": "20",
+      "json_value": 20,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 299,
+      "source": "reports/analytics/detection_metrics_with_notices.json",
+      "path": "results.threshold_danger.detection_rate",
+      "literal": "45.0%",
+      "json_value": 0.45,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 299,
+      "source": "reports/analytics/detection_metrics_with_notices.json",
+      "path": "results.threshold_danger.counts.detected",
+      "literal": "9",
+      "json_value": 9,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 299,
+      "source": "reports/analytics/detection_metrics_with_notices.json",
+      "path": "results.threshold_danger.counts.labeled",
+      "literal": "20",
+      "json_value": 20,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 299,
+      "source": "reports/analytics/detection_metrics_with_notices.json",
+      "path": "results.threshold_danger.false_positive_rate",
+      "literal": "0.96%",
+      "json_value": 0.009615384615384616,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 299,
+      "source": "reports/analytics/detection_metrics_with_notices.json",
+      "path": "results.threshold_danger.counts.false_positives",
+      "literal": "1",
+      "json_value": 1,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 299,
+      "source": "reports/analytics/detection_metrics_with_notices.json",
+      "path": "results.threshold_danger.counts.normal",
+      "literal": "104",
+      "json_value": 104,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 299,
+      "source": "reports/analytics/detection_metrics_with_notices.json",
+      "path": "results.threshold_danger.lead_days.median",
+      "literal": "7",
+      "json_value": 7,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 300,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.within_horizon.counts.labeled_in_horizon",
+      "literal": "15",
+      "json_value": 15,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 300,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.within_horizon.threshold_danger.detection_rate",
+      "literal": "53.3%",
+      "json_value": 0.5333333333333333,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 300,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.within_horizon.threshold_danger.counts.detected",
+      "literal": "8",
+      "json_value": 8,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 300,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.within_horizon.threshold_danger.counts.labeled",
+      "literal": "15",
+      "json_value": 15,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 300,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.within_horizon.threshold_danger.false_positive_rate",
+      "literal": "0.00%",
+      "json_value": 0.0,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 300,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.within_horizon.threshold_danger.counts.false_positives",
+      "literal": "0",
+      "json_value": 0,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 300,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.within_horizon.threshold_danger.counts.normal",
+      "literal": "104",
+      "json_value": 104,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 300,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.within_horizon.threshold_danger.lead_days.median",
+      "literal": "7.0",
+      "json_value": 7.0,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 301,
+      "source": "reports/analytics/detection_metrics_with_notices.json",
+      "path": "results.within_horizon.counts.labeled_in_horizon",
+      "literal": "15",
+      "json_value": 15,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 301,
+      "source": "reports/analytics/detection_metrics_with_notices.json",
+      "path": "results.within_horizon.threshold_danger.detection_rate",
+      "literal": "53.3%",
+      "json_value": 0.5333333333333333,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 301,
+      "source": "reports/analytics/detection_metrics_with_notices.json",
+      "path": "results.within_horizon.threshold_danger.counts.detected",
+      "literal": "8",
+      "json_value": 8,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 301,
+      "source": "reports/analytics/detection_metrics_with_notices.json",
+      "path": "results.within_horizon.threshold_danger.counts.labeled",
+      "literal": "15",
+      "json_value": 15,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 301,
+      "source": "reports/analytics/detection_metrics_with_notices.json",
+      "path": "results.within_horizon.threshold_danger.false_positive_rate",
+      "literal": "0.96%",
+      "json_value": 0.009615384615384616,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 301,
+      "source": "reports/analytics/detection_metrics_with_notices.json",
+      "path": "results.within_horizon.threshold_danger.counts.false_positives",
+      "literal": "1",
+      "json_value": 1,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 301,
+      "source": "reports/analytics/detection_metrics_with_notices.json",
+      "path": "results.within_horizon.threshold_danger.counts.normal",
+      "literal": "104",
+      "json_value": 104,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 301,
+      "source": "reports/analytics/detection_metrics_with_notices.json",
+      "path": "results.within_horizon.threshold_danger.lead_days.median",
+      "literal": "7.0",
+      "json_value": 7.0,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 303,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.danger_precision",
+      "literal": "100.0%",
+      "json_value": 1.0,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 303,
+      "source": "reports/analytics/detection_metrics_with_notices.json",
+      "path": "results.danger_precision",
+      "literal": "90.0%",
+      "json_value": 0.9,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 303,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.risk_type_match.overall",
+      "literal": "25.0%",
+      "json_value": 0.25,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 303,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.risk_type_match.counts.matched",
+      "literal": "5",
+      "json_value": 5,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 303,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.risk_type_match.counts.labeled",
+      "literal": "20",
+      "json_value": 20,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 303,
+      "source": "reports/analytics/detection_metrics_with_notices.json",
+      "path": "results.risk_type_match.overall",
+      "literal": "30.0%",
+      "json_value": 0.3,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 303,
+      "source": "reports/analytics/detection_metrics_with_notices.json",
+      "path": "results.risk_type_match.counts.matched",
+      "literal": "6",
+      "json_value": 6,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 303,
+      "source": "reports/analytics/detection_metrics_with_notices.json",
+      "path": "results.risk_type_match.counts.labeled",
+      "literal": "20",
+      "json_value": 20,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 304,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.lead_days.min",
+      "literal": "3",
+      "json_value": 3,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 304,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.lead_days.mean",
+      "literal": "27.56",
+      "json_value": 27.56,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 304,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.lead_days.max",
+      "literal": "75",
+      "json_value": 75,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 304,
+      "source": "reports/analytics/detection_metrics_with_notices.json",
+      "path": "results.lead_days.min",
+      "literal": "5",
+      "json_value": 5,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 304,
+      "source": "reports/analytics/detection_metrics_with_notices.json",
+      "path": "results.lead_days.mean",
+      "literal": "33.89",
+      "json_value": 33.89,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 304,
+      "source": "reports/analytics/detection_metrics_with_notices.json",
+      "path": "results.lead_days.max",
+      "literal": "75",
+      "json_value": 75,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 306,
+      "source": "reports/analytics/detection_metrics_with_notices.json",
+      "path": "meta.extraction_state.extracted_notices",
+      "literal": "20",
+      "json_value": 20,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 306,
+      "source": "reports/analytics/detection_metrics_with_notices.json",
+      "path": "results.risk_type_match.items.ITM-0011.detected",
+      "literal": "false",
+      "json_value": false,
+      "literal_found_in_line": false
+    },
+    {
+      "line": 307,
+      "source": "reports/analytics/detection_metrics_with_notices.json",
+      "path": "results.risk_type_match.items.ITM-0087.detected",
+      "literal": "false",
+      "json_value": false,
+      "literal_found_in_line": false
+    },
+    {
+      "line": 309,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.false_positive_rate",
+      "literal": "45.19%",
+      "json_value": 0.4519230769230769,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 309,
+      "source": "reports/analytics/detection_metrics_with_notices.json",
+      "path": "results.false_positive_rate",
+      "literal": "57.69%",
+      "json_value": 0.5769230769230769,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 309,
+      "source": "reports/analytics/detection_metrics_with_notices.json",
+      "path": "meta.extraction_state.extracted_notices",
+      "literal": "20",
+      "json_value": 20,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 310,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.danger_precision",
+      "literal": "100.0%",
+      "json_value": 1.0,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 310,
+      "source": "reports/analytics/detection_metrics_with_notices.json",
+      "path": "results.danger_precision",
+      "literal": "90.0%",
+      "json_value": 0.9,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 310,
+      "source": "reports/analytics/detection_metrics_with_notices.json",
+      "path": "results.threshold_danger.false_positive_items[0]",
+      "literal": "\"ITM-0077\"",
+      "json_value": "ITM-0077",
+      "literal_found_in_line": false
+    },
+    {
+      "line": 311,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.lead_days.median",
+      "literal": "26.5",
+      "json_value": 26.5,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 311,
+      "source": "reports/analytics/detection_metrics_with_notices.json",
+      "path": "results.lead_days.median",
+      "literal": "31.5",
+      "json_value": 31.5,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 311,
+      "source": "reports/analytics/detection_metrics.json",
+      "path": "results.risk_type_match.overall",
+      "literal": "25.0%",
+      "json_value": 0.25,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 311,
+      "source": "reports/analytics/detection_metrics_with_notices.json",
+      "path": "results.risk_type_match.overall",
+      "literal": "30.0%",
+      "json_value": 0.3,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 317,
       "source": "reports/analytics/forecast_mape.json",
       "path": "horizon_days",
       "literal": "14",
@@ -1233,7 +2265,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 288,
+      "line": 318,
       "source": "reports/analytics/forecast_mape.json",
       "path": "overall.items_evaluated",
       "literal": "248",
@@ -1241,7 +2273,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 292,
+      "line": 322,
       "source": "reports/analytics/forecast_mape.json",
       "path": "overall.ses_mape_mean",
       "literal": "32.05%",
@@ -1249,7 +2281,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 292,
+      "line": 322,
       "source": "reports/analytics/forecast_mape.json",
       "path": "overall.sma_mape_mean",
       "literal": "31.25%",
@@ -1257,7 +2289,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 293,
+      "line": 323,
       "source": "reports/analytics/forecast_mape.json",
       "path": "overall.ses_mape_median",
       "literal": "31.25%",
@@ -1265,7 +2297,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 293,
+      "line": 323,
       "source": "reports/analytics/forecast_mape.json",
       "path": "overall.sma_mape_median",
       "literal": "30.61%",
@@ -1273,7 +2305,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 295,
+      "line": 325,
       "source": "reports/analytics/forecast_mape.json",
       "path": "overall.baseline_improved",
       "literal": "-2.56%p",
@@ -1281,7 +2313,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 296,
+      "line": 326,
       "source": "reports/analytics/forecast_mape.json",
       "path": "overall.ses_win_rate",
       "literal": "33.06%",
@@ -1289,7 +2321,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 312,
+      "line": 342,
       "source": "reports/platform/e2e_results.json",
       "path": "runs",
       "literal": "10",
@@ -1297,7 +2329,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 312,
+      "line": 342,
       "source": "reports/platform/e2e_results.json",
       "path": "passed_runs",
       "literal": "10",
@@ -1305,7 +2337,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 312,
+      "line": 342,
       "source": "reports/platform/e2e_results.json",
       "path": "runs",
       "literal": "10",
@@ -1313,7 +2345,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 312,
+      "line": 342,
       "source": "reports/platform/e2e_results.json",
       "path": "verdict",
       "literal": "true",
@@ -1321,7 +2353,7 @@
       "literal_found_in_line": false
     },
     {
-      "line": 319,
+      "line": 349,
       "source": "reports/platform/perf_results.json",
       "path": "repeats",
       "literal": "30",
@@ -1329,7 +2361,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 324,
+      "line": 354,
       "source": "reports/platform/perf_results.json",
       "path": "targets.list_items.p95_ms",
       "literal": "0.7",
@@ -1337,7 +2369,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 325,
+      "line": 355,
       "source": "reports/platform/perf_results.json",
       "path": "targets.load_overview.p95_ms",
       "literal": "4.8",
@@ -1345,7 +2377,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 326,
+      "line": 356,
       "source": "reports/platform/perf_results.json",
       "path": "targets.load_item_detail.p95_ms",
       "literal": "2.7",
@@ -1353,7 +2385,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 327,
+      "line": 357,
       "source": "reports/platform/perf_results.json",
       "path": "targets.assess_snapshot.p95_ms",
       "literal": "416.5",
@@ -1361,7 +2393,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 328,
+      "line": 358,
       "source": "reports/platform/perf_results.json",
       "path": "targets.notice_detail_sweep.p95_ms",
       "literal": "0.3",
@@ -1369,7 +2401,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 331,
+      "line": 361,
       "source": "reports/platform/perf_results.json",
       "path": "verdict",
       "literal": "true",
@@ -1377,7 +2409,7 @@
       "literal_found_in_line": false
     },
     {
-      "line": 335,
+      "line": 365,
       "source": "reports/platform/reproducibility.json",
       "path": "runs",
       "literal": "5",
@@ -1385,7 +2417,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 341,
+      "line": 371,
       "source": "reports/platform/reproducibility.json",
       "path": "generation.runs",
       "literal": "5",
@@ -1393,7 +2425,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 341,
+      "line": 371,
       "source": "reports/platform/reproducibility.json",
       "path": "generation.identical",
       "literal": "true",
@@ -1401,7 +2433,7 @@
       "literal_found_in_line": false
     },
     {
-      "line": 341,
+      "line": 371,
       "source": "reports/platform/reproducibility.json",
       "path": "generation.anchor_match",
       "literal": "true",
@@ -1409,7 +2441,7 @@
       "literal_found_in_line": false
     },
     {
-      "line": 342,
+      "line": 372,
       "source": "reports/platform/reproducibility.json",
       "path": "batch.runs",
       "literal": "5",
@@ -1417,7 +2449,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 342,
+      "line": 372,
       "source": "reports/platform/reproducibility.json",
       "path": "batch.row_count",
       "literal": "124",
@@ -1425,7 +2457,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 342,
+      "line": 372,
       "source": "reports/platform/reproducibility.json",
       "path": "batch.identical",
       "literal": "true",
@@ -1433,7 +2465,7 @@
       "literal_found_in_line": false
     },
     {
-      "line": 343,
+      "line": 373,
       "source": "reports/platform/reproducibility.json",
       "path": "detection.runs",
       "literal": "5",
@@ -1441,7 +2473,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 343,
+      "line": 373,
       "source": "reports/platform/reproducibility.json",
       "path": "detection.identical",
       "literal": "true",
@@ -1449,7 +2481,7 @@
       "literal_found_in_line": false
     },
     {
-      "line": 343,
+      "line": 373,
       "source": "reports/platform/reproducibility.json",
       "path": "detection.db_unchanged",
       "literal": "true",
@@ -1457,7 +2489,7 @@
       "literal_found_in_line": false
     },
     {
-      "line": 345,
+      "line": 375,
       "source": "reports/platform/reproducibility.json",
       "path": "generation.runs",
       "literal": "5",
@@ -1465,7 +2497,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 347,
+      "line": 377,
       "source": "reports/platform/reproducibility.json",
       "path": "generation.anchor_match",
       "literal": "true",
@@ -1473,11 +2505,115 @@
       "literal_found_in_line": false
     },
     {
-      "line": 359,
+      "line": 391,
+      "source": "reports/llm/extraction_accuracy.json",
+      "path": "macro_accuracy",
+      "literal": "100.0%",
+      "json_value": 1.0,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 392,
       "source": "eval/cases/eval_cases_v1.json",
       "path": "meta.case_count",
       "literal": "40",
       "json_value": 40,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 395,
+      "source": "reports/llm/extraction_accuracy.json",
+      "path": "extracted_count",
+      "literal": "20",
+      "json_value": 20,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 395,
+      "source": "reports/llm/extraction_accuracy.json",
+      "path": "unextracted_count",
+      "literal": "0",
+      "json_value": 0,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 395,
+      "source": "reports/llm/extraction_accuracy.json",
+      "path": "macro_accuracy",
+      "literal": "100.0%",
+      "json_value": 1.0,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 396,
+      "source": "reports/llm/extraction_accuracy.json",
+      "path": "needs_review.tp",
+      "literal": "0",
+      "json_value": 0,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 396,
+      "source": "reports/llm/extraction_accuracy.json",
+      "path": "needs_review.fn",
+      "literal": "0",
+      "json_value": 0,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 396,
+      "source": "reports/llm/extraction_accuracy.json",
+      "path": "needs_review.fp",
+      "literal": "0",
+      "json_value": 0,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 396,
+      "source": "reports/llm/extraction_accuracy.json",
+      "path": "needs_review.tn",
+      "literal": "20",
+      "json_value": 20,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 397,
+      "source": "reports/llm/extraction_accuracy.json",
+      "path": "extracted_count",
+      "literal": "20",
+      "json_value": 20,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 460,
+      "source": "reports/llm/extraction_accuracy.json",
+      "path": "needs_review.tp",
+      "literal": "0",
+      "json_value": 0,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 460,
+      "source": "reports/llm/extraction_accuracy.json",
+      "path": "needs_review.fn",
+      "literal": "0",
+      "json_value": 0,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 460,
+      "source": "reports/llm/extraction_accuracy.json",
+      "path": "needs_review.fp",
+      "literal": "0",
+      "json_value": 0,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 460,
+      "source": "reports/llm/extraction_accuracy.json",
+      "path": "needs_review.tn",
+      "literal": "20",
+      "json_value": 20,
       "literal_found_in_line": true
     }
   ],
@@ -1546,15 +2682,15 @@
     }
   ],
   "allowed_tokens_by_rule": {
-    "code_span": 14,
-    "heading_number": 23,
-    "html_comment": 206,
-    "identifier": 3,
+    "code_span": 15,
+    "heading_number": 24,
+    "html_comment": 348,
+    "identifier": 11,
     "iso_date": 18,
     "ko_ordinal": 44,
-    "list_number": 14,
+    "list_number": 15,
     "percentile_label": 0,
-    "section_ref": 15,
+    "section_ref": 22,
     "seed": 7,
     "table_separator": 0
   },
