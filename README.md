@@ -25,6 +25,12 @@
 머신 기준 — pip 캐시가 이미 있고 데이터셋이 124품목으로 작아 실제로는 30분보다 훨씬
 짧게 끝난다. 냉장 네트워크 다운로드·수기 입력 시간은 포함하지 않은 순수 명령 실행 시간이다).
 
+⓪ **저장소 clone**
+```bash
+git clone https://github.com/Seo-yul/MedSupply-Radar.git
+cd MedSupply-Radar
+```
+
 ① **가상환경 구성**
 ```bash
 python3.14 -m venv .venv
