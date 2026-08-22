@@ -1,5 +1,5 @@
 {
-  "measured_at": "2026-08-22T10:51:18",
+  "measured_at": "2026-08-22T12:21:20",
   "db": "data/medsupply.db",
   "gold_version": "v1",
   "dataset_content_hash": "c34bf4cb9215e1ba4b7a21c9d0f1d7236e2164ae08b630bf54fdf82d4c2f6483",
@@ -50,6 +50,46 @@
     "false_alarms": []
   },
   "macro_accuracy": 1.0,
+  "strict": {
+    "expected_restart_date": {
+      "accuracy": 0.85,
+      "matched": 17,
+      "total": 20
+    },
+    "macro_accuracy": 0.97,
+    "needs_review": {
+      "recall": 0.0,
+      "precision": null,
+      "tp": 0,
+      "fn": 3,
+      "fp": 0,
+      "tn": 17,
+      "misses": [
+        {
+          "notice_id": "N-001",
+          "status": "자동확정",
+          "mismatched_fields": [
+            "expected_restart_date"
+          ]
+        },
+        {
+          "notice_id": "N-014",
+          "status": "자동확정",
+          "mismatched_fields": [
+            "expected_restart_date"
+          ]
+        },
+        {
+          "notice_id": "N-017",
+          "status": "자동확정",
+          "mismatched_fields": [
+            "expected_restart_date"
+          ]
+        }
+      ],
+      "false_alarms": []
+    }
+  },
   "per_notice": [
     {
       "notice_id": "N-001",

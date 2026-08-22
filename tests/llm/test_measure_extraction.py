@@ -287,6 +287,21 @@ class TestBuildReportFieldAccuracy:
         # (0.75 + 0.75 + 1.0 + 0.75 + 1.0) / 5 = 0.85
         assert report["macro_accuracy"] == pytest.approx(0.85)
 
+    def test_strict_view_matches_lenient_when_no_allowlisted_notice_present(
+        self, report: dict
+    ) -> None:
+        """Task X-3 F1: 이 픽스처에는 N-001/N-014/N-017이 없으므로 양가 목록이 아예
+        발동하지 않는다 — strict와 관용이 완전히 같아야 한다(strict 신설이 관용 없는
+        경로에서 우연히 값을 바꾸지 않는다는 회귀 확인)."""
+        strict = report["strict"]
+        assert strict["expected_restart_date"] == report["per_field"]["expected_restart_date"]
+        assert strict["macro_accuracy"] == report["macro_accuracy"]
+        assert strict["needs_review"]["recall"] == report["needs_review"]["recall"]
+        assert strict["needs_review"]["precision"] == report["needs_review"]["precision"]
+        assert (strict["needs_review"]["tp"], strict["needs_review"]["fn"]) == (
+            report["needs_review"]["tp"], report["needs_review"]["fn"]
+        )
+
 
 class TestBuildReportNeedsReview:
     @staticmethod
@@ -357,6 +372,16 @@ class TestBuildReportAllUnextracted:
         assert report["needs_review"]["precision"] is None
         assert report["per_notice"] == [{"notice_id": "N-201", "mismatched_fields": ["unextracted"]}]
 
+    def test_strict_view_also_nulls_out_when_zero_extracted(self) -> None:
+        """Task X-3 F1: strict 블록도 관용과 같은 0-분모 null 규칙을 따른다(0으로
+        위장하지 않는다)."""
+        report = me.build_report({"N-201": _GOLD["N-101"]}, {})
+        strict = report["strict"]
+        assert strict["expected_restart_date"]["accuracy"] is None
+        assert strict["macro_accuracy"] is None
+        assert strict["needs_review"]["recall"] is None
+        assert strict["needs_review"]["precision"] is None
+
 
 class TestBuildReportAllowlistEndToEnd:
     def test_n001_alternate_date_not_flagged_as_mismatch(self) -> None:
@@ -384,6 +409,50 @@ class TestBuildReportAllowlistEndToEnd:
         report = me.build_report(gold, extractions)
         assert report["per_field"]["expected_restart_date"]["accuracy"] == pytest.approx(1.0)
         assert report["per_notice"][0]["mismatched_fields"] == []
+        assert report["needs_review"]["tn"] == 1
+
+    def test_strict_view_flags_the_same_case_as_a_miss(self) -> None:
+        """Task X-3 체인 리뷰 F1: 위 케이스(관용 뷰에서는 TN·불일치 없음)를 양가 목록
+        없이 다시 보면 — 대안값이 정답으로 인정되지 않으므로 expected_restart_date가
+        불일치가 되고, status는 '자동확정'(양성 예측 아님)이라 needs_review는 FN(미탐)
+        1건이 된다(tp=0, recall=0.0 — 게이트가 이 규약 차이를 전혀 못 잡았다는 뜻)."""
+        gold = {
+            "N-001": {
+                "product_names": ["약품A"],
+                "ingredient_names": ["성분A"],
+                "reason": "사유",
+                "halt_start_date": "2024-10-17",
+                "expected_restart_date": "2024-11-20",
+                "notice_type": "공급부족",
+            }
+        }
+        extractions = {
+            "N-001": {
+                "payload": _payload(
+                    product_names=["약품A"], ingredient_names=["성분A"], reason="사유",
+                    halt_start_date="2024-10-17",
+                    expected_restart_date="2024-11-05",  # notes 병기 대안값(관용만 인정)
+                    notice_type="공급부족",
+                ),
+                "status": "자동확정",
+            }
+        }
+        report = me.build_report(gold, extractions)
+        strict = report["strict"]
+
+        assert strict["expected_restart_date"] == {"accuracy": 0.0, "matched": 0, "total": 1}
+        assert strict["macro_accuracy"] == pytest.approx(0.8)  # (1+1+0+1+1)/5
+        assert strict["needs_review"]["tp"] == 0
+        assert strict["needs_review"]["fn"] == 1
+        assert strict["needs_review"]["recall"] == pytest.approx(0.0)
+        assert strict["needs_review"]["misses"] == [
+            {
+                "notice_id": "N-001", "status": "자동확정",
+                "mismatched_fields": ["expected_restart_date"],
+            }
+        ]
+        # 관용 뷰는 이 테스트 클래스의 위 테스트가 이미 고정했듯 그대로 TN·불일치 없음이다
+        # — strict 신설이 관용 산식을 조금도 바꾸지 않았다는 것을 같은 report에서 재확인한다.
         assert report["needs_review"]["tn"] == 1
 
 
@@ -515,14 +584,18 @@ class TestCLIHappyPath:
         assert set(payload.keys()) == {
             "measured_at", "db", "gold_version", "dataset_content_hash",
             "extracted_count", "unextracted_count", "per_field", "needs_review",
-            "macro_accuracy", "per_notice",
+            "macro_accuracy", "strict", "per_notice",
         }
         assert payload["gold_version"] == "v1"
         assert payload["dataset_content_hash"] == "deadbeef"
         assert payload["extracted_count"] == 4
         assert payload["unextracted_count"] == 1
         assert payload["macro_accuracy"] == pytest.approx(0.85)
+        # 이 픽스처(_EXTRACTIONS)에는 N-001/N-014/N-017이 없어 strict == 관용이다.
+        assert payload["strict"]["macro_accuracy"] == pytest.approx(0.85)
+        assert set(payload["strict"].keys()) == {"expected_restart_date", "macro_accuracy", "needs_review"}
         assert proc.stdout.strip() != ""  # 사람이 읽는 요약이 stdout에 찍힌다
+        assert "strict(" in proc.stdout
 
     def test_missing_required_args_fails_without_writing(
         self, populated_db: Path, tmp_path: Path

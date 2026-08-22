@@ -35,6 +35,18 @@ notice_id만 추출이 없는 경우는 에러가 아니라 정상적인 "unextr
   정답 인정한다 — notes 자유 서술을 파싱하지 않고
   ALTERNATE_EXPECTED_RESTART_DATES 허용 목록 상수로 명시한다(notice_id별로 정확히
   그 대안 값만 인정 — 임의의 다른 날짜까지 허용하는 게 아니다).
+
+## strict 뷰(Task X-3 체인 리뷰 F1 — 양가 목록 미적용 대조)
+위 "관용(lenient)" 대조는 N-001·N-014·N-017 3건에서 ALTERNATE_EXPECTED_RESTART_DATES를
+정답으로 인정한다. 이 허용이 최종 macro_accuracy·needs_review 수치를 얼마나 밀어올리는지
+**숨기지 않고 같은 파일에 병기**하기 위해, 결과 최상위에 `strict` 블록을 추가한다 —
+양가 목록을 전혀 적용하지 않고(정확히 `gold_value == extracted_value`만) 다시 계산한
+{expected_restart_date(accuracy·matched·total), macro_accuracy, needs_review(recall·
+precision·tp·fn·fp·tn·misses·false_alarms)}다. expected_restart_date 외 다른 필드는
+애초에 양가 허용이 없어 관용/strict가 항상 같으므로 strict 블록에 다시 넣지 않는다(관용
+쪽 `per_field`를 그대로 재사용). **기존 키·산식은 전혀 바뀌지 않는다** — `strict`는 최상위에
+추가되는 키 하나일 뿐이고, 관용 뷰(`per_field`·`macro_accuracy`·`needs_review`)는 종전과
+100% 동일하게 계산된다.
 - product_names·ingredient_names: casefold+공백 전체 제거로 정규화한 집합의 완전
   일치율(exact_match_rate, macro_accuracy에 들어가는 "정확도")과 자카드 평균
   (jaccard_mean, 참고 병기 — 자카드는 연속값 유사도라 "정확도"가 아니므로 macro
@@ -164,7 +176,8 @@ def reason_overlap(gold_reason: str, extracted_reason: str) -> bool:
 @dataclass(frozen=True)
 class NoticeComparison:
     notice_id: str
-    field_matches: dict[str, bool]  # SCORED_FIELDS 각각의 일치 여부
+    field_matches: dict[str, bool]  # SCORED_FIELDS 각각의 일치 여부(관용 — 양가 목록 적용)
+    expected_restart_date_strict_match: bool  # 양가 목록 미적용, gold_value == extracted_value만
     product_jaccard: float
     ingredient_jaccard: float
     reason_overlap: bool
@@ -177,6 +190,20 @@ class NoticeComparison:
     def has_mismatch(self) -> bool:
         return len(self.mismatched_fields) > 0
 
+    @property
+    def strict_field_matches(self) -> dict[str, bool]:
+        """엄격 판정 — expected_restart_date만 양가 목록 미적용으로 교체하고 나머지
+        필드는 관용 판정과 동일하다(애초에 양가 허용이 없는 필드라 달라질 이유가 없다)."""
+        return {**self.field_matches, "expected_restart_date": self.expected_restart_date_strict_match}
+
+    @property
+    def strict_mismatched_fields(self) -> list[str]:
+        return [f for f in SCORED_FIELDS if not self.strict_field_matches[f]]
+
+    @property
+    def strict_has_mismatch(self) -> bool:
+        return len(self.strict_mismatched_fields) > 0
+
 
 def compare_notice(notice_id: str, gold: dict, payload: dict) -> NoticeComparison:
     """gold(골드 라벨 1건) vs payload(notice_extractions.payload_json 파싱 결과 1건)."""
@@ -184,12 +211,14 @@ def compare_notice(notice_id: str, gold: dict, payload: dict) -> NoticeCompariso
     extracted_products = normalize_name_set(payload.get("product_names") or [])
     gold_ingredients = normalize_name_set(gold["ingredient_names"])
     extracted_ingredients = normalize_name_set(payload.get("ingredient_names") or [])
+    gold_restart = gold["expected_restart_date"]
+    extracted_restart = payload.get("expected_restart_date")
 
     field_matches = {
         "notice_type": gold["notice_type"] == payload.get("notice_type"),
         "halt_start_date": gold["halt_start_date"] == payload.get("halt_start_date"),
         "expected_restart_date": expected_restart_date_matches(
-            notice_id, gold["expected_restart_date"], payload.get("expected_restart_date")
+            notice_id, gold_restart, extracted_restart
         ),
         "product_names": gold_products == extracted_products,
         "ingredient_names": gold_ingredients == extracted_ingredients,
@@ -198,6 +227,7 @@ def compare_notice(notice_id: str, gold: dict, payload: dict) -> NoticeCompariso
     return NoticeComparison(
         notice_id=notice_id,
         field_matches=field_matches,
+        expected_restart_date_strict_match=(gold_restart == extracted_restart),
         product_jaccard=jaccard(gold_products, extracted_products),
         ingredient_jaccard=jaccard(gold_ingredients, extracted_ingredients),
         reason_overlap=reason_overlap(gold["reason"], payload.get("reason") or ""),
@@ -311,6 +341,68 @@ def build_report(gold_labels: dict[str, dict], extractions: dict[str, dict]) -> 
         "false_alarms": false_alarms,
     }
 
+    # -----------------------------------------------------------------------
+    # strict 뷰(Task X-3 체인 리뷰 F1) — ALTERNATE_EXPECTED_RESTART_DATES 양가 목록을
+    # 전혀 적용하지 않고 다시 계산한다. expected_restart_date 외 필드는 애초에 양가
+    # 허용이 없어 관용과 항상 같으므로 위 per_field를 그대로 재사용한다(재계산 없음).
+    # -----------------------------------------------------------------------
+    strict_matched = sum(
+        1 for nid in extracted_ids if comparisons[nid].expected_restart_date_strict_match
+    )
+    strict_expected_restart_date = {
+        "accuracy": _rate(strict_matched, extracted_count),
+        "matched": strict_matched,
+        "total": extracted_count,
+    }
+
+    strict_macro_components = [
+        per_field["notice_type"]["accuracy"],
+        per_field["halt_start_date"]["accuracy"],
+        strict_expected_restart_date["accuracy"],
+        per_field["product_names"]["exact_match_rate"],
+        per_field["ingredient_names"]["exact_match_rate"],
+    ]
+    strict_macro_accuracy = (
+        round(statistics.mean(strict_macro_components), 4)
+        if all(v is not None for v in strict_macro_components)
+        else None
+    )
+
+    strict_tp = strict_fn = strict_fp = strict_tn = 0
+    strict_misses: list[dict] = []
+    strict_false_alarms: list[dict] = []
+    for nid in extracted_ids:
+        gold_positive = comparisons[nid].strict_has_mismatch
+        predicted_positive = statuses[nid] == "확인 필요"
+        if gold_positive and predicted_positive:
+            strict_tp += 1
+        elif gold_positive and not predicted_positive:
+            strict_fn += 1
+            strict_misses.append(
+                {
+                    "notice_id": nid,
+                    "status": statuses[nid],
+                    "mismatched_fields": comparisons[nid].strict_mismatched_fields,
+                }
+            )
+        elif not gold_positive and predicted_positive:
+            strict_fp += 1
+            strict_false_alarms.append({"notice_id": nid, "status": statuses[nid]})
+        else:
+            strict_tn += 1
+
+    strict = {
+        "expected_restart_date": strict_expected_restart_date,
+        "macro_accuracy": strict_macro_accuracy,
+        "needs_review": {
+            "recall": _rate(strict_tp, strict_tp + strict_fn),
+            "precision": _rate(strict_tp, strict_tp + strict_fp),
+            "tp": strict_tp, "fn": strict_fn, "fp": strict_fp, "tn": strict_tn,
+            "misses": strict_misses,
+            "false_alarms": strict_false_alarms,
+        },
+    }
+
     per_notice = [
         {
             "notice_id": nid,
@@ -327,6 +419,7 @@ def build_report(gold_labels: dict[str, dict], extractions: dict[str, dict]) -> 
         "per_field": per_field,
         "needs_review": needs_review,
         "macro_accuracy": macro_accuracy,
+        "strict": strict,
         "per_notice": per_notice,
     }
 
@@ -399,6 +492,18 @@ def _human_summary(payload: dict) -> str:
     )
     macro = payload["macro_accuracy"]
     lines.append(f"macro_accuracy: {_format_rate(macro)}")
+
+    strict = payload["strict"]
+    strict_erd = strict["expected_restart_date"]
+    strict_nr = strict["needs_review"]
+    lines.append(
+        "strict(양가 목록 미적용): expected_restart_date="
+        f"{_format_rate(strict_erd['accuracy'])}({strict_erd['matched']}/{strict_erd['total']})"
+        f" macro_accuracy={_format_rate(strict['macro_accuracy'])}"
+        f" needs_review recall={_format_rate(strict_nr['recall'])}"
+        f" precision={_format_rate(strict_nr['precision'])}"
+        f" (tp={strict_nr['tp']} fn={strict_nr['fn']} fp={strict_nr['fp']} tn={strict_nr['tn']})"
+    )
     return "\n".join(lines)
 
 
