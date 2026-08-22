@@ -18,8 +18,8 @@ data/blind/*
 eval/results/*
 !eval/results/.gitkeep
 
-# 로컬 산출 데이터(재생성 절차: README 빠른 시작 — 앵커 c34bf4cb 검증)
+# 로컬 산출 데이터(재생성 절차: README 빠른 시작 — 앵커 c34bf4cb 검증).
+# llm_cache.db는 예외로 커밋한다 — 오프라인 재생(무과금 재현)의 원천.
 data/medsupply.db
 data/medsupply.db-wal
 data/medsupply.db-shm
-data/llm_cache.db

@@ -134,6 +134,20 @@ verify_reproducibility 74초 — 5개 합계 약 106초. 재현된 수치는 §�
    키 없이도 이미 웜업된 입력에 한해 결정적으로 재생할 수 있는 시연 모드다. 캐시 키·
    흐름·tracing 계약은 `docs/llm-pipeline.md` 전체를 참조.
 
+4. **다른 머신에서 무과금 재현(키 불요)**: LLM 응답 캐시(`data/llm_cache.db`, 91건)가
+   저장소에 커밋돼 있으므로, 새로 clone한 머신에서 아래를 실행하면 API 키·과금 없이
+   현재와 동일한 상태(추출 20건·매핑 47행·상향 28건·설명 71건)가 재구성된다 —
+   tmp 재현으로 전 단계 검증했다(캐시 적중 91건, API 호출 0, 등급 분포 비트 단위 일치):
+   ```bash
+   # 빠른 시작 ①~⑤(스냅샷 생성·검증·배치)를 먼저 실행한 뒤:
+   LLM_MODE=offline python scripts/process_notices.py --db data/medsupply.db --all
+   python scripts/run_risk_batch.py --db data/medsupply.db --as-of 2026-07-31 --as-of 2026-08-01
+   LLM_MODE=offline python scripts/warm_cache.py --db data/medsupply.db
+   streamlit run app.py
+   ```
+   주의: 공고 원문·프롬프트가 바뀌면 캐시 키가 달라져 offline 재생이 실패한다(그 경우
+   키를 넣고 online으로 재워밍해야 하며 그때만 과금된다).
+
 ## 테스트
 
 ```bash
@@ -160,9 +174,11 @@ pip install -r requirements-dev.txt   # pytest만 추가로 필요
 
 ## 데이터 주의
 
-- `data/medsupply.db`·`data/llm_cache.db`·`data/blind/`는 **미추적**(git에 커밋되지 않음
-  — 셋 다 `.gitignore`로 명시 제외되어 있다). 지워지거나
-  손상되면 위 ③(+ LLM 기능을 쓴 적이 있다면 §LLM 기능의 런북)으로 다시 만든다.
+- `data/medsupply.db`·`data/blind/`는 **미추적**(`.gitignore`로 명시 제외 — 재생성이
+  결정적이라 파일을 나를 필요가 없다). 지워지거나 손상되면 위 ③(+ §LLM 기능 4의
+  오프라인 재현)으로 다시 만든다. 반면 `data/llm_cache.db`는 **커밋 대상**이다 —
+  LLM 응답의 원장이라 이것만 있으면 어느 머신에서든 무과금·무키로 동일 상태를
+  재구성할 수 있다(§LLM 기능 4).
 - **`validate_dataset` 검사 9(action_history 시드 8건)**는 앱(검토 워크벤치)에서 조치를
   저장하면 `action_history` 행수가 8건을 넘어가 **자연히 FAIL로 바뀐다 — 이것은 정상
   동작**이다(앱을 정상적으로 썼다는 증거). 표준 스냅샷으로 되돌리려면 ③을 다시 실행한다.
