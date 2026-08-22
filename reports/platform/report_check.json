@@ -1,15 +1,15 @@
 {
   "report": "docs/verification-report.md",
-  "generated_at": "2026-08-22T11:46:43",
+  "generated_at": "2026-08-22T12:21:24",
   "checked_by": "scripts/check_report_numbers.py",
   "summary": {
     "status": "PASS",
-    "marks": 320,
-    "matched": 320,
+    "marks": 333,
+    "matched": 333,
     "mismatches": 0,
     "unmarked": 0,
-    "skipped_lines": 7,
-    "skipped_tokens": 18,
+    "skipped_lines": 8,
+    "skipped_tokens": 22,
     "required_paths": 42,
     "missing_required_paths": 0
   },
@@ -48,7 +48,7 @@
     },
     "reports/llm/extraction_accuracy.json": {
       "exists": true,
-      "sha256": "3224a3675ae5b54faf12e368212aa3547414977fce2e2132880194b33558ad32"
+      "sha256": "2ed7dee1c41abf11bdec678a434e99bdfd13a86b442b36d9796156bef16d6147"
     },
     "reports/platform/e2e_results.json": {
       "exists": true,
@@ -2547,31 +2547,31 @@
     {
       "line": 396,
       "source": "reports/llm/extraction_accuracy.json",
-      "path": "needs_review.tp",
-      "literal": "0",
-      "json_value": 0,
+      "path": "macro_accuracy",
+      "literal": "100.0%",
+      "json_value": 1.0,
       "literal_found_in_line": true
     },
     {
-      "line": 396,
+      "line": 397,
       "source": "reports/llm/extraction_accuracy.json",
-      "path": "needs_review.fn",
-      "literal": "0",
-      "json_value": 0,
+      "path": "strict.expected_restart_date.accuracy",
+      "literal": "85.0%",
+      "json_value": 0.85,
       "literal_found_in_line": true
     },
     {
-      "line": 396,
+      "line": 397,
       "source": "reports/llm/extraction_accuracy.json",
-      "path": "needs_review.fp",
-      "literal": "0",
-      "json_value": 0,
+      "path": "strict.expected_restart_date.matched",
+      "literal": "17",
+      "json_value": 17,
       "literal_found_in_line": true
     },
     {
-      "line": 396,
+      "line": 397,
       "source": "reports/llm/extraction_accuracy.json",
-      "path": "needs_review.tn",
+      "path": "strict.expected_restart_date.total",
       "literal": "20",
       "json_value": 20,
       "literal_found_in_line": true
@@ -2579,21 +2579,13 @@
     {
       "line": 397,
       "source": "reports/llm/extraction_accuracy.json",
-      "path": "extracted_count",
-      "literal": "20",
-      "json_value": 20,
+      "path": "strict.macro_accuracy",
+      "literal": "97.0%",
+      "json_value": 0.97,
       "literal_found_in_line": true
     },
     {
-      "line": 438,
-      "source": "reports/analytics/detection_metrics_with_notices.json",
-      "path": "meta.extraction_state.extracted_notices",
-      "literal": "20",
-      "json_value": 20,
-      "literal_found_in_line": true
-    },
-    {
-      "line": 463,
+      "line": 398,
       "source": "reports/llm/extraction_accuracy.json",
       "path": "needs_review.tp",
       "literal": "0",
@@ -2601,7 +2593,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 463,
+      "line": 398,
       "source": "reports/llm/extraction_accuracy.json",
       "path": "needs_review.fn",
       "literal": "0",
@@ -2609,7 +2601,7 @@
       "literal_found_in_line": true
     },
     {
-      "line": 463,
+      "line": 398,
       "source": "reports/llm/extraction_accuracy.json",
       "path": "needs_review.fp",
       "literal": "0",
@@ -2617,11 +2609,123 @@
       "literal_found_in_line": true
     },
     {
-      "line": 463,
+      "line": 398,
       "source": "reports/llm/extraction_accuracy.json",
       "path": "needs_review.tn",
       "literal": "20",
       "json_value": 20,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 398,
+      "source": "reports/llm/extraction_accuracy.json",
+      "path": "strict.needs_review.recall",
+      "literal": "0.0%",
+      "json_value": 0.0,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 398,
+      "source": "reports/llm/extraction_accuracy.json",
+      "path": "strict.needs_review.tp",
+      "literal": "0",
+      "json_value": 0,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 398,
+      "source": "reports/llm/extraction_accuracy.json",
+      "path": "strict.needs_review.fn",
+      "literal": "3",
+      "json_value": 3,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 398,
+      "source": "reports/llm/extraction_accuracy.json",
+      "path": "strict.needs_review.fp",
+      "literal": "0",
+      "json_value": 0,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 399,
+      "source": "reports/llm/extraction_accuracy.json",
+      "path": "extracted_count",
+      "literal": "20",
+      "json_value": 20,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 402,
+      "source": "reports/llm/extraction_accuracy.json",
+      "path": "macro_accuracy",
+      "literal": "100.0%",
+      "json_value": 1.0,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 443,
+      "source": "reports/analytics/detection_metrics_with_notices.json",
+      "path": "meta.extraction_state.extracted_notices",
+      "literal": "20",
+      "json_value": 20,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 468,
+      "source": "reports/llm/extraction_accuracy.json",
+      "path": "needs_review.tp",
+      "literal": "0",
+      "json_value": 0,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 468,
+      "source": "reports/llm/extraction_accuracy.json",
+      "path": "needs_review.fn",
+      "literal": "0",
+      "json_value": 0,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 468,
+      "source": "reports/llm/extraction_accuracy.json",
+      "path": "needs_review.fp",
+      "literal": "0",
+      "json_value": 0,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 468,
+      "source": "reports/llm/extraction_accuracy.json",
+      "path": "needs_review.tn",
+      "literal": "20",
+      "json_value": 20,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 468,
+      "source": "reports/llm/extraction_accuracy.json",
+      "path": "strict.needs_review.recall",
+      "literal": "0.0%",
+      "json_value": 0.0,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 468,
+      "source": "reports/llm/extraction_accuracy.json",
+      "path": "strict.needs_review.tp",
+      "literal": "0",
+      "json_value": 0,
+      "literal_found_in_line": true
+    },
+    {
+      "line": 468,
+      "source": "reports/llm/extraction_accuracy.json",
+      "path": "strict.needs_review.fn",
+      "literal": "3",
+      "json_value": 3,
       "literal_found_in_line": true
     }
   ],
@@ -2687,18 +2791,29 @@
         "0",
         "3"
       ]
+    },
+    {
+      "line": 401,
+      "reason": "data/llm_cache.db(llm_explanations 71건의 payload_json.hallucination_flags를 직접 순회 집계 — .gitignore 대상이라 committed reports/ JSON에 없다)",
+      "tokens": [
+        "1",
+        "44",
+        "62.0%",
+        "71"
+      ]
     }
   ],
   "allowed_tokens_by_rule": {
+    "audit_ref": 0,
     "code_span": 15,
     "heading_number": 24,
-    "html_comment": 349,
-    "identifier": 11,
+    "html_comment": 363,
+    "identifier": 20,
     "iso_date": 18,
     "ko_ordinal": 44,
     "list_number": 15,
     "percentile_label": 0,
-    "section_ref": 26,
+    "section_ref": 25,
     "seed": 7,
     "table_separator": 0
   },

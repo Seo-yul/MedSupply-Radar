@@ -140,7 +140,7 @@ verify_reproducibility 74초 — 5개 합계 약 106초. 재현된 수치는 §�
 pip install -r requirements-dev.txt   # pytest만 추가로 필요
 .venv/bin/python -m pytest tests/ -q
 ```
-현재 **1314 passed, 4 skipped**(4건은 아래 실 API 스모크 — RUN_LLM_SMOKE 미설정 시
+현재 **1317 passed, 4 skipped**(4건은 아래 실 API 스모크 — RUN_LLM_SMOKE 미설정 시
 항상 skip).
 
 **실 API 스모크**: judge·추출·설명 생성 각 1~2건은 실제 Anthropic/OpenAI API를 호출한다
@@ -250,6 +250,19 @@ pip install -r requirements-dev.txt   # pytest만 추가로 필요
 > 문제였고, 2차에서 그 문항들을 들어냈다"는 뜻에 가깝다. 반대로 오탐률(2차 44.7% vs
 > 표준 45.2%)은 2차에서 미끼 주입이 0건이라 표준과 like-for-like 비교가 처음으로
 > 성립한다.
+
+**공고 추출 정확도**(Task X-2 실측, `reports/llm/extraction_accuracy.json`): 관용(lenient)
+대조 macro_accuracy 100.0%. 이 100%는 N-001·N-014·N-017 세 건에서 사전 등록된 대안값
+(재개일자/정상화 예상일자 이중 표기, S-24 리뷰 근거)을 정답으로 인정한 결과다 — 그
+인정을 걷어낸 strict 대조로는 expected_restart_date 85.0%(17/20)·macro_accuracy 97.0%로
+내려가고, needs_review recall이 0.0%(tp=0/fn=3)다(게이트가 이 규약 차이 세 건을 전부
+자동확정으로 통과시켰다는 뜻). 두 대조의 전체 비교는 `docs/verification-report.md` §5 참조.
+
+**AI 설명 사후 대조 플래그**(hallucination_flags, `warm_cache.py`가 생성한 원인 설명 71건
+중 직접 집계 — `data/llm_cache.db`는 미추적이라 committed JSON 출처가 없다): 44건
+(62.0%)에 플래그가 1개 이상 있다. role-blind 부분 신호일 뿐 무결 보증이 아니며
+(`medsupply/llm/grounding.py`), 워크벤치 화면에 "사후 대조 경고 N건" 배지로 그대로
+노출된다 — 유리한 수치와 같은 자리에서, 불리한 수치도 감추지 않는다.
 
 ## 디렉터리 구조 개요
 
